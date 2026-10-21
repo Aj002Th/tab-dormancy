@@ -4,4 +4,6 @@ import '../styles/tokens.css';
 import '../styles/base.css';
 import '../styles/dashboard.css';
 
-render(<Dashboard />, document.getElementById('app')!);
+const root = document.getElementById('app');
+if (!root) throw new Error('missing #app element');
+render(<Dashboard />, root);

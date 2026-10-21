@@ -8,6 +8,8 @@ const manifest = JSON.parse(readFileSync('public/manifest.json', 'utf8')) as {
   host_permissions?: string[];
   content_scripts?: unknown[];
   background: { service_worker: string; type: string };
+  action: { default_popup: string };
+  options_ui: { page: string; open_in_tab: boolean };
 };
 
 describe('manifest', () => {
@@ -15,6 +17,8 @@ describe('manifest', () => {
     expect(manifest.manifest_version).toBe(3);
     expect(manifest.minimum_chrome_version).toBe('121');
     expect(manifest.background).toEqual({ service_worker: 'background.js', type: 'module' });
+    expect(manifest.action.default_popup).toBe('popup.html');
+    expect(manifest.options_ui).toEqual({ page: 'dashboard.html', open_in_tab: true });
   });
 
   it('requests exactly the approved permissions', () => {

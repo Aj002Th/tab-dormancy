@@ -64,6 +64,8 @@ const manifest = JSON.parse(readFileSync('public/manifest.json', 'utf8')) as {
   host_permissions?: string[];
   content_scripts?: unknown[];
   background: { service_worker: string; type: string };
+  action: { default_popup: string };
+  options_ui: { page: string; open_in_tab: boolean };
 };
 
 describe('manifest', () => {
@@ -71,6 +73,8 @@ describe('manifest', () => {
     expect(manifest.manifest_version).toBe(3);
     expect(manifest.minimum_chrome_version).toBe('121');
     expect(manifest.background).toEqual({ service_worker: 'background.js', type: 'module' });
+    expect(manifest.action.default_popup).toBe('popup.html');
+    expect(manifest.options_ui).toEqual({ page: 'dashboard.html', open_in_tab: true });
   });
 
   it('requests exactly the approved permissions', () => {
@@ -287,7 +291,9 @@ import '../styles/tokens.css';
 import '../styles/base.css';
 import '../styles/popup.css';
 
-render(<Popup />, document.getElementById('app')!);
+const root = document.getElementById('app');
+if (!root) throw new Error('missing #app element');
+render(<Popup />, root);
 ```
 
 Create `src/ui/popup/Popup.tsx`:
@@ -312,7 +318,9 @@ import '../styles/tokens.css';
 import '../styles/base.css';
 import '../styles/dashboard.css';
 
-render(<Dashboard />, document.getElementById('app')!);
+const root = document.getElementById('app');
+if (!root) throw new Error('missing #app element');
+render(<Dashboard />, root);
 ```
 
 Create `src/ui/dashboard/Dashboard.tsx`:
@@ -449,7 +457,7 @@ for (const size of [16, 32, 48, 128]) {
 Create `scripts/check-build.mjs`:
 
 ```js
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 
 const required = ['dist/manifest.json', 'dist/popup.html', 'dist/dashboard.html', 'dist/background.js'];
 for (const file of required) {
@@ -459,7 +467,12 @@ for (const file of required) {
 const manifest = JSON.parse(readFileSync('dist/manifest.json', 'utf8'));
 if (manifest.manifest_version !== 3) throw new Error('manifest is not MV3');
 
-const jsBytes = required.filter((f) => f.endsWith('.js')).reduce((sum, f) => sum + statSync(f).size, 0);
+const assets = existsSync('dist/assets') ? readdirSync('dist/assets') : [];
+const jsFiles = [
+  ...required.filter((file) => file.endsWith('.js')),
+  ...assets.filter((file) => file.endsWith('.js')).map((file) => `dist/assets/${file}`),
+];
+const jsBytes = jsFiles.reduce((sum, file) => sum + statSync(file).size, 0);
 if (jsBytes > 200_000) throw new Error(`JavaScript bundle too large: ${jsBytes} bytes`);
 console.log(`build ok (${jsBytes} bytes js)`);
 ```
