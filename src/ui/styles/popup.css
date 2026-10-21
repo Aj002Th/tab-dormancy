@@ -1,0 +1,6 @@
+.popup {
+  width: 380px;
+  min-height: 240px;
+  padding: 18px;
+  background: var(--surface);
+}

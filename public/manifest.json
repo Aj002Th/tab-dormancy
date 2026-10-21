@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Dormancy",
+  "version": "0.1.0",
+  "description": "在系统空闲时按规则关闭标签页，并保留可恢复的关闭历史。",
+  "minimum_chrome_version": "121",
+  "permissions": ["tabs", "storage", "idle", "alarms", "tabGroups", "sessions"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_popup": "popup.html", "default_title": "Tab Dormancy" },
+  "options_ui": { "page": "dashboard.html", "open_in_tab": true },
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  }
+}
