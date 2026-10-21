@@ -1,7 +1,7 @@
 # Tab Dormancy 设计文档
 
 - 日期：2026-10-22
-- 状态：待评审
+- 状态：已批准
 - 目标浏览器：Chrome / Edge（Chromium，Manifest V3，最低 Chrome 121）
 - 项目：`tab-dormancy`
 
@@ -168,7 +168,7 @@ type Request =
 type Response<T> = { ok: true; data: T } | { ok: false; error: ErrorCode; message: string };
 ```
 
-错误码：`INVALID_EXPRESSION`、`UNSUPPORTED_FACT`、`BUSY`、`STORAGE_FAILED`、`NOT_FOUND`、`TAB_CHANGED`、`PREVIEW_REQUIRED`、`INTERNAL`。
+错误码：`INVALID_EXPRESSION`、`INVALID_SETTINGS`、`UNSUPPORTED_FACT`、`BUSY`、`STORAGE_FAILED`、`NOT_FOUND`、`TAB_CHANGED`、`PREVIEW_REQUIRED`、`FORBIDDEN`、`INTERNAL`。
 
 ## 6. 数据模型
 
