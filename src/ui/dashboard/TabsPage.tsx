@@ -118,7 +118,7 @@ export function TabsPage() {
 
       <div class="tab-list">
         {visible.map((item) => (
-          <details class="tab-row" data-testid={`tab-row-${item.facts.tabId}`}>
+          <details key={item.facts.tabId} class="tab-row" data-testid={`tab-row-${item.facts.tabId}`}>
             <summary class="tab-summary">
               <span class={item.matched ? 'status-dot matched' : 'status-dot'} />
               <span class="tab-title">{item.facts.title || item.facts.url}</span>
