@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { parseRoute, type Route, routeHref } from './routes';
+import { StrategiesPage } from './StrategiesPage';
 import { TabsPage } from './TabsPage';
 
 const NAV: Array<{ route: Route; label: string }> = [
@@ -39,7 +40,7 @@ export function Dashboard() {
       <main class="content">
         {route === 'tabs' && <TabsPage />}
         {route === 'history' && <p class="muted">关闭历史页面将在下一个任务接入。</p>}
-        {route === 'strategies' && <p class="muted">策略页面将在下一个任务接入。</p>}
+        {route === 'strategies' && <StrategiesPage />}
         {route === 'settings' && <p class="muted">设置页面将在后续任务接入。</p>}
       </main>
     </div>
