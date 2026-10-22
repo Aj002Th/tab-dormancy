@@ -626,6 +626,30 @@ export class TabDormancyService {
     if (!next.lockCleanupEnabled) await this.deps.browser.clearAlarm(ALARM_LOCKED);
     return next;
   }
+
+  async onLocked(): Promise<void> {
+    await this.bootstrap();
+    const settings = await this.deps.repo.getSettings();
+    if (!settings.lockCleanupEnabled) return;
+    if (settings.lockDelayMinutes <= 0) {
+      await this.runCleanup('locked');
+      return;
+    }
+    await this.deps.browser.createAlarm(ALARM_LOCKED, { delayInMinutes: settings.lockDelayMinutes });
+  }
+
+  async onActive(): Promise<void> {
+    await this.deps.browser.clearAlarm(ALARM_LOCKED);
+  }
+
+  async onLockAlarm(): Promise<void> {
+    const state = await this.deps.browser.queryIdleState(60);
+    if (state === 'locked' || state === 'idle') {
+      await this.runCleanup('locked');
+    } else {
+      await this.deps.browser.clearAlarm(ALARM_LOCKED);
+    }
+  }
 }
 
 function isNoSuchTabError(error: unknown): boolean {
