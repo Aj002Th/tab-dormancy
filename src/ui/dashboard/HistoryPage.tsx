@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { formatRelativeTime } from '../../shared/time';
-import type { HistoryQuery, HistoryQueryResult, RestoreOptions, Trigger } from '../../shared/types';
+import type { HistoryQuery, HistoryQueryResult, RestoreOptions, RestoreResult, Trigger } from '../../shared/types';
 import { messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
@@ -21,6 +21,7 @@ export function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [failures, setFailures] = useState<RestoreResult['failed']>([]);
 
   async function load() {
     setLoading(true);
@@ -48,12 +49,17 @@ export function HistoryPage() {
   async function restore() {
     if (selected.size === 0) return;
     try {
-      const response = await send<{ restored: number; failed: unknown[] }>({
+      const response = await send<RestoreResult>({
         type: 'history.restore',
         ids: [...selected],
         options: { mode, complete },
       });
-      setNotice(`已恢复 ${response.restored} 个标签`);
+      setFailures(response.failed);
+      setNotice(
+        response.failed.length > 0
+          ? `已恢复 ${response.restored} 个标签，${response.failed.length} 个失败`
+          : `已恢复 ${response.restored} 个标签`,
+      );
       setSelected(new Set());
       await load();
     } catch (error) {
@@ -101,6 +107,18 @@ export function HistoryPage() {
 
       {error && <Banner tone="error">{error}</Banner>}
       {notice && <Banner>{notice}</Banner>}
+      {failures.length > 0 && (
+        <Banner tone="error">
+          <div>以下标签恢复失败：</div>
+          <ul class="restore-failures">
+            {failures.map((failure) => (
+              <li key={failure.id}>
+                {failure.url}：{failure.reason}
+              </li>
+            ))}
+          </ul>
+        </Banner>
+      )}
 
       <div class="toolbar">
         <input
