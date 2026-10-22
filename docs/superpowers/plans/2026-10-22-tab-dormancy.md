@@ -416,7 +416,7 @@ Create `src/ui/styles/popup.css`:
 
 ```css
 .popup {
-  width: 380px;
+  width: 360px;
   min-height: 240px;
   padding: 18px;
   background: var(--surface);
@@ -5658,7 +5658,7 @@ Replace `src/ui/styles/popup.css`:
 
 ```css
 .popup {
-  width: 380px;
+  width: 360px;
   min-height: 260px;
   padding: 18px;
   background: var(--surface);
