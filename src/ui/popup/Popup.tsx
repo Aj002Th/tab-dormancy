@@ -15,14 +15,24 @@ export function Popup() {
   }, []);
 
   async function load() {
+    let snapshot: StateSnapshot;
     try {
-      const [snapshot, preview] = await Promise.all([
-        send<StateSnapshot>({ type: 'state.get' }),
-        send<CleanupPreview>({ type: 'cleanup.preview', source: 'popup' }),
-      ]);
-      dispatch({ type: 'loaded', snapshot, preview });
+      snapshot = await send<StateSnapshot>({ type: 'state.get' });
     } catch (error) {
       dispatch({ type: 'error', message: messageOf(error) });
+      return;
+    }
+
+    try {
+      const preview = await send<CleanupPreview>({ type: 'cleanup.preview', source: 'popup' });
+      dispatch({ type: 'loaded', snapshot, preview });
+    } catch (_error) {
+      dispatch({
+        type: 'loaded',
+        snapshot,
+        preview: null,
+        error: '无法获取清理预览，请稍后重试。',
+      });
     }
   }
 
@@ -50,6 +60,7 @@ export function Popup() {
 
   const snapshot = state.snapshot;
   const preview = state.preview;
+  const hasPreview = snapshot && preview;
 
   return (
     <main class="popup">
@@ -71,11 +82,28 @@ export function Popup() {
         </>
       )}
 
-      {snapshot && preview && (state.phase === 'ready' || state.phase === 'confirm') && (
+      {snapshot && !preview && state.phase === 'ready' && (
         <>
           {snapshot.warnings.map((warning) => (
             <Banner key={warning}>{warning}</Banner>
           ))}
+          <Banner tone="error">{state.error}</Banner>
+          <Button onClick={() => void load()}>重试</Button>
+
+          <p class="muted popup-footnote">
+            {snapshot.lastCleanup
+              ? `上次清理：${formatRelativeTime(Date.now(), snapshot.lastCleanup.at)}，关闭 ${snapshot.lastCleanup.closed} 个`
+              : '还没有清理记录'}
+          </p>
+        </>
+      )}
+
+      {hasPreview && (state.phase === 'ready' || state.phase === 'confirm') && (
+        <>
+          {snapshot.warnings.map((warning) => (
+            <Banner key={warning}>{warning}</Banner>
+          ))}
+          {state.error && <Banner tone="error">{state.error}</Banner>}
           <section class="popup-count">
             <span class="popup-number" data-testid="popup-preview-count">
               {preview.matched}

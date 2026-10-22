@@ -111,6 +111,22 @@ describe('history service', () => {
     expect((await browser.queryTabs()).some((tab) => tab.url === 'https://example.com/b')).toBe(true);
   });
 
+  it('returns results newest-first regardless of storage order', async () => {
+    const { service } = await setup([
+      record('a', { closedAt: now - 200 }),
+      record('b', { closedAt: now }),
+      record('c', { closedAt: now - 100 }),
+    ]);
+
+    const all = await service.queryHistory({ page: 1, pageSize: 50 });
+    expect(all.items.map((item) => item.id)).toEqual(['b', 'c', 'a']);
+    expect(all.total).toBe(3);
+
+    const page1 = await service.queryHistory({ page: 1, pageSize: 2 });
+    expect(page1.items.map((item) => item.id)).toEqual(['b', 'c']);
+    expect(page1.total).toBe(3);
+  });
+
   it('deletes and clears history', async () => {
     const { repo, service } = await setup([record('a'), record('b')]);
     await service.deleteHistory(['a']);

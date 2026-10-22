@@ -376,6 +376,8 @@ export class TabDormancyService {
       return [item.url, item.title, item.domain].some((value) => value.toLowerCase().includes(search));
     });
 
+    filtered.sort((a, b) => b.closedAt - a.closedAt);
+
     const pageSize = Math.max(1, Math.min(query.pageSize || 50, 200));
     const page = Math.max(1, query.page || 1);
     const start = (page - 1) * pageSize;

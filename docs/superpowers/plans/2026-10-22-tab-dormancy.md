@@ -1173,7 +1173,36 @@ Create `tests/unit/presets.test.ts`:
 ```ts
 import { describe, expect, it } from 'vitest';
 import { cloneStrategy, createPresetStrategies } from '../../src/core/rules/presets';
+import { evaluateStrategy } from '../../src/core/rules/evaluate';
 import { signatureOf } from '../../src/core/rules/signature';
+import type { Capabilities, TabFacts } from '../../src/shared/types';
+
+const caps: Capabilities = { chromeMajor: 121, lastAccessed: true, frozen: true, tabGroups: true, sessions: true };
+
+function staleFacts(overrides: Partial<TabFacts> = {}): TabFacts {
+  return {
+    tabId: 1,
+    windowId: 10,
+    url: 'https://example.com/page',
+    title: 'Example',
+    domain: 'example.com',
+    lastActiveMinutes: 20000,
+    totalTabCount: 5,
+    windowTabCount: 3,
+    pinned: false,
+    audible: false,
+    active: false,
+    muted: false,
+    discarded: false,
+    frozen: false,
+    grouped: false,
+    groupCollapsed: false,
+    windowFocused: true,
+    onlyTabInWindow: false,
+    groupTitle: '',
+    ...overrides,
+  };
+}
 
 describe('presets', () => {
   it('creates the three built-in strategies', () => {
@@ -1190,6 +1219,51 @@ describe('presets', () => {
     expect(clone.id).toBe('custom:1');
     expect(clone.name).toBe('标准 副本');
     expect(await signatureOf(clone.expression)).toBe(await signatureOf(source.expression));
+  });
+
+  describe('preset matching behavior', () => {
+    const presets = createPresetStrategies(0);
+    const mild = presets[0]!;
+    const standard = presets[1]!;
+    const aggressive = presets[2]!;
+
+    it('mild: matches a stale unprotected tab', () => {
+      expect(evaluateStrategy(mild, staleFacts({ lastActiveMinutes: 20000 }), caps).matched).toBe(true);
+    });
+
+    it('mild: does not match a recent tab', () => {
+      expect(evaluateStrategy(mild, staleFacts({ lastActiveMinutes: 5000 }), caps).matched).toBe(false);
+    });
+
+    it('mild: does not match pinned', () => {
+      expect(evaluateStrategy(mild, staleFacts({ pinned: true }), caps).matched).toBe(false);
+    });
+
+    it('mild: does not match audible', () => {
+      expect(evaluateStrategy(mild, staleFacts({ audible: true }), caps).matched).toBe(false);
+    });
+
+    it('mild: does not match active', () => {
+      expect(evaluateStrategy(mild, staleFacts({ active: true }), caps).matched).toBe(false);
+    });
+
+    it('mild: does not match grouped', () => {
+      expect(evaluateStrategy(mild, staleFacts({ grouped: true }), caps).matched).toBe(false);
+    });
+
+    // ... standard and aggressive analogous tests ...
+
+    it('aggressive DOES match a grouped tab (no grouped protection)', () => {
+      expect(evaluateStrategy(aggressive, staleFacts({ grouped: true }), caps).matched).toBe(true);
+    });
+
+    it('standard does not match a stale grouped tab', () => {
+      expect(evaluateStrategy(standard, staleFacts({ grouped: true }), caps).matched).toBe(false);
+    });
+
+    it('mild does not match a stale grouped tab', () => {
+      expect(evaluateStrategy(mild, staleFacts({ grouped: true }), caps).matched).toBe(false);
+    });
   });
 });
 ```
@@ -1524,7 +1598,10 @@ export function createPresetStrategies(now: number): Strategy[] {
       builtin: true,
       expression: all('preset:mild:root', [
         condition('preset:mild:time', 'lastActiveMinutes', 'gt', 10_080),
+        not('preset:mild:pinned', condition('preset:mild:pinned:cond', 'pinned', 'is', true)),
+        not('preset:mild:audible', condition('preset:mild:audible:cond', 'audible', 'is', true)),
         not('preset:mild:active', condition('preset:mild:active:cond', 'active', 'is', true)),
+        not('preset:mild:grouped', condition('preset:mild:grouped:cond', 'grouped', 'is', true)),
       ]),
       createdAt: now,
       updatedAt: now,
@@ -1539,6 +1616,7 @@ export function createPresetStrategies(now: number): Strategy[] {
         condition('preset:standard:time', 'lastActiveMinutes', 'gt', 4_320),
         not('preset:standard:pinned', condition('preset:standard:pinned:cond', 'pinned', 'is', true)),
         not('preset:standard:audible', condition('preset:standard:audible:cond', 'audible', 'is', true)),
+        not('preset:standard:active', condition('preset:standard:active:cond', 'active', 'is', true)),
         not('preset:standard:grouped', condition('preset:standard:grouped:cond', 'grouped', 'is', true)),
       ]),
       createdAt: now,
@@ -1552,8 +1630,9 @@ export function createPresetStrategies(now: number): Strategy[] {
       builtin: true,
       expression: all('preset:aggressive:root', [
         condition('preset:aggressive:time', 'lastActiveMinutes', 'gt', 1_440),
-        not('preset:aggressive:active', condition('preset:aggressive:active:cond', 'active', 'is', true)),
         not('preset:aggressive:pinned', condition('preset:aggressive:pinned:cond', 'pinned', 'is', true)),
+        not('preset:aggressive:audible', condition('preset:aggressive:audible:cond', 'audible', 'is', true)),
+        not('preset:aggressive:active', condition('preset:aggressive:active:cond', 'active', 'is', true)),
       ]),
       createdAt: now,
       updatedAt: now,

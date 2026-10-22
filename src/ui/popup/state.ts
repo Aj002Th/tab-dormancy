@@ -11,7 +11,7 @@ export type PopupState = {
 };
 
 export type PopupAction =
-  | { type: 'loaded'; snapshot: StateSnapshot; preview: CleanupPreview }
+  | { type: 'loaded'; snapshot: StateSnapshot; preview: CleanupPreview | null; error?: string }
   | { type: 'error'; message: string }
   | { type: 'confirm' }
   | { type: 'cancel' }
@@ -26,7 +26,13 @@ export function initialPopupState(): PopupState {
 export function popupReducer(state: PopupState, action: PopupAction): PopupState {
   switch (action.type) {
     case 'loaded':
-      return { ...state, phase: 'ready', snapshot: action.snapshot, preview: action.preview, error: null };
+      return {
+        ...state,
+        phase: 'ready',
+        snapshot: action.snapshot,
+        preview: action.preview,
+        error: action.error ?? null,
+      };
     case 'error':
       return { ...state, phase: 'error', error: action.message };
     case 'confirm':
