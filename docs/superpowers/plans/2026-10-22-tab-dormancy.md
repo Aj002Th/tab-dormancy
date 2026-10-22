@@ -5235,7 +5235,7 @@ export async function handleRequest(message: unknown, service: TabDormancyServic
       case 'settings.update':
         return ok(await service.updateSettings(request.patch));
       case 'debug.simulate-idle':
-        if (import.meta.env.DEV) return ok(await service.runCleanup('manual'));
+        if (import.meta.env.MODE === 'development') return ok(await service.runCleanup('manual'));
         return fail('NOT_FOUND', '仅开发模式可用');
       default:
         return fail('NOT_FOUND', '未知消息');

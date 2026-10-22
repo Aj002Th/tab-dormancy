@@ -13,6 +13,7 @@ import type { Repo } from '../platform/storage';
 import { runWithConcurrency } from '../shared/async';
 import { ALARM_LOCKED, LIMITS, SCHEMA_VERSION } from '../shared/constants';
 import { AppError } from '../shared/errors';
+import type { StrategyPreview } from '../shared/messages';
 import type {
   Capabilities,
   CleanupPreview,
@@ -117,6 +118,31 @@ export class TabDormancyService {
         .map((tab) => ({ tabId: tab.tabId, title: tab.title, url: tab.url, trace: tab.trace })),
       totalManagedTabs: plan.totalManagedTabs,
       strategyName: active.name,
+    };
+  }
+
+  async previewStrategy(strategy: Strategy): Promise<StrategyPreview> {
+    await this.bootstrap();
+    const caps = await this.getCapabilities();
+    const validation = validateStrategy(strategy, caps);
+    if (!validation.valid) {
+      throw new AppError('INVALID_EXPRESSION', validation.issues[0]?.message ?? '规则无效');
+    }
+    this.assertUsable(strategy, caps);
+    const [tabs, windows, groups] = await Promise.all([
+      this.deps.browser.queryTabs(),
+      this.deps.browser.getWindows(),
+      this.deps.browser.getTabGroups(),
+    ]);
+    const plan = planCleanup({ tabs, windows, groups, strategy, capabilities: caps, now: this.deps.now() });
+    return {
+      matched: plan.matched.length,
+      sample: plan.matched
+        .slice(0, 5)
+        .map((tab) => ({ tabId: tab.tabId, title: tab.title, url: tab.url, trace: tab.trace })),
+      totalManagedTabs: plan.totalManagedTabs,
+      strategyName: strategy.name,
+      signature: await signatureOf(strategy.expression),
     };
   }
 
