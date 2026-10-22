@@ -1,7 +1,7 @@
 import { detectCapabilities } from '../core/capabilities';
 import { planCleanup, revalidatePlannedTab } from '../core/cleaner';
 import { buildFacts, managedTabs } from '../core/facts';
-import { buildClosedRecords, toSummary } from '../core/history';
+import { buildClosedRecords, markRestored, planRestore, toSummary } from '../core/history';
 import { selectExpired } from '../core/retention';
 import { evaluateStrategy } from '../core/rules/evaluate';
 import { createPresetStrategies } from '../core/rules/presets';
@@ -18,6 +18,10 @@ import type {
   CleanupPreview,
   CleanupResult,
   ClosedTabRecord,
+  HistoryQuery,
+  HistoryQueryResult,
+  RestoreOptions,
+  RestoreResult,
   Settings,
   SettingsPatch,
   StateSnapshot,
@@ -331,6 +335,140 @@ export class TabDormancyService {
     if (removedIds.length === 0) return;
     await this.deps.repo.deleteHistoryRecords(removedIds);
     await this.deps.repo.setHistoryIndex(kept);
+  }
+
+  async queryHistory(query: HistoryQuery): Promise<HistoryQueryResult> {
+    await this.bootstrap();
+    const index = await this.deps.repo.getHistoryIndex();
+    const search = (query.query ?? '').trim().toLowerCase();
+    const filtered = index.filter((item) => {
+      if (item.status !== 'closed') return false;
+      if (query.trigger && item.trigger !== query.trigger) return false;
+      if (query.restored === true && item.restoredAt === null) return false;
+      if (query.restored === false && item.restoredAt !== null) return false;
+      if (!search) return true;
+      return [item.url, item.title, item.domain].some((value) => value.toLowerCase().includes(search));
+    });
+
+    const pageSize = Math.max(1, Math.min(query.pageSize || 50, 200));
+    const page = Math.max(1, query.page || 1);
+    const start = (page - 1) * pageSize;
+    return {
+      items: filtered.slice(start, start + pageSize),
+      total: filtered.length,
+      page,
+      pageSize,
+    };
+  }
+
+  async restoreHistory(ids: string[], options: RestoreOptions): Promise<RestoreResult> {
+    await this.bootstrap();
+    const records = await this.deps.repo.getHistoryRecords(ids);
+    if (records.length === 0) return { restored: 0, failed: [] };
+
+    const currentWindow = await this.deps.browser.getLastFocusedWindow();
+    const currentWindowId = currentWindow.id ?? 1;
+    const groups = planRestore(records, options, currentWindowId);
+    const restored = new Map<string, number>();
+    const failed: RestoreResult['failed'] = [];
+
+    for (const group of groups) {
+      let windowId: number | undefined = group.windowId === 'new' ? undefined : group.windowId;
+      if (group.windowId === 'new') {
+        const first = group.records[0];
+        if (!first) continue;
+        try {
+          const created = await this.deps.browser.createWindow({ url: first.url, focused: false });
+          windowId = created.id;
+          const createdTabId = created.tabs?.[0]?.id;
+          if (createdTabId !== undefined) restored.set(first.id, createdTabId);
+        } catch (error) {
+          failed.push({
+            id: first.id,
+            url: first.url,
+            reason: error instanceof Error ? error.message : '无法创建窗口',
+          });
+          continue;
+        }
+      }
+
+      for (const item of group.records) {
+        if (restored.has(item.id)) continue;
+        try {
+          const tab = await this.restoreOne(item, options, windowId);
+          if (tab?.id !== undefined) restored.set(item.id, tab.id);
+        } catch (error) {
+          failed.push({ id: item.id, url: item.url, reason: error instanceof Error ? error.message : '恢复失败' });
+        }
+      }
+
+      if (windowId === undefined) continue;
+      for (const tabGroup of group.groups) {
+        const tabIds = tabGroup.records
+          .map((item) => restored.get(item.id))
+          .filter((id): id is number => typeof id === 'number');
+        if (tabIds.length === 0) continue;
+        try {
+          const groupId = await this.deps.browser.groupTabs(tabIds, { windowId });
+          const properties: chrome.tabGroups.UpdateProperties = {
+            title: tabGroup.groupTitle,
+            collapsed: tabGroup.groupCollapsed,
+          };
+          if (tabGroup.groupColor) properties.color = tabGroup.groupColor as chrome.tabGroups.ColorEnum;
+          await this.deps.browser.updateTabGroup(groupId, properties);
+        } catch (error) {
+          failed.push({
+            id: tabGroup.records[0]?.id ?? tabGroup.key,
+            url: tabGroup.records[0]?.url ?? '',
+            reason: error instanceof Error ? error.message : '无法重建标签组',
+          });
+        }
+      }
+    }
+
+    const restoredIds = [...restored.keys()];
+    const index = await this.deps.repo.getHistoryIndex();
+    await this.deps.repo.setHistoryIndex(markRestored(index, restoredIds, this.deps.now()));
+    await this.deps.repo.setHistoryRecords(
+      records.filter((item) => restored.has(item.id)).map((item) => ({ ...item, restoredAt: this.deps.now() })),
+    );
+    return { restored: restoredIds.length, failed };
+  }
+
+  async deleteHistory(ids: string[]): Promise<void> {
+    await this.bootstrap();
+    const index = await this.deps.repo.getHistoryIndex();
+    const set = new Set(ids);
+    await this.deps.repo.deleteHistoryRecords(ids);
+    await this.deps.repo.setHistoryIndex(index.filter((item) => !set.has(item.id)));
+  }
+
+  async clearHistory(): Promise<void> {
+    await this.bootstrap();
+    const index = await this.deps.repo.getHistoryIndex();
+    await this.deps.repo.deleteHistoryRecords(index.map((item) => item.id));
+    await this.deps.repo.setHistoryIndex([]);
+  }
+
+  private async restoreOne(
+    record: ClosedTabRecord,
+    options: RestoreOptions,
+    windowId: number | undefined,
+  ): Promise<chrome.tabs.Tab | undefined> {
+    if (options.complete && record.sessionId) {
+      try {
+        const session = await this.deps.browser.restoreSession(record.sessionId);
+        if (session.tab) return session.tab;
+      } catch {
+        // fall through to normal tab creation
+      }
+    }
+    return this.deps.browser.createTab({
+      url: record.url,
+      active: false,
+      pinned: record.pinned,
+      ...(windowId !== undefined ? { windowId } : {}),
+    });
   }
 
   private async acquireLock(runId: string): Promise<boolean> {
