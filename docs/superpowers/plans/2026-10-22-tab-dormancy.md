@@ -7479,7 +7479,7 @@ describe('history selection', () => {
   it('selects all and reports completion', () => {
     const all = selectAll(['a', 'b', 'c']);
     expect(allSelected(['a', 'b'], all)).toBe(true);
-    expect(allSelected(['a'], all)).toBe(false);
+    expect(allSelected(['a', 'b'], new Set(['a']))).toBe(false);
   });
 });
 ```
