@@ -3,6 +3,7 @@ import { TabDormancyService } from '../../src/background/service';
 import { registerTriggers } from '../../src/background/triggers';
 import { Repo } from '../../src/platform/storage';
 import { ALARM_LOCKED } from '../../src/shared/constants';
+import { defined } from '../helpers/assert-defined';
 import { FakeBrowser } from './fake-browser';
 
 const now = 1_000_000_000;
@@ -34,7 +35,7 @@ describe('triggers', () => {
     const tab = oldTab(browser);
     browser.emitIdle('idle');
     await vi.waitFor(async () => {
-      expect(await browser.getTab(tab.id!)).toBeNull();
+      expect(await browser.getTab(defined(tab.id, 'tab id'))).toBeNull();
     });
   });
 
@@ -53,7 +54,7 @@ describe('triggers', () => {
     await vi.waitFor(() => expect(browser.alarms.has(ALARM_LOCKED)).toBe(true));
     browser.emitAlarm(ALARM_LOCKED);
     await vi.waitFor(async () => {
-      expect(await browser.getTab(tab.id!)).toBeNull();
+      expect(await browser.getTab(defined(tab.id, 'tab id'))).toBeNull();
     });
   });
 
@@ -63,6 +64,6 @@ describe('triggers', () => {
     browser.emitIdle('active');
     browser.emitAlarm(ALARM_LOCKED);
     await new Promise((resolve) => setTimeout(resolve, 10));
-    expect(await browser.getTab(tab.id!)).not.toBeNull();
+    expect(await browser.getTab(defined(tab.id, 'tab id'))).not.toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildClosedRecords, markRestored, planRestore, toSummary } from '../../src/core/history';
 import type { CleanupPlan, ClosedTabRecord, PlannedTab } from '../../src/shared/types';
+import { defined } from '../helpers/assert-defined';
 
 const now = 1_000_000;
 const strategy = { id: 'preset:standard', name: '标准' };
@@ -64,19 +65,28 @@ describe('history planning', () => {
   it('plans original-window-groups restore by browser session and window', () => {
     const records: ClosedTabRecord[] = [
       {
-        ...buildClosedRecords(plan, { trigger: 'idle', strategy, browserSessionId: 's1', now, ids: () => 'a' })[0]!,
+        ...defined(
+          buildClosedRecords(plan, { trigger: 'idle', strategy, browserSessionId: 's1', now, ids: () => 'a' })[0],
+          'first closed record',
+        ),
         windowId: 10,
         groupId: -1,
       },
       {
-        ...buildClosedRecords(plan, { trigger: 'idle', strategy, browserSessionId: 's1', now, ids: () => 'b' })[0]!,
+        ...defined(
+          buildClosedRecords(plan, { trigger: 'idle', strategy, browserSessionId: 's1', now, ids: () => 'b' })[0],
+          'first closed record',
+        ),
         windowId: 10,
         groupId: 7,
         groupTitle: '工作',
         groupColor: 'blue',
       },
       {
-        ...buildClosedRecords(plan, { trigger: 'idle', strategy, browserSessionId: 's1', now, ids: () => 'c' })[0]!,
+        ...defined(
+          buildClosedRecords(plan, { trigger: 'idle', strategy, browserSessionId: 's1', now, ids: () => 'c' })[0],
+          'first closed record',
+        ),
         windowId: 11,
         groupId: -1,
       },
@@ -88,13 +98,16 @@ describe('history planning', () => {
   });
 
   it('marks restored summaries', () => {
-    const record = buildClosedRecords(plan, {
-      trigger: 'idle',
-      strategy,
-      browserSessionId: 's1',
-      now,
-      ids: () => 'r',
-    })[0]!;
+    const record = defined(
+      buildClosedRecords(plan, {
+        trigger: 'idle',
+        strategy,
+        browserSessionId: 's1',
+        now,
+        ids: () => 'r',
+      })[0],
+      'first closed record',
+    );
     const index = [toSummary(record)];
     const next = markRestored(index, ['r'], now + 1);
     expect(next[0]?.restoredAt).toBe(now + 1);

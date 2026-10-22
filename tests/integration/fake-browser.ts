@@ -1,4 +1,5 @@
 import type { Browser, Unsubscribe } from '../../src/platform/browser';
+import { defined } from '../helpers/assert-defined';
 import { MemoryStorage } from '../helpers/memory-storage';
 
 class Emitter<T> {
@@ -125,7 +126,7 @@ export class FakeBrowser implements Browser {
   async createWindow(data: chrome.windows.CreateData): Promise<chrome.windows.Window> {
     const window = this.addWindow({ focused: data.focused ?? false });
     if (data.url) {
-      const url = Array.isArray(data.url) ? data.url[0]! : data.url;
+      const url = Array.isArray(data.url) ? defined(data.url[0], 'first url') : data.url;
       this.addTab({ url, windowId: window.id });
     }
     return { ...window };

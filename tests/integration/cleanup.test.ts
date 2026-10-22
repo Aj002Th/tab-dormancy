@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { TabDormancyService } from '../../src/background/service';
 import { Repo } from '../../src/platform/storage';
+import { defined } from '../helpers/assert-defined';
 import { FakeBrowser } from './fake-browser';
 
 const now = 1_000_000_000;
@@ -34,8 +35,8 @@ describe('cleanup pipeline', () => {
 
     const result = await service.runCleanup('manual');
     expect(result.closed).toBe(1);
-    expect(await browser.getTab(old.id!)).toBeNull();
-    expect(await browser.getTab(recent.id!)).not.toBeNull();
+    expect(await browser.getTab(defined(old.id, 'old tab id'))).toBeNull();
+    expect(await browser.getTab(defined(recent.id, 'recent tab id'))).not.toBeNull();
 
     const index = await repo.getHistoryIndex();
     expect(index).toHaveLength(1);
@@ -52,7 +53,7 @@ describe('cleanup pipeline', () => {
     vi.spyOn(repo, 'setHistoryIndex').mockRejectedValueOnce(new Error('disk full'));
 
     await expect(service.runCleanup('manual')).rejects.toMatchObject({ code: 'STORAGE_FAILED' });
-    expect(await browser.getTab(old.id!)).not.toBeNull();
+    expect(await browser.getTab(defined(old.id, 'old tab id'))).not.toBeNull();
   });
 
   it('skips a tab whose url changed after planning', async () => {
@@ -67,7 +68,7 @@ describe('cleanup pipeline', () => {
 
     const result = await service.runCleanup('manual');
     expect(result.skipped).toBe(1);
-    expect(await browser.getTab(old.id!)).not.toBeNull();
+    expect(await browser.getTab(defined(old.id, 'old tab id'))).not.toBeNull();
   });
 
   it('reports a removal failure and still closes other tabs', async () => {
@@ -84,7 +85,7 @@ describe('cleanup pipeline', () => {
     const result = await service.runCleanup('manual');
     expect(result.closed).toBe(1);
     expect(result.failed).toBe(1);
-    expect(await browser.getTab(first.id!)).not.toBeNull();
-    expect(await browser.getTab(second.id!)).toBeNull();
+    expect(await browser.getTab(defined(first.id, 'first tab id'))).not.toBeNull();
+    expect(await browser.getTab(defined(second.id, 'second tab id'))).toBeNull();
   });
 });

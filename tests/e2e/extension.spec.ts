@@ -1,4 +1,5 @@
 import type { Page, Worker } from '@playwright/test';
+import { defined } from '../helpers/assert-defined';
 import { expect, test } from './fixtures';
 
 async function seedUrlStrategy(page: Page): Promise<void> {
@@ -85,7 +86,7 @@ test('idle/manual cleanup closes matching tabs and restores from history', async
   await popup.getByTestId('confirm-cleanup').click();
   await expect(popup.getByTestId('undo-button')).toBeVisible();
 
-  const worker = context.serviceWorkers()[0]!;
+  const worker = defined(context.serviceWorkers()[0], 'service worker');
   const urls = await worker.evaluate(async () => (await chrome.tabs.query({})).map((tab) => tab.url));
   expect(urls.some((url) => url?.includes('/a'))).toBe(false);
   expect(urls.some((url) => url?.includes('/b'))).toBe(false);
@@ -128,7 +129,7 @@ test('custom strategy can be duplicated, previewed, saved and activated from the
 });
 
 test('history search, delete and clear work', async ({ context, extensionId }) => {
-  const worker = context.serviceWorkers()[0]!;
+  const worker = defined(context.serviceWorkers()[0], 'service worker');
   await seedHistory(worker, 'seed-r1');
 
   const dashboard = await context.newPage();
