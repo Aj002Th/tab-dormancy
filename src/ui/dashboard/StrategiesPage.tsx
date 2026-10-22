@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'preact/hooks';
 import { cloneStrategy, createCustomStrategy } from '../../core/rules/presets';
+import { FACT_BY_KEY } from '../../core/rules/registry';
 import { validateExpr } from '../../core/rules/validate';
 import type { StrategyPreview } from '../../shared/messages';
 import type { Expr, StateSnapshot, Strategy } from '../../shared/types';
 import { messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
-import { newCondition, newGroup } from './expr-edit';
+import { formatFactValue, newCondition, newGroup, operatorLabel } from './expr-edit';
 import { RuleEditor } from './RuleEditor';
 
 const newId = () => crypto.randomUUID();
@@ -81,6 +82,26 @@ export function StrategiesPage() {
       await load();
     } catch (error) {
       setError(messageOf(error));
+    }
+  };
+
+  const saveAndActivate = async () => {
+    if (!editing) return;
+    setSaving(true);
+    try {
+      const saved = await send<Strategy>({
+        type: 'strategy.save',
+        strategy: editing,
+        previewSignature: preview?.signature,
+      });
+      await send({ type: 'strategy.activate', id: saved.id });
+      setEditing(saved);
+      setPreview(null);
+      await load();
+    } catch (error) {
+      setError(messageOf(error));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -183,8 +204,12 @@ export function StrategiesPage() {
                 >
                   {saving ? '保存中…' : '保存'}
                 </Button>
-                {editing.id && !editing.builtin && (
-                  <Button disabled={!preview} onClick={() => void activate(editing.id)} data-testid="activate-strategy">
+                {!editing.builtin && (
+                  <Button
+                    disabled={saving || !preview || !validation?.valid}
+                    onClick={() => void saveAndActivate()}
+                    data-testid="activate-strategy"
+                  >
                     保存并启用
                   </Button>
                 )}
@@ -200,35 +225,9 @@ export function StrategiesPage() {
 
 function expressionSummary(expression: Expr): string {
   if (expression.type === 'condition') {
-    const definition = FACT_BY_KEY_LABEL(expression.fact);
-    return `${definition} ${expression.op} ${String(expression.value ?? '')}`;
+    const label = FACT_BY_KEY.get(expression.fact)?.label ?? expression.fact;
+    return `${label} ${operatorLabel(expression.op)} ${formatFactValue(expression.value)}`.trim();
   }
   if (expression.type === 'not') return `非（${expressionSummary(expression.child)}）`;
   return expression.children.map(expressionSummary).join(expression.type === 'all' ? ' 且 ' : ' 或 ');
-}
-
-function FACT_BY_KEY_LABEL(fact: string): string {
-  return (
-    (
-      {
-        lastActiveMinutes: '距最后访问',
-        totalTabCount: '总标签数',
-        windowTabCount: '窗口标签数',
-        pinned: '已固定',
-        audible: '有声',
-        active: '当前激活',
-        muted: '已静音',
-        discarded: '已丢弃',
-        frozen: '已冻结',
-        grouped: '在标签组中',
-        groupCollapsed: '组已折叠',
-        windowFocused: '窗口有焦点',
-        onlyTabInWindow: '窗口唯一标签',
-        domain: '域名',
-        url: 'URL',
-        title: '标题',
-        groupTitle: '标签组名称',
-      } as Record<string, string>
-    )[fact] ?? fact
-  );
 }

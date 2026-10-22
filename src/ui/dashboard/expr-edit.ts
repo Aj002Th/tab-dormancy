@@ -15,6 +15,34 @@ export function defaultValue(fact: FactKey): FactValue {
   return '';
 }
 
+const OPERATOR_LABELS: Record<Operator, string> = {
+  gt: '大于',
+  gte: '大于等于',
+  lt: '小于',
+  lte: '小于等于',
+  eq: '等于',
+  neq: '不等于',
+  is: '是',
+  equals: '等于',
+  contains: '包含',
+  startsWith: '开头是',
+  endsWith: '结尾是',
+  matchesDomain: '匹配域名',
+  inDomainList: '在域名列表中',
+  matchesGlob: '匹配通配符',
+};
+
+export function operatorLabel(operator: Operator): string {
+  return OPERATOR_LABELS[operator];
+}
+
+export function formatFactValue(value: FactValue | undefined): string {
+  if (value === undefined) return '';
+  if (typeof value === 'boolean') return value ? '是' : '否';
+  if (Array.isArray(value)) return value.join('、');
+  return String(value);
+}
+
 export function newCondition(id: string, fact: FactKey = 'lastActiveMinutes'): Expr {
   return { type: 'condition', id, fact, op: defaultOperator(fact), value: defaultValue(fact) };
 }

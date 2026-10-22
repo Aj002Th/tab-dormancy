@@ -7083,6 +7083,26 @@ export function StrategiesPage() {
     }
   };
 
+  const saveAndActivate = async () => {
+    if (!editing) return;
+    setSaving(true);
+    try {
+      const saved = await send<Strategy>({
+        type: 'strategy.save',
+        strategy: editing,
+        previewSignature: preview?.signature,
+      });
+      await send({ type: 'strategy.activate', id: saved.id });
+      setEditing(saved);
+      setPreview(null);
+      await load();
+    } catch (error) {
+      setError(messageOf(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const remove = async (id: string) => {
     try {
       await send({ type: 'strategy.delete', id });
@@ -7180,10 +7200,10 @@ export function StrategiesPage() {
                 >
                   {saving ? '保存中…' : '保存'}
                 </Button>
-                {editing.id && !editing.builtin && (
+                {!editing.builtin && (
                   <Button
-                    disabled={!preview}
-                    onClick={() => void activate(editing.id)}
+                    disabled={saving || !preview || !validation?.valid}
+                    onClick={() => void saveAndActivate()}
                     data-testid="activate-strategy"
                   >
                     保存并启用

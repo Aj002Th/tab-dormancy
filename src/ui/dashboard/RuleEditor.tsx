@@ -3,9 +3,11 @@ import { FACT_BY_KEY, isFactAvailable } from '../../core/rules/registry';
 import type { Capabilities, Expr, FactKey, Operator } from '../../shared/types';
 import {
   addChild,
+  defaultOperator,
   defaultValue,
   newCondition,
   newGroup,
+  operatorLabel,
   removeNode,
   replaceNode,
   toggleNot,
@@ -185,7 +187,7 @@ function ConditionRow({
   };
 
   const changeFact = (fact: FactKey) => {
-    update({ fact, op: defaultOperatorFor(fact), value: defaultValue(fact) });
+    update({ fact, op: defaultOperator(fact), value: defaultValue(fact) });
   };
 
   const changeOperator = (op: Operator) => {
@@ -313,33 +315,8 @@ function ConditionRow({
   );
 }
 
-function defaultOperatorFor(fact: FactKey): Operator {
-  if (fact === 'domain') return 'matchesDomain';
-  return FACT_BY_KEY.get(fact)?.operators[0] ?? 'is';
-}
-
 function bestUnit(value: number): 'minutes' | 'hours' | 'days' {
   if (value >= 1_440 && value % 1_440 === 0) return 'days';
   if (value >= 60 && value % 60 === 0) return 'hours';
   return 'minutes';
-}
-
-function operatorLabel(operator: Operator): string {
-  const labels: Record<Operator, string> = {
-    gt: '大于',
-    gte: '大于等于',
-    lt: '小于',
-    lte: '小于等于',
-    eq: '等于',
-    neq: '不等于',
-    is: '是',
-    equals: '等于',
-    contains: '包含',
-    startsWith: '开头是',
-    endsWith: '结尾是',
-    matchesDomain: '匹配域名',
-    inDomainList: '在域名列表中',
-    matchesGlob: '匹配通配符',
-  };
-  return labels[operator];
 }
