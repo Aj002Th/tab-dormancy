@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
+import { HistoryPage } from './HistoryPage';
 import { parseRoute, type Route, routeHref } from './routes';
+import { SettingsPage } from './SettingsPage';
 import { StrategiesPage } from './StrategiesPage';
 import { TabsPage } from './TabsPage';
 
@@ -39,9 +41,9 @@ export function Dashboard() {
       </aside>
       <main class="content">
         {route === 'tabs' && <TabsPage />}
-        {route === 'history' && <p class="muted">关闭历史页面将在下一个任务接入。</p>}
+        {route === 'history' && <HistoryPage />}
         {route === 'strategies' && <StrategiesPage />}
-        {route === 'settings' && <p class="muted">设置页面将在后续任务接入。</p>}
+        {route === 'settings' && <SettingsPage />}
       </main>
     </div>
   );
