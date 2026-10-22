@@ -5,4 +5,9 @@ export default defineConfig({
   timeout: 30_000,
   fullyParallel: false,
   use: { headless: false },
+  webServer: {
+    command: 'node tests/e2e/test-server.mjs',
+    port: 4173,
+    reuseExistingServer: true,
+  },
 });
