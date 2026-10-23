@@ -181,6 +181,11 @@ test('strategy cards reflect active state and open the editor on click', async (
   await expect(activeButton).toBeDisabled();
   await expect(activeButton).toHaveClass(/btn-active/);
 
+  const standardSummary = activeCard.locator('.strategy-card-summary');
+  await expect(standardSummary.locator('.strategy-card-primary')).toHaveText('超过 3 天未访问');
+  await expect(standardSummary.locator('.strategy-card-tag-label')).toHaveText('排除');
+  await expect(standardSummary.locator('.strategy-tag')).toHaveText(['已固定', '播放中', '当前激活', '标签组中']);
+
   await mildCard.click();
   await expect(mildCard).toHaveClass(/selected/);
   await expect(activeCard).not.toHaveClass(/selected/);
@@ -216,7 +221,7 @@ test('creating a strategy shows a live draft card that can be cancelled', async 
 
   await dashboard.getByLabel('策略名称').fill('临时策略');
   await expect(draftCard).toContainText('临时策略');
-  await expect(draftCard).toContainText('距最后访问 大于 3 天');
+  await expect(draftCard.locator('.strategy-card-primary')).toHaveText('超过 3 天未访问');
 
   await dashboard.getByTestId('cancel-strategy').click();
   await expect(draftCard).toHaveCount(0);

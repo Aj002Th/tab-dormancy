@@ -389,7 +389,55 @@
   pointer-events: none;
 }
 
+.strategy-card-summary {
+  display: grid;
+  gap: 6px;
+}
+
+.strategy-card-primary {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.strategy-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.strategy-card-tag-label {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.strategy-tag {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.strategy-tag-more {
+  border-style: dashed;
+}
+
 .strategy-card-actions {
+  margin-top: 10px;
   pointer-events: auto;
 }
 

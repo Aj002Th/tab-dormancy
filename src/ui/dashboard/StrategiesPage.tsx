@@ -9,7 +9,7 @@ import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
 import { newCondition, newGroup } from './expr-edit';
 import { RuleEditor } from './RuleEditor';
-import { expressionSummary } from './strategy-summary';
+import { strategyCardSummary } from './strategy-summary';
 
 const newId = () => crypto.randomUUID();
 
@@ -181,11 +181,13 @@ export function StrategiesPage() {
             const active = state?.activeStrategy.id === strategy.id;
             const selected = editing?.id === strategy.id;
             const title = draft ? strategy.name.trim() || '未命名策略' : strategy.name;
+            const summary = strategyCardSummary(strategy.expression);
             return (
               <div
                 class={`strategy-card${selected ? ' selected' : ''}${draft ? ' draft' : ''}`}
                 key={draft ? 'draft' : strategy.id}
                 data-testid={draft ? 'strategy-card-draft' : `strategy-card-${strategy.id}`}
+                title={summary.full}
               >
                 {!draft && (
                   <button
@@ -202,7 +204,20 @@ export function StrategiesPage() {
                     {strategy.builtin && <span class="badge">内置</span>}
                     {draft && <span class="badge draft">草稿</span>}
                   </div>
-                  <p class="muted small">{expressionSummary(strategy.expression)}</p>
+                  <div class="strategy-card-summary">
+                    <p class="strategy-card-primary">{summary.primary}</p>
+                    {summary.groups.map((group) => (
+                      <div class="strategy-card-tags" key={group.label}>
+                        <span class="strategy-card-tag-label">{group.label}</span>
+                        {group.tags.map((tag, index) => (
+                          <span class="strategy-tag" key={`${group.label}-${index}`}>
+                            {tag}
+                          </span>
+                        ))}
+                        {group.hidden > 0 && <span class="strategy-tag strategy-tag-more">+{group.hidden}</span>}
+                      </div>
+                    ))}
+                  </div>
                   {!draft && (
                     <div class="row strategy-card-actions">
                       <Button
