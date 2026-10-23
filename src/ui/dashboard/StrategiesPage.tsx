@@ -74,7 +74,14 @@ export function StrategiesPage() {
   };
 
   const selectStrategy = (strategy: Strategy) => {
+    if (editing?.id === strategy.id) return;
     setEditing(strategy);
+    setPreview(null);
+    setError(null);
+  };
+
+  const cancelDraft = () => {
+    setEditing(state?.activeStrategy ?? null);
     setPreview(null);
     setError(null);
   };
@@ -141,6 +148,8 @@ export function StrategiesPage() {
   };
 
   const validation = editing && state ? validateExpr(editing.expression, state.capabilities) : null;
+  const strategies = state?.strategies ?? [];
+  const visibleStrategies = editing && !editing.id ? [editing, ...strategies] : strategies;
 
   return (
     <section class="page">
@@ -158,48 +167,61 @@ export function StrategiesPage() {
 
       <div class="strategy-layout">
         <div class="strategy-list">
-          {state?.strategies.map((strategy) => {
-            const active = state.activeStrategy.id === strategy.id;
+          {visibleStrategies.map((strategy) => {
+            const draft = !strategy.id;
+            const active = state?.activeStrategy.id === strategy.id;
             const selected = editing?.id === strategy.id;
+            const title = draft ? strategy.name.trim() || '未命名策略' : strategy.name;
             return (
               <div
-                class={`strategy-card${selected ? ' selected' : ''}`}
-                key={strategy.id}
-                data-testid={`strategy-card-${strategy.id}`}
+                class={`strategy-card${selected ? ' selected' : ''}${draft ? ' draft' : ''}`}
+                key={draft ? 'draft' : strategy.id}
+                data-testid={draft ? 'strategy-card-draft' : `strategy-card-${strategy.id}`}
               >
-                <button
-                  type="button"
-                  class="strategy-card-hitbox"
-                  aria-pressed={selected}
-                  aria-label={`选择策略 ${strategy.name}`}
-                  onClick={() => selectStrategy(strategy)}
-                />
+                {!draft && (
+                  <button
+                    type="button"
+                    class="strategy-card-hitbox"
+                    aria-pressed={selected}
+                    aria-label={`选择策略 ${strategy.name}`}
+                    onClick={() => selectStrategy(strategy)}
+                  />
+                )}
                 <div class="strategy-card-content">
                   <div class="strategy-card-head">
-                    <strong>{strategy.name}</strong>
+                    <strong>{title}</strong>
                     {strategy.builtin && <span class="badge">内置</span>}
+                    {draft && <span class="badge draft">草稿</span>}
                   </div>
                   <p class="muted small">{expressionSummary(strategy.expression)}</p>
                   <div class="row strategy-card-actions">
-                    <Button
-                      class={active ? 'btn-active' : ''}
-                      disabled={active}
-                      onClick={active ? undefined : () => void activate(strategy.id)}
-                      data-testid={`strategy-activate-${strategy.id}`}
-                    >
-                      {active ? '启用中' : '启用'}
-                    </Button>
-                    <Button onClick={() => duplicate(strategy)} data-testid={`strategy-duplicate-${strategy.id}`}>
-                      复制
-                    </Button>
-                    {!strategy.builtin && !active && (
-                      <Button
-                        variant="danger"
-                        onClick={() => void remove(strategy.id)}
-                        data-testid={`strategy-delete-${strategy.id}`}
-                      >
-                        删除
+                    {draft ? (
+                      <Button onClick={cancelDraft} data-testid="strategy-cancel-draft">
+                        取消
                       </Button>
+                    ) : (
+                      <>
+                        <Button
+                          class={active ? 'btn-active' : ''}
+                          disabled={active}
+                          onClick={active ? undefined : () => void activate(strategy.id)}
+                          data-testid={`strategy-activate-${strategy.id}`}
+                        >
+                          {active ? '启用中' : '启用'}
+                        </Button>
+                        <Button onClick={() => duplicate(strategy)} data-testid={`strategy-duplicate-${strategy.id}`}>
+                          复制
+                        </Button>
+                        {!strategy.builtin && !active && (
+                          <Button
+                            variant="danger"
+                            onClick={() => void remove(strategy.id)}
+                            data-testid={`strategy-delete-${strategy.id}`}
+                          >
+                            删除
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

@@ -179,6 +179,26 @@ test('strategy cards reflect active state and open the editor on click', async (
   expect(oneOptionSelects).toBe(0);
 });
 
+test('creating a strategy shows a live draft card that can be cancelled', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+
+  await dashboard.getByTestId('new-strategy').click();
+
+  const draftCard = dashboard.getByTestId('strategy-card-draft');
+  await expect(draftCard).toBeVisible();
+  await expect(draftCard).toHaveClass(/selected/);
+  await expect(draftCard).toContainText('草稿');
+
+  await dashboard.getByLabel('策略名称').fill('临时策略');
+  await expect(draftCard).toContainText('临时策略');
+  await expect(draftCard).toContainText('距最后访问 大于 3 天');
+
+  await draftCard.getByRole('button', { name: '取消' }).click();
+  await expect(draftCard).toHaveCount(0);
+  await expect(dashboard.getByTestId('strategy-card-preset:standard')).toHaveClass(/selected/);
+});
+
 test('history search, delete and clear work', async ({ context, extensionId }) => {
   const worker = defined(context.serviceWorkers()[0], 'service worker');
   await seedHistory(worker, 'seed-r1');

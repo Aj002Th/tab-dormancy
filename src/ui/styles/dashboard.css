@@ -360,6 +360,11 @@
   background: var(--surface-2);
 }
 
+.strategy-card.draft {
+  border-style: dashed;
+  cursor: default;
+}
+
 .strategy-card-hitbox {
   position: absolute;
   inset: 0;
@@ -402,6 +407,10 @@
   background: var(--surface-2);
   color: var(--muted);
   font-size: 11px;
+}
+
+.badge.draft {
+  color: var(--accent);
 }
 
 .small {
