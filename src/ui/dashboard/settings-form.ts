@@ -1,0 +1,60 @@
+import type { Settings, SettingsPatch } from '../../shared/types';
+
+export type SettingsForm = {
+  idleThresholdMinutes: string;
+  lockCleanupEnabled: boolean;
+  lockDelayMinutes: string;
+  historyRetentionDays: string;
+};
+
+export function toSettingsForm(settings: Settings): SettingsForm {
+  return {
+    idleThresholdMinutes: String(settings.idleThresholdMinutes),
+    lockCleanupEnabled: settings.lockCleanupEnabled,
+    lockDelayMinutes: String(settings.lockDelayMinutes),
+    historyRetentionDays: String(settings.historyRetentionDays),
+  };
+}
+
+export function parseSettingsForm(form: SettingsForm): { patch: SettingsPatch } | { error: string } {
+  const idle = parseInteger(form.idleThresholdMinutes);
+  if (idle === null || idle < 1 || idle > 1_440) {
+    return { error: '空闲阈值需为 1–1440 分钟' };
+  }
+
+  const lockDelay = parseInteger(form.lockDelayMinutes);
+  if (lockDelay === null || lockDelay < 0 || lockDelay > 1_440) {
+    return { error: '锁屏延迟需为 0–1440 分钟' };
+  }
+
+  const retention = parseInteger(form.historyRetentionDays);
+  if (retention === null || retention < 1 || retention > 365) {
+    return { error: '历史保留需为 1–365 天' };
+  }
+
+  return {
+    patch: {
+      idleThresholdMinutes: idle,
+      lockCleanupEnabled: form.lockCleanupEnabled,
+      lockDelayMinutes: lockDelay,
+      historyRetentionDays: retention,
+    },
+  };
+}
+
+export function isSettingsDirty(form: SettingsForm, saved: Settings): boolean {
+  const savedForm = toSettingsForm(saved);
+  return (
+    form.idleThresholdMinutes !== savedForm.idleThresholdMinutes ||
+    form.lockCleanupEnabled !== savedForm.lockCleanupEnabled ||
+    form.lockDelayMinutes !== savedForm.lockDelayMinutes ||
+    form.historyRetentionDays !== savedForm.historyRetentionDays
+  );
+}
+
+function parseInteger(value: string): number | null {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const parsed = Number(trimmed);
+  return Number.isInteger(parsed) ? parsed : null;
+}

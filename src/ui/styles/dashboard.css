@@ -744,6 +744,7 @@
 }
 
 .settings-actions {
+  align-items: center;
   margin-bottom: 24px;
 }
 

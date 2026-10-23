@@ -276,6 +276,124 @@ test('strategy preview shows matching tab examples on hover', async ({ context, 
   expect(sampleCount).toBeLessThanOrEqual(5);
 });
 
+test('settings shows a load error and can retry', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.addInitScript(() => {
+    const original = chrome.runtime.sendMessage;
+    let failed = false;
+    Object.defineProperty(chrome.runtime, 'sendMessage', {
+      configurable: true,
+      value: (message: { type?: string }, ...args: unknown[]) => {
+        if (!failed && message?.type === 'state.get') {
+          failed = true;
+          return Promise.reject(new Error('模拟加载失败'));
+        }
+        return (original as (...rest: unknown[]) => unknown).apply(chrome.runtime, [message, ...args]);
+      },
+    });
+  });
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await expect(dashboard.locator('.banner-error')).toHaveText('模拟加载失败');
+  await expect(dashboard.getByText('正在加载设置…')).toHaveCount(0);
+
+  await dashboard.getByTestId('settings-retry').click();
+  await expect(dashboard.getByTestId('settings-idle')).toHaveValue('15');
+  await expect(dashboard.locator('.banner-error')).toHaveCount(0);
+});
+
+test('settings save follows unsaved changes and clears stale notices', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+
+  const idle = dashboard.getByTestId('settings-idle');
+  const save = dashboard.getByTestId('settings-save');
+  await expect(idle).toHaveValue('15');
+  await expect(save).toBeDisabled();
+
+  await idle.fill('20');
+  await expect(save).toBeEnabled();
+  await save.click();
+  await expect(dashboard.getByText('设置已保存')).toBeVisible();
+  await expect(save).toBeDisabled();
+
+  await idle.fill('21');
+  await expect(dashboard.getByText('设置已保存')).toHaveCount(0);
+  await expect(save).toBeEnabled();
+});
+
+test('settings number fields can be cleared and invalid values are rejected', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+
+  const idle = dashboard.getByTestId('settings-idle');
+  const save = dashboard.getByTestId('settings-save');
+  await expect(idle).toHaveValue('15');
+
+  await idle.fill('');
+  await expect(idle).toHaveValue('');
+  await expect(save).toBeEnabled();
+  await save.click();
+  await expect(dashboard.locator('.banner-error')).toHaveText('空闲阈值需为 1–1440 分钟');
+
+  await idle.fill('20');
+  await expect(dashboard.locator('.banner-error')).toHaveCount(0);
+  await save.click();
+  await expect(dashboard.getByText('设置已保存')).toBeVisible();
+  await expect(save).toBeDisabled();
+});
+
+test('settings disables saving while the update is in flight', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.addInitScript(() => {
+    const original = chrome.runtime.sendMessage;
+    Object.defineProperty(chrome.runtime, 'sendMessage', {
+      configurable: true,
+      value: async (message: { type?: string }, ...args: unknown[]) => {
+        if (message?.type === 'settings.update') {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+        return (original as (...rest: unknown[]) => unknown).apply(chrome.runtime, [message, ...args]);
+      },
+    });
+  });
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  const idle = dashboard.getByTestId('settings-idle');
+  const save = dashboard.getByTestId('settings-save');
+  await idle.fill('20');
+  await save.click();
+  await expect(save).toBeDisabled();
+  await expect(save).toHaveText('保存中…');
+  await expect(idle).toBeDisabled();
+  await expect(dashboard.getByTestId('settings-retention')).toBeDisabled();
+  await expect(dashboard.getByTestId('settings-lock-enabled')).toBeDisabled();
+  await expect(dashboard.getByText('设置已保存')).toBeVisible();
+  await expect(save).toHaveText('保存设置');
+  await expect(save).toBeDisabled();
+});
+
+test('settings clear history replaces stale banners', async ({ context, extensionId }) => {
+  const worker = defined(context.serviceWorkers()[0], 'service worker');
+  await seedHistory(worker, 'settings-clear');
+
+  const dashboard = await context.newPage();
+  dashboard.on('dialog', (dialog) => void dialog.accept());
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+
+  const idle = dashboard.getByTestId('settings-idle');
+  await idle.fill('');
+  await dashboard.getByTestId('settings-save').click();
+  await expect(dashboard.locator('.banner-error')).toHaveText('空闲阈值需为 1–1440 分钟');
+
+  await dashboard.getByTestId('settings-clear-history').click();
+  await expect(dashboard.getByText('关闭历史已清空')).toBeVisible();
+  await expect(dashboard.locator('.banner-error')).toHaveCount(0);
+
+  await idle.fill('20');
+  await expect(dashboard.getByText('关闭历史已清空')).toHaveCount(0);
+});
+
 test('history search, delete and clear work', async ({ context, extensionId }) => {
   const worker = defined(context.serviceWorkers()[0], 'service worker');
   await seedHistory(worker, 'seed-r1');
