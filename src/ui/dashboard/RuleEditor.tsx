@@ -5,6 +5,7 @@ import {
   addChild,
   defaultOperator,
   defaultValue,
+  effectiveBooleanNegated,
   newCondition,
   newGroup,
   operatorLabel,
@@ -179,6 +180,8 @@ function ConditionRow({
 
   if (!definition) return null;
   const unavailable = !isFactAvailable(definition, capabilities);
+  const isBoolean = definition.type === 'boolean';
+  const booleanNegated = effectiveBooleanNegated(node.value, negated);
 
   const update = (patch: Partial<Extract<Expr, { type: 'condition' }>>) => {
     onChange(
@@ -200,18 +203,22 @@ function ConditionRow({
     }
   };
 
+  const toggleNegation = () => {
+    if (isBoolean) {
+      const next = !booleanNegated;
+      update({ value: next === negated });
+      return;
+    }
+    onChange(toggleNot(root, node.id, newId));
+  };
+
   const factor = unit === 'days' ? 1_440 : unit === 'hours' ? 60 : 1;
   const numberValue = typeof node.value === 'number' ? node.value : 0;
 
   return (
     <div class={`condition-row ${unavailable ? 'unavailable' : ''}`}>
       <label class="checkbox">
-        <input
-          type="checkbox"
-          checked={negated}
-          disabled={disabled}
-          onChange={() => onChange(toggleNot(root, node.id, newId))}
-        />
+        <input type="checkbox" checked={booleanNegated} disabled={disabled} onChange={toggleNegation} />
         取反
       </label>
 
@@ -229,75 +236,69 @@ function ConditionRow({
         ))}
       </select>
 
-      <select
-        class="input compact"
-        value={node.op}
-        disabled={disabled || unavailable}
-        onChange={(event) => changeOperator((event.currentTarget as HTMLSelectElement).value as Operator)}
-      >
-        {definition.operators.map((operator) => (
-          <option key={operator} value={operator}>
-            {operatorLabel(operator)}
-          </option>
-        ))}
-      </select>
-
-      {definition.type === 'number' ? (
-        <span class="value-row">
-          <input
-            class="input compact"
-            type="number"
-            min={0}
-            step={1}
-            value={Math.round(numberValue / factor)}
-            disabled={disabled}
-            onInput={(event) => update({ value: Number((event.currentTarget as HTMLInputElement).value) * factor })}
-          />
+      {!isBoolean && (
+        <>
           <select
             class="input compact"
-            value={unit}
-            disabled={disabled}
-            onChange={(event) => setUnit((event.currentTarget as HTMLSelectElement).value as typeof unit)}
+            value={node.op}
+            disabled={disabled || unavailable}
+            onChange={(event) => changeOperator((event.currentTarget as HTMLSelectElement).value as Operator)}
           >
-            <option value="minutes">分钟</option>
-            <option value="hours">小时</option>
-            <option value="days">天</option>
+            {definition.operators.map((operator) => (
+              <option key={operator} value={operator}>
+                {operatorLabel(operator)}
+              </option>
+            ))}
           </select>
-        </span>
-      ) : definition.type === 'boolean' ? (
-        <select
-          class="input compact"
-          value={String(node.value)}
-          disabled={disabled}
-          onChange={(event) => update({ value: (event.currentTarget as HTMLSelectElement).value === 'true' })}
-        >
-          <option value="true">是</option>
-          <option value="false">否</option>
-        </select>
-      ) : node.op === 'inDomainList' ? (
-        <textarea
-          class="input domain-list"
-          value={Array.isArray(node.value) ? node.value.join('\n') : ''}
-          disabled={disabled}
-          placeholder="每行一个域名，例如 google.com"
-          onInput={(event) =>
-            update({
-              value: (event.currentTarget as HTMLTextAreaElement).value
-                .split('\n')
-                .map((line) => line.trim())
-                .filter(Boolean),
-            })
-          }
-        />
-      ) : (
-        <input
-          class="input grow"
-          type="text"
-          value={typeof node.value === 'string' ? node.value : ''}
-          disabled={disabled}
-          placeholder={definition.type === 'domain' ? 'example.com' : '文本'}
-          onInput={(event) => update({ value: (event.currentTarget as HTMLInputElement).value })}
-        />
+
+          {definition.type === 'number' ? (
+            <span class="value-row">
+              <input
+                class="input compact"
+                type="number"
+                min={0}
+                step={1}
+                value={Math.round(numberValue / factor)}
+                disabled={disabled}
+                onInput={(event) => update({ value: Number((event.currentTarget as HTMLInputElement).value) * factor })}
+              />
+              <select
+                class="input compact"
+                value={unit}
+                disabled={disabled}
+                onChange={(event) => setUnit((event.currentTarget as HTMLSelectElement).value as typeof unit)}
+              >
+                <option value="minutes">分钟</option>
+                <option value="hours">小时</option>
+                <option value="days">天</option>
+              </select>
+            </span>
+          ) : node.op === 'inDomainList' ? (
+            <textarea
+              class="input domain-list"
+              value={Array.isArray(node.value) ? node.value.join('\n') : ''}
+              disabled={disabled}
+              placeholder="每行一个域名，例如 google.com"
+              onInput={(event) =>
+                update({
+                  value: (event.currentTarget as HTMLTextAreaElement).value
+                    .split('\n')
+                    .map((line) => line.trim())
+                    .filter(Boolean),
+                })
+              }
+            />
+          ) : (
+            <input
+              class="input grow"
+              type="text"
+              value={typeof node.value === 'string' ? node.value : ''}
+              disabled={disabled}
+              placeholder={definition.type === 'domain' ? 'example.com' : '文本'}
+              onInput={(event) => update({ value: (event.currentTarget as HTMLInputElement).value })}
+            />
+          )}
+        </>
       )}
 
       {unavailable && <span class="unavailable-note">当前浏览器不可用</span>}

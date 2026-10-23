@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'preact/hooks';
 import { cloneStrategy, createCustomStrategy } from '../../core/rules/presets';
-import { FACT_BY_KEY } from '../../core/rules/registry';
 import { validateExpr } from '../../core/rules/validate';
 import type { StrategyPreview } from '../../shared/messages';
-import type { Expr, StateSnapshot, Strategy } from '../../shared/types';
-import { messageOf, send } from '../api';
+import type { StateSnapshot, Strategy } from '../../shared/types';
+import { ApiError, messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
-import { formatFactValue, newCondition, newGroup, operatorLabel } from './expr-edit';
+import { newCondition, newGroup } from './expr-edit';
 import { RuleEditor } from './RuleEditor';
+import { expressionSummary } from './strategy-summary';
 
 const newId = () => crypto.randomUUID();
 
@@ -21,7 +21,14 @@ export function StrategiesPage() {
 
   async function load() {
     try {
-      setState(await send<StateSnapshot>({ type: 'state.get' }));
+      const next = await send<StateSnapshot>({ type: 'state.get' });
+      setState(next);
+      setEditing((current) => {
+        if (!current) return next.activeStrategy;
+        if (!current.id) return current;
+        return next.strategies.find((strategy) => strategy.id === current.id) ?? next.activeStrategy;
+      });
+      setError(null);
     } catch (error) {
       setError(messageOf(error));
     }
@@ -33,15 +40,24 @@ export function StrategiesPage() {
 
   useEffect(() => {
     if (!editing || editing.builtin) return;
+    let cancelled = false;
     const timer = setTimeout(() => {
       void send<StrategyPreview>({ type: 'strategy.preview', strategy: editing })
-        .then((next) => setPreview(next))
-        .catch((error) => {
+        .then((next) => {
+          if (cancelled) return;
+          setPreview(next);
+          setError(null);
+        })
+        .catch((error: unknown) => {
+          if (cancelled) return;
           setPreview(null);
-          setError(messageOf(error));
+          setError(error instanceof ApiError && error.code === 'INVALID_EXPRESSION' ? null : messageOf(error));
         });
     }, 250);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [editing]);
 
   const startNew = () => {
@@ -57,9 +73,16 @@ export function StrategiesPage() {
     setError(null);
   };
 
+  const selectStrategy = (strategy: Strategy) => {
+    setEditing(strategy);
+    setPreview(null);
+    setError(null);
+  };
+
   const save = async () => {
     if (!editing) return;
     setSaving(true);
+    setError(null);
     try {
       const saved = await send<Strategy>({
         type: 'strategy.save',
@@ -77,6 +100,7 @@ export function StrategiesPage() {
   };
 
   const activate = async (id: string) => {
+    setError(null);
     try {
       await send({ type: 'strategy.activate', id });
       await load();
@@ -88,6 +112,7 @@ export function StrategiesPage() {
   const saveAndActivate = async () => {
     if (!editing) return;
     setSaving(true);
+    setError(null);
     try {
       const saved = await send<Strategy>({
         type: 'strategy.save',
@@ -106,6 +131,7 @@ export function StrategiesPage() {
   };
 
   const remove = async (id: string) => {
+    setError(null);
     try {
       await send({ type: 'strategy.delete', id });
       await load();
@@ -121,7 +147,7 @@ export function StrategiesPage() {
       <header class="page-head">
         <div>
           <h2>策略</h2>
-          <p class="muted">内置策略不可修改；自定义策略必须先预览，才能启用自动清理。</p>
+          <p class="muted">点击左侧策略卡片查看和编辑规则；内置策略不可修改，自定义策略必须先预览才能启用自动清理。</p>
         </div>
         <Button variant="primary" onClick={startNew} data-testid="new-strategy">
           新建策略
@@ -132,46 +158,67 @@ export function StrategiesPage() {
 
       <div class="strategy-layout">
         <div class="strategy-list">
-          {state?.strategies.map((strategy) => (
-            <article class="strategy-card" key={strategy.id} data-testid={`strategy-card-${strategy.id}`}>
-              <div class="strategy-card-head">
-                <strong>{strategy.name}</strong>
-                {strategy.builtin && <span class="badge">内置</span>}
-                {state.activeStrategy.id === strategy.id && <span class="badge active">启用中</span>}
+          {state?.strategies.map((strategy) => {
+            const active = state.activeStrategy.id === strategy.id;
+            const selected = editing?.id === strategy.id;
+            return (
+              <div
+                class={`strategy-card${selected ? ' selected' : ''}`}
+                key={strategy.id}
+                data-testid={`strategy-card-${strategy.id}`}
+              >
+                <button
+                  type="button"
+                  class="strategy-card-hitbox"
+                  aria-pressed={selected}
+                  aria-label={`选择策略 ${strategy.name}`}
+                  onClick={() => selectStrategy(strategy)}
+                />
+                <div class="strategy-card-content">
+                  <div class="strategy-card-head">
+                    <strong>{strategy.name}</strong>
+                    {strategy.builtin && <span class="badge">内置</span>}
+                  </div>
+                  <p class="muted small">{expressionSummary(strategy.expression)}</p>
+                  <div class="row strategy-card-actions">
+                    <Button
+                      class={active ? 'btn-active' : ''}
+                      disabled={active}
+                      onClick={active ? undefined : () => void activate(strategy.id)}
+                      data-testid={`strategy-activate-${strategy.id}`}
+                    >
+                      {active ? '启用中' : '启用'}
+                    </Button>
+                    <Button onClick={() => duplicate(strategy)} data-testid={`strategy-duplicate-${strategy.id}`}>
+                      复制
+                    </Button>
+                    {!strategy.builtin && !active && (
+                      <Button
+                        variant="danger"
+                        onClick={() => void remove(strategy.id)}
+                        data-testid={`strategy-delete-${strategy.id}`}
+                      >
+                        删除
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
-              <p class="muted small">{expressionSummary(strategy.expression)}</p>
-              <div class="row">
-                <Button onClick={() => void activate(strategy.id)} data-testid={`strategy-activate-${strategy.id}`}>
-                  启用
-                </Button>
-                <Button onClick={() => duplicate(strategy)} data-testid={`strategy-duplicate-${strategy.id}`}>
-                  复制
-                </Button>
-                <Button onClick={() => setEditing(strategy)} data-testid={`strategy-edit-${strategy.id}`}>
-                  编辑
-                </Button>
-                {!strategy.builtin && state.activeStrategy.id !== strategy.id && (
-                  <Button
-                    variant="danger"
-                    onClick={() => void remove(strategy.id)}
-                    data-testid={`strategy-delete-${strategy.id}`}
-                  >
-                    删除
-                  </Button>
-                )}
-              </div>
-            </article>
-          ))}
+            );
+          })}
         </div>
 
-        {editing && state && (
+        {editing && state ? (
           <div class="editor-panel">
             <div class="editor-head">
               <input
                 class="input"
                 value={editing.name}
                 disabled={editing.builtin}
-                onInput={(event) => setEditing({ ...editing, name: (event.currentTarget as HTMLInputElement).value })}
+                onInput={(event) => {
+                  setError(null);
+                  setEditing({ ...editing, name: (event.currentTarget as HTMLInputElement).value });
+                }}
                 aria-label="策略名称"
               />
               <span class="grow" />
@@ -183,13 +230,16 @@ export function StrategiesPage() {
               capabilities={state.capabilities}
               disabled={editing.builtin}
               onChange={(expression) => {
+                setError(null);
                 setEditing({ ...editing, expression });
                 setPreview(null);
               }}
             />
 
             <div class="editor-foot">
-              {validation && !validation.valid && <Banner tone="error">{validation.issues[0]?.message}</Banner>}
+              {validation && !validation.valid && validation.issues[0] && (
+                <Banner tone="error">{validation.issues[0].message}</Banner>
+              )}
               {preview && (
                 <p class="muted" data-testid="rule-preview-count">
                   预览：将关闭 {preview.matched} 个标签（共 {preview.totalManagedTabs} 个可管理标签）
@@ -213,21 +263,15 @@ export function StrategiesPage() {
                     保存并启用
                   </Button>
                 )}
-                <Button onClick={() => setEditing(null)}>关闭</Button>
               </div>
             </div>
+          </div>
+        ) : (
+          <div class="editor-panel editor-placeholder">
+            <p class="muted">从左侧选择一个策略查看规则。</p>
           </div>
         )}
       </div>
     </section>
   );
-}
-
-function expressionSummary(expression: Expr): string {
-  if (expression.type === 'condition') {
-    const label = FACT_BY_KEY.get(expression.fact)?.label ?? expression.fact;
-    return `${label} ${operatorLabel(expression.op)} ${formatFactValue(expression.value)}`.trim();
-  }
-  if (expression.type === 'not') return `非（${expressionSummary(expression.child)}）`;
-  return expression.children.map(expressionSummary).join(expression.type === 'all' ? ' 且 ' : ' 或 ');
 }

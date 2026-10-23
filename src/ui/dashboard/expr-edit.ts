@@ -90,14 +90,18 @@ export function toggleNot(expr: Expr, id: string, nextId: () => string): Expr {
   );
 }
 
-export function unwrapNot(expr: Expr): { inner: Expr; negated: boolean } {
+export function unwrapNot(expr: Expr): { inner: Exclude<Expr, { type: 'not' }>; negated: boolean } {
   let inner = expr;
   let negated = false;
   while (inner.type === 'not') {
     negated = !negated;
     inner = inner.child;
   }
-  return { inner, negated };
+  return { inner: inner as Exclude<Expr, { type: 'not' }>, negated };
+}
+
+export function effectiveBooleanNegated(value: FactValue | undefined, negated: boolean): boolean {
+  return (value === false) !== negated;
 }
 
 export function countNodes(expr: Expr): number {

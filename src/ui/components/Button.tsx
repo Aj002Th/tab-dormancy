@@ -3,7 +3,7 @@ import type { ComponentChildren } from 'preact';
 type ButtonProps = {
   variant?: 'primary' | 'secondary' | 'danger';
   disabled?: boolean;
-  onClick?: () => void;
+  onClick?: (event: MouseEvent) => void;
   children: ComponentChildren;
   'data-testid'?: string;
   'aria-label'?: string;
@@ -24,7 +24,7 @@ export function Button({
       type="button"
       class={`btn btn-${variant} ${className}`.trim()}
       disabled={disabled}
-      onClick={onClick}
+      onClick={(event) => onClick?.(event)}
       data-testid={testId}
       aria-label={ariaLabel}
     >

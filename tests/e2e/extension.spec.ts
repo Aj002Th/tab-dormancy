@@ -128,6 +128,57 @@ test('custom strategy can be duplicated, previewed, saved and activated from the
   await expect(dashboard.locator('.banner-error')).toHaveCount(0);
 });
 
+test('strategy editor clears stale preview errors after the expression becomes valid again', async ({
+  context,
+  extensionId,
+}) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+  await dashboard.getByTestId('strategy-duplicate-preset:standard').click();
+  await expect(dashboard.getByTestId('rule-editor')).toBeVisible();
+
+  const editor = dashboard.getByTestId('rule-editor');
+  for (let index = 0; index < 9; index += 1) {
+    await editor.locator('.group-card').last().getByRole('button', { name: '+ 子组' }).click();
+  }
+
+  await expect(dashboard.getByText('表达式深度不能超过 8')).toBeVisible();
+
+  await editor.locator('.group-card').last().getByRole('button', { name: '删除组' }).click();
+  await expect(dashboard.locator('.banner-error')).toHaveCount(0);
+});
+
+test('strategy cards reflect active state and open the editor on click', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+
+  const activeCard = dashboard.getByTestId('strategy-card-preset:standard');
+  const mildCard = dashboard.getByTestId('strategy-card-preset:mild');
+  await expect(activeCard).toBeVisible();
+  await expect(activeCard).toHaveClass(/selected/);
+  const activeButton = activeCard.getByRole('button', { name: '启用中' });
+  await expect(activeButton).toBeDisabled();
+  await expect(activeButton).toHaveClass(/btn-active/);
+
+  await mildCard.click();
+  await expect(mildCard).toHaveClass(/selected/);
+  await expect(activeCard).not.toHaveClass(/selected/);
+  await expect(dashboard.getByTestId('rule-editor')).toBeVisible();
+  await expect(mildCard).toContainText('7 天');
+
+  await expect(dashboard.getByRole('button', { name: '编辑' })).toHaveCount(0);
+  await expect(dashboard.getByRole('button', { name: '关闭' })).toHaveCount(0);
+
+  const oneOptionSelects = await dashboard
+    .getByTestId('rule-editor')
+    .locator('select')
+    .evaluateAll(
+      (selects) =>
+        selects.filter((select) => select instanceof HTMLSelectElement && select.options.length === 1).length,
+    );
+  expect(oneOptionSelects).toBe(0);
+});
+
 test('history search, delete and clear work', async ({ context, extensionId }) => {
   const worker = defined(context.serviceWorkers()[0], 'service worker');
   await seedHistory(worker, 'seed-r1');
