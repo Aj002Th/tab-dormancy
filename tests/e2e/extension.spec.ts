@@ -101,6 +101,39 @@ test('idle/manual cleanup closes matching tabs and restores from history', async
     .toEqual(expect.arrayContaining([expect.stringContaining('/a')]));
 });
 
+test('tabs page shows strategy, readable status and expandable rows', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html`);
+  await seedUrlStrategy(dashboard);
+
+  const keep = await context.newPage();
+  await keep.goto('http://127.0.0.1:4173/keep');
+  const a = await context.newPage();
+  await a.goto('http://127.0.0.1:4173/a');
+  const b = await context.newPage();
+  await b.goto('http://127.0.0.1:4173/b');
+
+  await dashboard.bringToFront();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/tabs`);
+
+  await expect(dashboard.getByTestId('tabs-strategy')).toHaveText('E2E URL');
+
+  const keepRow = dashboard.locator('.tab-row').filter({ hasText: 'Keep' });
+  await expect(keepRow.locator('.tab-match')).toHaveText('保留');
+  const aRow = dashboard.locator('.tab-row').filter({ hasText: 'Page A' });
+  await expect(aRow.locator('.tab-match')).toHaveText('命中');
+
+  await expect(dashboard.locator('[data-testid="tabs-window-filter"]')).toHaveCount(0);
+  await expect(dashboard.locator('.tab-window')).toHaveCount(0);
+  await expect(dashboard.locator('input[type="search"]')).toHaveAttribute('aria-label', '搜索标签页');
+
+  const summary = aRow.locator('summary');
+  expect(await summary.evaluate((element) => getComputedStyle(element, '::after').content)).not.toBe('none');
+  await summary.click();
+  await expect(aRow.locator('.tab-detail')).toBeVisible();
+  await expect(aRow.locator('.tab-detail')).toContainText('规则判断');
+});
+
 test('custom strategy can be duplicated, previewed, saved and activated from the editor', async ({
   context,
   extensionId,

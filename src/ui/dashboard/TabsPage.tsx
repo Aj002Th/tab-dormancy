@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { CleanupPreview, CleanupResult, TabListItem, TraceNode } from '../../shared/types';
 import { messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
 import { Spinner } from '../components/Spinner';
 import { filterTabs } from './tabs-filter';
+import { windowLabelFor, windowLabels, windowSelectionAvailable } from './tabs-window';
 
 export function TabsPage() {
   const [items, setItems] = useState<TabListItem[]>([]);
@@ -14,33 +15,53 @@ export function TabsPage() {
   const [query, setQuery] = useState('');
   const [windowId, setWindowId] = useState<number | 'all'>('all');
   const [confirming, setConfirming] = useState(false);
+  const requestId = useRef(0);
 
   async function load() {
+    const id = ++requestId.current;
     try {
       const [nextItems, nextPreview] = await Promise.all([
         send<TabListItem[]>({ type: 'tabs.list' }),
         send<CleanupPreview>({ type: 'cleanup.preview', source: 'dashboard' }),
       ]);
+      if (id !== requestId.current) return;
       setItems(nextItems);
       setPreview(nextPreview);
+      setWindowId((current) => (windowSelectionAvailable(current, windowLabels(nextItems)) ? current : 'all'));
       setError(null);
     } catch (error) {
+      if (id !== requestId.current) return;
       setError(messageOf(error));
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   }
 
   useEffect(() => {
     void load();
-    const reload = () => void load();
-    chrome.tabs.onActivated.addListener(reload);
-    chrome.tabs.onRemoved.addListener(reload);
-    chrome.tabs.onUpdated.addListener(reload);
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      if (timer !== undefined) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = undefined;
+        void load();
+      }, 150);
+    };
+
+    chrome.tabs.onActivated.addListener(schedule);
+    chrome.tabs.onCreated.addListener(schedule);
+    chrome.tabs.onRemoved.addListener(schedule);
+    chrome.tabs.onUpdated.addListener(schedule);
+    chrome.windows.onFocusChanged.addListener(schedule);
     return () => {
-      chrome.tabs.onActivated.removeListener(reload);
-      chrome.tabs.onRemoved.removeListener(reload);
-      chrome.tabs.onUpdated.removeListener(reload);
+      if (timer !== undefined) clearTimeout(timer);
+      requestId.current += 1;
+      chrome.tabs.onActivated.removeListener(schedule);
+      chrome.tabs.onCreated.removeListener(schedule);
+      chrome.tabs.onRemoved.removeListener(schedule);
+      chrome.tabs.onUpdated.removeListener(schedule);
+      chrome.windows.onFocusChanged.removeListener(schedule);
     };
   }, []);
 
@@ -54,15 +75,21 @@ export function TabsPage() {
     }
   }
 
-  const visible = filterTabs(items, query, windowId);
-  const windows = [...new Set(items.map((item) => item.facts.windowId))].sort((a, b) => a - b);
+  const labels = windowLabels(items);
+  const showWindowLabels = labels.length > 1;
+  const effectiveWindowId = windowSelectionAvailable(windowId, labels) ? windowId : 'all';
+  const visible = filterTabs(items, query, effectiveWindowId);
 
   return (
     <section class="page">
       <header class="page-head">
         <div>
           <h2>标签页</h2>
-          <p class="muted">预览当前策略会关闭哪些标签；绿色标记表示命中。</p>
+          <p class="muted">
+            当前策略：
+            <strong data-testid="tabs-strategy">{preview?.strategyName ?? (loading ? '读取中…' : '未知')}</strong>
+            {' · '}预览当前策略会关闭哪些标签；绿色“命中”标记表示将被关闭。
+          </p>
         </div>
         <Button
           variant="primary"
@@ -92,25 +119,30 @@ export function TabsPage() {
         <input
           class="input"
           type="search"
+          aria-label="搜索标签页"
           placeholder="搜索标题、URL 或域名"
           value={query}
           onInput={(event) => setQuery((event.currentTarget as HTMLInputElement).value)}
         />
-        <select
-          class="input"
-          value={windowId}
-          onChange={(event) => {
-            const value = (event.currentTarget as HTMLSelectElement).value;
-            setWindowId(value === 'all' ? 'all' : Number(value));
-          }}
-        >
-          <option value="all">全部窗口</option>
-          {windows.map((id) => (
-            <option key={id} value={id}>
-              窗口 {id}
-            </option>
-          ))}
-        </select>
+        {showWindowLabels && (
+          <select
+            class="input"
+            aria-label="按窗口筛选"
+            data-testid="tabs-window-filter"
+            value={effectiveWindowId}
+            onChange={(event) => {
+              const value = (event.currentTarget as HTMLSelectElement).value;
+              setWindowId(value === 'all' ? 'all' : Number(value));
+            }}
+          >
+            <option value="all">全部窗口</option>
+            {labels.map((window) => (
+              <option key={window.id} value={window.id}>
+                {window.label}
+              </option>
+            ))}
+          </select>
+        )}
         <span class="muted" data-testid="tabs-count">
           {visible.length} / {items.length}
         </span>
@@ -120,10 +152,10 @@ export function TabsPage() {
         {visible.map((item) => (
           <details key={item.facts.tabId} class="tab-row" data-testid={`tab-row-${item.facts.tabId}`}>
             <summary class="tab-summary">
-              <span class={item.matched ? 'status-dot matched' : 'status-dot'} />
+              <span class={item.matched ? 'tab-match matched' : 'tab-match'}>{item.matched ? '命中' : '保留'}</span>
               <span class="tab-title">{item.facts.title || item.facts.url}</span>
               <span class="muted tab-domain">{item.facts.domain || '本地文件'}</span>
-              <span class="muted tab-window">窗口 {item.facts.windowId}</span>
+              {showWindowLabels && <span class="muted tab-window">{windowLabelFor(item.facts.windowId, labels)}</span>}
             </summary>
             <div class="tab-detail">
               <p class="tab-url">{item.facts.url}</p>
