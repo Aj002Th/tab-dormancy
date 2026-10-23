@@ -149,7 +149,7 @@ export function StrategiesPage() {
 
   const validation = editing && state ? validateExpr(editing.expression, state.capabilities) : null;
   const strategies = state?.strategies ?? [];
-  const visibleStrategies = editing && !editing.id ? [editing, ...strategies] : strategies;
+  const visibleStrategies = editing && !editing.id ? [...strategies, editing] : strategies;
 
   return (
     <section class="page">
@@ -194,36 +194,30 @@ export function StrategiesPage() {
                     {draft && <span class="badge draft">草稿</span>}
                   </div>
                   <p class="muted small">{expressionSummary(strategy.expression)}</p>
-                  <div class="row strategy-card-actions">
-                    {draft ? (
-                      <Button onClick={cancelDraft} data-testid="strategy-cancel-draft">
-                        取消
+                  {!draft && (
+                    <div class="row strategy-card-actions">
+                      <Button
+                        class={active ? 'btn-active' : ''}
+                        disabled={active}
+                        onClick={active ? undefined : () => void activate(strategy.id)}
+                        data-testid={`strategy-activate-${strategy.id}`}
+                      >
+                        {active ? '启用中' : '启用'}
                       </Button>
-                    ) : (
-                      <>
+                      <Button onClick={() => duplicate(strategy)} data-testid={`strategy-duplicate-${strategy.id}`}>
+                        复制
+                      </Button>
+                      {!strategy.builtin && !active && (
                         <Button
-                          class={active ? 'btn-active' : ''}
-                          disabled={active}
-                          onClick={active ? undefined : () => void activate(strategy.id)}
-                          data-testid={`strategy-activate-${strategy.id}`}
+                          variant="danger"
+                          onClick={() => void remove(strategy.id)}
+                          data-testid={`strategy-delete-${strategy.id}`}
                         >
-                          {active ? '启用中' : '启用'}
+                          删除
                         </Button>
-                        <Button onClick={() => duplicate(strategy)} data-testid={`strategy-duplicate-${strategy.id}`}>
-                          复制
-                        </Button>
-                        {!strategy.builtin && !active && (
-                          <Button
-                            variant="danger"
-                            onClick={() => void remove(strategy.id)}
-                            data-testid={`strategy-delete-${strategy.id}`}
-                          >
-                            删除
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -263,20 +257,45 @@ export function StrategiesPage() {
                 <Banner tone="error">{validation.issues[0].message}</Banner>
               )}
               {preview && (
-                <p class="muted" data-testid="rule-preview-count">
-                  预览：将关闭 {preview.matched} 个标签（共 {preview.totalManagedTabs} 个可管理标签）
-                </p>
+                <div class="preview-status" data-testid="rule-preview-count">
+                  <button type="button" class="preview-trigger" aria-describedby="strategy-preview-sample">
+                    预览：将关闭 {preview.matched} 个标签（共 {preview.totalManagedTabs} 个可管理标签）
+                  </button>
+                  <div
+                    class="preview-sample"
+                    id="strategy-preview-sample"
+                    role="tooltip"
+                    data-testid="rule-preview-sample"
+                  >
+                    <strong>命中示例</strong>
+                    {preview.sample.length > 0 ? (
+                      <ul class="preview-sample-list">
+                        {preview.sample.map((tab) => (
+                          <li key={tab.tabId}>
+                            <span class="preview-sample-title">{tab.title.trim() || tab.url}</span>
+                            <span class="preview-sample-url">{tab.url}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p class="preview-sample-note">当前没有命中的标签。</p>
+                    )}
+                    {preview.matched > preview.sample.length && (
+                      <p class="preview-sample-note">仅展示前 {preview.sample.length} 条。</p>
+                    )}
+                  </div>
+                </div>
               )}
-              <div class="row">
-                <Button
-                  variant="primary"
-                  disabled={saving || editing.builtin || !validation?.valid}
-                  onClick={() => void save()}
-                  data-testid="save-strategy"
-                >
-                  {saving ? '保存中…' : '保存'}
-                </Button>
-                {!editing.builtin && (
+              {!editing.builtin && (
+                <div class="row">
+                  <Button
+                    variant="primary"
+                    disabled={saving || !validation?.valid}
+                    onClick={() => void save()}
+                    data-testid="save-strategy"
+                  >
+                    {saving ? '保存中…' : '保存'}
+                  </Button>
                   <Button
                     disabled={saving || !preview || !validation?.valid}
                     onClick={() => void saveAndActivate()}
@@ -284,8 +303,13 @@ export function StrategiesPage() {
                   >
                     保存并启用
                   </Button>
-                )}
-              </div>
+                  {!editing.id && (
+                    <Button disabled={saving} onClick={cancelDraft} data-testid="cancel-strategy">
+                      取消创建
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ) : (

@@ -126,6 +126,7 @@ test('custom strategy can be duplicated, previewed, saved and activated from the
   await expect(dashboard.getByTestId('activate-strategy')).toBeEnabled();
   await dashboard.getByTestId('activate-strategy').click();
   await expect(dashboard.locator('.banner-error')).toHaveCount(0);
+  await expect(dashboard.locator('.strategy-card').last()).toContainText('标准 副本');
 });
 
 test('strategy editor clears stale preview errors after the expression becomes valid again', async ({
@@ -165,6 +166,7 @@ test('strategy cards reflect active state and open the editor on click', async (
   await expect(activeCard).not.toHaveClass(/selected/);
   await expect(dashboard.getByTestId('rule-editor')).toBeVisible();
   await expect(mildCard).toContainText('7 天');
+  await expect(dashboard.getByTestId('save-strategy')).toHaveCount(0);
 
   await expect(dashboard.getByRole('button', { name: '编辑' })).toHaveCount(0);
   await expect(dashboard.getByRole('button', { name: '关闭' })).toHaveCount(0);
@@ -189,14 +191,44 @@ test('creating a strategy shows a live draft card that can be cancelled', async 
   await expect(draftCard).toBeVisible();
   await expect(draftCard).toHaveClass(/selected/);
   await expect(draftCard).toContainText('草稿');
+  await expect(dashboard.locator('.strategy-card').last()).toHaveAttribute('data-testid', 'strategy-card-draft');
+  await expect(draftCard.getByRole('button', { name: '取消' })).toHaveCount(0);
 
   await dashboard.getByLabel('策略名称').fill('临时策略');
   await expect(draftCard).toContainText('临时策略');
   await expect(draftCard).toContainText('距最后访问 大于 3 天');
 
-  await draftCard.getByRole('button', { name: '取消' }).click();
+  await dashboard.getByTestId('cancel-strategy').click();
   await expect(draftCard).toHaveCount(0);
   await expect(dashboard.getByTestId('strategy-card-preset:standard')).toHaveClass(/selected/);
+});
+
+test('strategy preview shows matching tab examples on hover', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+
+  const previewA = await context.newPage();
+  await previewA.goto('http://127.0.0.1:4173/preview-a');
+  const previewB = await context.newPage();
+  await previewB.goto('http://127.0.0.1:4173/preview-b');
+  await dashboard.bringToFront();
+
+  await dashboard.getByTestId('new-strategy').click();
+  const condition = dashboard.getByTestId('rule-editor').locator('.condition-row').first();
+  await condition.locator('select').nth(1).selectOption('gte');
+  await condition.locator('input[type="number"]').fill('0');
+
+  const previewCount = dashboard.getByTestId('rule-preview-count');
+  await expect(previewCount).toContainText(/将关闭 [1-9]\d* 个标签/);
+  await previewCount.hover();
+
+  const sample = dashboard.getByTestId('rule-preview-sample');
+  await expect(sample).toBeVisible();
+  await expect(sample).toContainText('/preview-a');
+  await expect(sample).toContainText('/preview-b');
+  const sampleCount = await sample.locator('li').count();
+  expect(sampleCount).toBeGreaterThan(0);
+  expect(sampleCount).toBeLessThanOrEqual(5);
 });
 
 test('history search, delete and clear work', async ({ context, extensionId }) => {
