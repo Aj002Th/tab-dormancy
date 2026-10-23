@@ -7,6 +7,7 @@ type ButtonProps = {
   children: ComponentChildren;
   'data-testid'?: string;
   'aria-label'?: string;
+  title?: string;
   class?: string;
 };
 
@@ -18,6 +19,7 @@ export function Button({
   class: className = '',
   'data-testid': testId,
   'aria-label': ariaLabel,
+  title,
 }: ButtonProps) {
   return (
     <button
@@ -27,6 +29,7 @@ export function Button({
       onClick={(event) => onClick?.(event)}
       data-testid={testId}
       aria-label={ariaLabel}
+      title={title}
     >
       {children}
     </button>

@@ -69,7 +69,13 @@ export function Popup() {
           <h1>Tab Dormancy</h1>
           <p class="muted popup-subtitle">{snapshot?.activeStrategy.name ?? '正在读取策略'}</p>
         </div>
-        <Button class="icon-button" onClick={openDashboard} data-testid="open-dashboard" aria-label="打开控制台">
+        <Button
+          class="icon-button"
+          onClick={openDashboard}
+          data-testid="open-dashboard"
+          aria-label="打开控制台"
+          title="打开控制台"
+        >
           ⚙
         </Button>
       </header>

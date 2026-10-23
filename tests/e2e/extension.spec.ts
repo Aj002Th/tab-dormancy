@@ -108,6 +108,20 @@ test('idle/manual cleanup closes matching tabs and restores from history', async
     .toEqual(expect.arrayContaining([expect.stringContaining('/a')]));
 });
 
+test('popup settings button has a comfortable target and accessible name', async ({ context, extensionId }) => {
+  const popup = await context.newPage();
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+
+  const settings = popup.getByTestId('open-dashboard');
+  await expect(settings).toHaveAttribute('aria-label', '打开控制台');
+  await expect(settings).toHaveAttribute('title', '打开控制台');
+
+  const box = await settings.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box?.width).toBeGreaterThanOrEqual(36);
+  expect(box?.height).toBeGreaterThanOrEqual(36);
+});
+
 test('tabs page shows strategy, readable status and expandable rows', async ({ context, extensionId }) => {
   const dashboard = await context.newPage();
   await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html`);
