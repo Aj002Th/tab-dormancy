@@ -129,6 +129,26 @@ test('custom strategy can be duplicated, previewed, saved and activated from the
   await expect(dashboard.locator('.strategy-card').last()).toContainText('标准 副本');
 });
 
+test('active unchanged strategy disables save actions until content changes', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html`);
+  await seedUrlStrategy(dashboard);
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+
+  const activeCard = dashboard.getByRole('button', { name: '选择策略 E2E URL' });
+  await expect(activeCard).toHaveAttribute('aria-pressed', 'true');
+  await expect(dashboard.getByTestId('rule-preview-count')).toBeVisible();
+
+  const save = dashboard.getByTestId('save-strategy');
+  const saveAndActivate = dashboard.getByTestId('activate-strategy');
+  await expect(save).toBeDisabled();
+  await expect(saveAndActivate).toBeDisabled();
+
+  await dashboard.getByLabel('策略名称').fill('E2E URL 修改');
+  await expect(save).toBeEnabled();
+  await expect(saveAndActivate).toBeEnabled();
+});
+
 test('strategy editor clears stale preview errors after the expression becomes valid again', async ({
   context,
   extensionId,

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { cloneStrategy, createCustomStrategy } from '../../core/rules/presets';
+import { canonicalExpr } from '../../core/rules/signature';
 import { validateExpr } from '../../core/rules/validate';
 import type { StrategyPreview } from '../../shared/messages';
 import type { StateSnapshot, Strategy } from '../../shared/types';
@@ -150,6 +151,14 @@ export function StrategiesPage() {
   const validation = editing && state ? validateExpr(editing.expression, state.capabilities) : null;
   const strategies = state?.strategies ?? [];
   const visibleStrategies = editing && !editing.id ? [...strategies, editing] : strategies;
+  const persistedEditing = editing ? strategies.find((strategy) => strategy.id === editing.id) : undefined;
+  const activeUnchanged =
+    editing !== null &&
+    state !== null &&
+    persistedEditing !== undefined &&
+    editing.id === state.activeStrategy.id &&
+    editing.name.trim() === persistedEditing.name &&
+    canonicalExpr(editing.expression) === canonicalExpr(persistedEditing.expression);
 
   return (
     <section class="page">
@@ -290,14 +299,14 @@ export function StrategiesPage() {
                 <div class="row">
                   <Button
                     variant="primary"
-                    disabled={saving || !validation?.valid}
+                    disabled={saving || activeUnchanged || !validation?.valid}
                     onClick={() => void save()}
                     data-testid="save-strategy"
                   >
                     {saving ? '保存中…' : '保存'}
                   </Button>
                   <Button
-                    disabled={saving || !preview || !validation?.valid}
+                    disabled={saving || activeUnchanged || !preview || !validation?.valid}
                     onClick={() => void saveAndActivate()}
                     data-testid="activate-strategy"
                   >
