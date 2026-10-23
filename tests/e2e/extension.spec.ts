@@ -206,6 +206,26 @@ test('strategy cards reflect active state and open the editor on click', async (
   expect(oneOptionSelects).toBe(0);
 });
 
+test('editor aligns with the selected strategy card and scrolls it into view', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+
+  const editor = dashboard.locator('.editor-panel');
+  const alignment = async (testId: string): Promise<number> => {
+    const [cardBox, editorBox] = await Promise.all([dashboard.getByTestId(testId).boundingBox(), editor.boundingBox()]);
+    if (!cardBox || !editorBox) return Number.POSITIVE_INFINITY;
+    return Math.abs(cardBox.y - editorBox.y);
+  };
+
+  await expect.poll(() => alignment('strategy-card-preset:standard')).toBeLessThan(2);
+
+  const aggressiveCard = dashboard.getByTestId('strategy-card-preset:aggressive');
+  await aggressiveCard.click();
+  await expect(aggressiveCard).toHaveClass(/selected/);
+  await expect.poll(() => alignment('strategy-card-preset:aggressive')).toBeLessThan(2);
+  await expect.poll(() => dashboard.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+});
+
 test('creating a strategy shows a live draft card that can be cancelled', async ({ context, extensionId }) => {
   const dashboard = await context.newPage();
   await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);

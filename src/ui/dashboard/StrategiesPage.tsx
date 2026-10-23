@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { cloneStrategy, createCustomStrategy } from '../../core/rules/presets';
 import { canonicalExpr } from '../../core/rules/signature';
 import { validateExpr } from '../../core/rules/validate';
@@ -19,6 +19,10 @@ export function StrategiesPage() {
   const [preview, setPreview] = useState<StrategyPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const selectedCardRef = useRef<HTMLDivElement | null>(null);
+  const scrollOnNextSelection = useRef(false);
+  const [editorOffset, setEditorOffset] = useState(0);
 
   async function load() {
     try {
@@ -63,12 +67,14 @@ export function StrategiesPage() {
 
   const startNew = () => {
     const expression = newGroup('all', newId(), newCondition(newId()));
+    scrollOnNextSelection.current = true;
     setEditing(createCustomStrategy('新策略', expression, Date.now(), ''));
     setPreview(null);
     setError(null);
   };
 
   const duplicate = (strategy: Strategy) => {
+    scrollOnNextSelection.current = true;
     setEditing(cloneStrategy(strategy, Date.now(), ''));
     setPreview(null);
     setError(null);
@@ -76,12 +82,14 @@ export function StrategiesPage() {
 
   const selectStrategy = (strategy: Strategy) => {
     if (editing?.id === strategy.id) return;
+    scrollOnNextSelection.current = true;
     setEditing(strategy);
     setPreview(null);
     setError(null);
   };
 
   const cancelDraft = () => {
+    scrollOnNextSelection.current = true;
     setEditing(state?.activeStrategy ?? null);
     setPreview(null);
     setError(null);
@@ -160,6 +168,37 @@ export function StrategiesPage() {
     editing.name.trim() === persistedEditing.name &&
     canonicalExpr(editing.expression) === canonicalExpr(persistedEditing.expression);
 
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const card = selectedCardRef.current;
+    if (!list || !card) {
+      setEditorOffset(0);
+      return;
+    }
+
+    setEditorOffset(Math.max(0, card.getBoundingClientRect().top - list.getBoundingClientRect().top));
+    if (!scrollOnNextSelection.current) return;
+
+    scrollOnNextSelection.current = false;
+    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    requestAnimationFrame(() => {
+      if (card.isConnected && selectedCardRef.current === card) {
+        card.scrollIntoView({ block: 'start', inline: 'nearest', behavior });
+      }
+    });
+  }, [editing?.id, visibleStrategies.length]);
+
+  useEffect(() => {
+    const update = () => {
+      const list = listRef.current;
+      const card = selectedCardRef.current;
+      if (!list || !card) return;
+      setEditorOffset(Math.max(0, card.getBoundingClientRect().top - list.getBoundingClientRect().top));
+    };
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
   return (
     <section class="page">
       <header class="page-head">
@@ -175,7 +214,7 @@ export function StrategiesPage() {
       {error && <Banner tone="error">{error}</Banner>}
 
       <div class="strategy-layout">
-        <div class="strategy-list">
+        <div class="strategy-list" ref={listRef}>
           {visibleStrategies.map((strategy) => {
             const draft = !strategy.id;
             const active = state?.activeStrategy.id === strategy.id;
@@ -188,6 +227,7 @@ export function StrategiesPage() {
                 key={draft ? 'draft' : strategy.id}
                 data-testid={draft ? 'strategy-card-draft' : `strategy-card-${strategy.id}`}
                 title={summary.full}
+                ref={selected ? selectedCardRef : undefined}
               >
                 {!draft && (
                   <button
@@ -249,7 +289,7 @@ export function StrategiesPage() {
         </div>
 
         {editing && state ? (
-          <div class="editor-panel">
+          <div class="editor-panel" style={{ marginTop: `${editorOffset}px` }}>
             <div class="editor-head">
               <input
                 class="input"

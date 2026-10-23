@@ -343,6 +343,7 @@
 
 .strategy-card {
   position: relative;
+  scroll-margin-top: 16px;
   cursor: pointer;
   transition:
     background 120ms ease,
