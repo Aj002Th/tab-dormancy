@@ -141,6 +141,35 @@ test('tabs page shows strategy, readable status and expandable rows', async ({ c
   await expect(aRow.locator('.tab-detail')).toContainText('规则判断');
 });
 
+test('tabs trace uses Chinese labels and aligned actual/expected columns', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/tabs`);
+
+  const keep = await context.newPage();
+  await keep.goto('http://127.0.0.1:4173/keep');
+  await dashboard.bringToFront();
+  await dashboard.reload();
+
+  const keepRow = dashboard.locator('.tab-row').filter({ hasText: 'Keep' });
+  await keepRow.locator('summary').click();
+  const trace = keepRow.locator('.trace');
+  await expect(trace).toContainText('距最后访问');
+  await expect(trace).not.toContainText('lastActiveMinutes');
+  await expect(trace).toContainText('实际');
+  await expect(trace).toContainText('期望');
+  await expect(trace).toContainText('否');
+
+  const actualLefts = await trace
+    .locator('.trace-actual')
+    .evaluateAll((nodes) => nodes.map((node) => Math.round(node.getBoundingClientRect().left)));
+  const expectedLefts = await trace
+    .locator('.trace-expected')
+    .evaluateAll((nodes) => nodes.map((node) => Math.round(node.getBoundingClientRect().left)));
+  expect(actualLefts.length).toBeGreaterThan(1);
+  expect(new Set(actualLefts).size).toBe(1);
+  expect(new Set(expectedLefts).size).toBe(1);
+});
+
 test('custom strategy can be duplicated, previewed, saved and activated from the editor', async ({
   context,
   extensionId,
@@ -244,6 +273,25 @@ test('strategy cards reflect active state and open the editor on click', async (
         selects.filter((select) => select instanceof HTMLSelectElement && select.options.length === 1).length,
     );
   expect(oneOptionSelects).toBe(0);
+});
+
+test('strategies page scrolls to the active card when entering', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html`);
+  await seedUrlStrategy(dashboard);
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+
+  const activeCard = dashboard.locator('.strategy-card.selected');
+  await expect(activeCard).toContainText('E2E URL');
+  await expect.poll(() => dashboard.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+
+  const editor = dashboard.locator('.editor-panel');
+  const alignment = async (): Promise<number> => {
+    const [cardBox, editorBox] = await Promise.all([activeCard.boundingBox(), editor.boundingBox()]);
+    if (!cardBox || !editorBox) return Number.POSITIVE_INFINITY;
+    return Math.abs(cardBox.y - editorBox.y);
+  };
+  await expect.poll(alignment).toBeLessThan(2);
 });
 
 test('editor aligns with the selected strategy card and scrolls it into view', async ({ context, extensionId }) => {

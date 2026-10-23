@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { formatMinutesAgo } from '../../shared/time';
 import type { CleanupPreview, CleanupResult, TabListItem, TraceNode } from '../../shared/types';
 import { messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
@@ -6,6 +7,7 @@ import { Button } from '../components/Button';
 import { Spinner } from '../components/Spinner';
 import { filterTabs } from './tabs-filter';
 import { windowLabelFor, windowLabels, windowSelectionAvailable } from './tabs-window';
+import { formatTraceExpected, formatTraceValue, traceFactLabel, traceResultLabel } from './trace-format';
 
 export function TabsPage() {
   const [items, setItems] = useState<TabListItem[]>([]);
@@ -162,7 +164,9 @@ export function TabsPage() {
               <dl class="fact-grid">
                 <div>
                   <dt>最后访问</dt>
-                  <dd>{item.facts.lastActiveMinutes === null ? '未知' : `${item.facts.lastActiveMinutes} 分钟前`}</dd>
+                  <dd>
+                    {item.facts.lastActiveMinutes === null ? '未知' : formatMinutesAgo(item.facts.lastActiveMinutes)}
+                  </dd>
                 </div>
                 <div>
                   <dt>固定 / 声音</dt>
@@ -200,11 +204,18 @@ function TraceRow({ node }: { node: TraceNode }) {
   if (!node.fact) return null;
   return (
     <div class={node.result ? 'trace-row pass' : 'trace-row'}>
-      <span>{node.fact}</span>
-      <span class="muted">
-        实际 {String(node.actual ?? '未知')} · 期望 {String(node.expected ?? '')}
+      <span class="trace-fact">{traceFactLabel(node.fact)}</span>
+      <span class="trace-compare">
+        <span class="trace-value trace-actual">
+          <span class="trace-key">实际</span>
+          {formatTraceValue(node.fact, node.actual)}
+        </span>
+        <span class="trace-value trace-expected">
+          <span class="trace-key">期望</span>
+          {formatTraceExpected(node.fact, node.expected)}
+        </span>
       </span>
-      <span>{node.result ? '命中' : node.reason === 'unknown' ? '未知' : '未命中'}</span>
+      <span class="trace-result">{traceResultLabel(node)}</span>
     </div>
   );
 }

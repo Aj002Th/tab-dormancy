@@ -279,16 +279,45 @@
 }
 
 .trace-row {
-  display: flex;
-  gap: 8px;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 7em minmax(0, 1fr) 3.5em;
+  gap: 4px 12px;
+  align-items: baseline;
   font-size: 12px;
-  padding: 3px 0;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 0;
   color: var(--muted);
 }
 
 .trace-row.pass {
   color: var(--text);
+}
+
+.trace-fact {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.trace-compare {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+  color: var(--muted);
+}
+
+.trace-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.trace-key {
+  margin-right: 4px;
+}
+
+.trace-result {
+  white-space: nowrap;
+  text-align: right;
 }
 
 .confirm-bar {
@@ -334,6 +363,15 @@
 
   .fact-grid {
     grid-template-columns: 1fr;
+  }
+
+  .trace-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .trace-compare {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 }
 

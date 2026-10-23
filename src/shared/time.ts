@@ -13,3 +13,8 @@ export function formatRelativeTime(now: number, then: number): string {
   const day = String(date.getDate()).padStart(2, '0');
   return `${date.getFullYear()}-${month}-${day}`;
 }
+
+export function formatMinutesAgo(minutes: number, now: number = Date.now()): string {
+  const safeMinutes = Number.isFinite(minutes) ? Math.max(0, Math.floor(minutes)) : 0;
+  return formatRelativeTime(now, now - safeMinutes * MINUTE);
+}

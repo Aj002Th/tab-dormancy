@@ -22,6 +22,7 @@ export function StrategiesPage() {
   const listRef = useRef<HTMLDivElement | null>(null);
   const selectedCardRef = useRef<HTMLDivElement | null>(null);
   const scrollOnNextSelection = useRef(false);
+  const initialScrollPending = useRef(true);
   const [editorOffset, setEditorOffset] = useState(0);
 
   async function load() {
@@ -176,11 +177,19 @@ export function StrategiesPage() {
       return;
     }
 
-    setEditorOffset(Math.max(0, card.getBoundingClientRect().top - list.getBoundingClientRect().top));
-    if (!scrollOnNextSelection.current) return;
+    const offset = Math.max(0, card.getBoundingClientRect().top - list.getBoundingClientRect().top);
+    setEditorOffset(offset);
+
+    const selectedByUser = scrollOnNextSelection.current;
+    const initialLoad = initialScrollPending.current;
+    if (!selectedByUser && !initialLoad) return;
 
     scrollOnNextSelection.current = false;
-    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    initialScrollPending.current = false;
+    if (initialLoad && offset === 0) return;
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const behavior: ScrollBehavior = initialLoad || reduceMotion ? 'auto' : 'smooth';
     requestAnimationFrame(() => {
       if (card.isConnected && selectedCardRef.current === card) {
         card.scrollIntoView({ block: 'start', inline: 'nearest', behavior });
