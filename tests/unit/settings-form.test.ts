@@ -12,6 +12,7 @@ const saved: Settings = {
   lockCleanupEnabled: true,
   lockDelayMinutes: 15,
   historyRetentionDays: 30,
+  historyMaxRecords: 5_000,
   activeStrategyId: 'preset:standard',
 };
 
@@ -26,6 +27,7 @@ describe('settings form', () => {
       lockCleanupEnabled: true,
       lockDelayMinutes: '15',
       historyRetentionDays: '30',
+      historyMaxRecords: '5000',
     });
   });
 
@@ -36,6 +38,7 @@ describe('settings form', () => {
         lockCleanupEnabled: false,
         lockDelayMinutes: '0',
         historyRetentionDays: '7',
+        historyMaxRecords: '120',
       }),
     ).toEqual({
       patch: {
@@ -43,6 +46,7 @@ describe('settings form', () => {
         lockCleanupEnabled: false,
         lockDelayMinutes: 0,
         historyRetentionDays: 7,
+        historyMaxRecords: 120,
       },
     });
   });
@@ -59,6 +63,11 @@ describe('settings form', () => {
     ['empty retention', { historyRetentionDays: '' }, '历史保留需为 1–365 天'],
     ['zero retention', { historyRetentionDays: '0' }, '历史保留需为 1–365 天'],
     ['too large retention', { historyRetentionDays: '366' }, '历史保留需为 1–365 天'],
+    ['empty max records', { historyMaxRecords: '' }, '历史保留条数需为 1–5000 条'],
+    ['zero max records', { historyMaxRecords: '0' }, '历史保留条数需为 1–5000 条'],
+    ['too large max records', { historyMaxRecords: '5001' }, '历史保留条数需为 1–5000 条'],
+    ['fractional max records', { historyMaxRecords: '1.5' }, '历史保留条数需为 1–5000 条'],
+    ['non-numeric max records', { historyMaxRecords: 'abc' }, '历史保留条数需为 1–5000 条'],
   ])('rejects %s', (_name, patch, message) => {
     expect(parseSettingsForm(form(patch))).toEqual({ error: message });
   });
@@ -69,6 +78,7 @@ describe('settings form', () => {
     expect(isSettingsDirty(form({ lockCleanupEnabled: false }), saved)).toBe(true);
     expect(isSettingsDirty(form({ lockDelayMinutes: '0' }), saved)).toBe(true);
     expect(isSettingsDirty(form({ historyRetentionDays: '7' }), saved)).toBe(true);
+    expect(isSettingsDirty(form({ historyMaxRecords: '120' }), saved)).toBe(true);
   });
 
   it('ignores the active strategy when comparing settings', () => {

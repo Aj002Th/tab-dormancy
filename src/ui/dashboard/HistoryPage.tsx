@@ -17,7 +17,6 @@ export function HistoryPage() {
   const [result, setResult] = useState<HistoryQueryResult | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [mode, setMode] = useState<RestoreOptions['mode']>('current-window');
-  const [complete, setComplete] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -52,7 +51,7 @@ export function HistoryPage() {
       const response = await send<RestoreResult>({
         type: 'history.restore',
         ids: [...selected],
-        options: { mode, complete },
+        options: { mode, complete: true },
       });
       setFailures(response.failed);
       setNotice(
@@ -98,7 +97,22 @@ export function HistoryPage() {
       <header class="page-head">
         <div>
           <h2>关闭历史</h2>
-          <p class="muted">默认保留 30 天或 5000 条。恢复不会删除记录。</p>
+          <p class="muted">
+            {result ? (
+              <>
+                <span data-testid="history-retention">
+                  当前保留最近 {result.retention.days} 天内的记录，最多 {result.retention.maxRecords}{' '}
+                  条；超出后删除最旧记录。
+                </span>{' '}
+                <a class="text-link" href="#/settings">
+                  在设置中调整
+                </a>
+                。恢复不会删除记录。
+              </>
+            ) : (
+              '正在读取保留策略…'
+            )}
+          </p>
         </div>
         <span class="muted" data-testid="history-total">
           共 {result?.total ?? 0} 条
@@ -169,15 +183,6 @@ export function HistoryPage() {
           <option value="current-window">恢复到当前窗口</option>
           <option value="original-window-groups">按原窗口分组新建</option>
         </select>
-        <label class="checkbox">
-          <input
-            type="checkbox"
-            checked={complete}
-            data-testid="history-complete"
-            onChange={(event) => setComplete((event.currentTarget as HTMLInputElement).checked)}
-          />
-          尝试完整恢复
-        </label>
         <span class="grow" />
         <Button disabled={selected.size === 0} onClick={() => void restore()} data-testid="history-restore">
           恢复所选
@@ -194,6 +199,9 @@ export function HistoryPage() {
           清空
         </Button>
       </div>
+      <p class="muted small history-restore-note">
+        恢复到当前窗口时会尽量还原页面状态（如滚动位置、表单内容），无法还原时改为普通打开；重建原窗口时优先保证窗口和分组位置。
+      </p>
 
       {loading && <Spinner />}
       <div class="history-list">

@@ -93,6 +93,13 @@ test('idle/manual cleanup closes matching tabs and restores from history', async
 
   await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/history`);
   await expect(dashboard.getByTestId('history-total')).toContainText('2');
+  await expect(dashboard.getByTestId('history-retention')).toContainText('最近 30 天');
+  await expect(dashboard.getByTestId('history-retention')).toContainText('最多 5000 条');
+  await expect(
+    dashboard.getByText(
+      '恢复到当前窗口时会尽量还原页面状态（如滚动位置、表单内容），无法还原时改为普通打开；重建原窗口时优先保证窗口和分组位置。',
+    ),
+  ).toBeVisible();
   const row = dashboard.locator('[data-testid^="history-row-"]').first();
   await row.locator('input[type="checkbox"]').check();
   await dashboard.getByTestId('history-restore').click();
@@ -406,6 +413,65 @@ test('settings disables saving while the update is in flight', async ({ context,
   await expect(save).toBeDisabled();
 });
 
+test('settings groups history retention and the history page shows the active policy', async ({
+  context,
+  extensionId,
+}) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+
+  await expect(dashboard.getByRole('heading', { name: '空闲清理' })).toBeVisible();
+  await expect(dashboard.getByRole('heading', { name: '锁屏清理' })).toBeVisible();
+  await expect(dashboard.getByRole('heading', { name: '关闭历史', exact: true })).toBeVisible();
+  await expect(dashboard.getByRole('heading', { name: '浏览器支持' })).toBeVisible();
+  await expect(dashboard.getByTestId('settings-support-summary')).not.toContainText('最后访问时间 可用');
+
+  const maxRecords = dashboard.getByTestId('settings-max-records');
+  await expect(maxRecords).toHaveValue('5000');
+  await dashboard.getByTestId('settings-retention').fill('7');
+  await maxRecords.fill('120');
+  await dashboard.getByTestId('settings-save').click();
+  await expect(dashboard.getByText('设置已保存')).toBeVisible();
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/history`);
+  await expect(dashboard.getByTestId('history-retention')).toContainText('最近 7 天');
+  await expect(dashboard.getByTestId('history-retention')).toContainText('最多 120 条');
+});
+
+test('settings restore defaults fills the form for review before saving', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  dashboard.on('dialog', (dialog) => void dialog.accept());
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+
+  const idle = dashboard.getByTestId('settings-idle');
+  const maxRecords = dashboard.getByTestId('settings-max-records');
+  const save = dashboard.getByTestId('settings-save');
+  const restore = dashboard.getByTestId('settings-restore-defaults');
+  await expect(idle).toHaveValue('15');
+  await expect(maxRecords).toHaveValue('5000');
+  await expect(restore).toBeDisabled();
+
+  await idle.fill('20');
+  await save.click();
+  await expect(dashboard.getByText('设置已保存')).toBeVisible();
+  await expect(restore).toBeEnabled();
+
+  await idle.fill('25');
+  await restore.click();
+  await expect(idle).toHaveValue('15');
+  await expect(maxRecords).toHaveValue('5000');
+  await expect(dashboard.getByTestId('settings-lock-enabled')).toBeChecked();
+  await expect(dashboard.getByText('已恢复默认值，点击“保存设置”后生效。')).toBeVisible();
+  await expect(save).toBeEnabled();
+
+  await save.click();
+  await expect(dashboard.getByText('设置已保存')).toBeVisible();
+  await expect(save).toBeDisabled();
+  await dashboard.reload();
+  await expect(idle).toHaveValue('15');
+  await expect(maxRecords).toHaveValue('5000');
+});
+
 test('settings clear history replaces stale banners', async ({ context, extensionId }) => {
   const worker = defined(context.serviceWorkers()[0], 'service worker');
   await seedHistory(worker, 'settings-clear');
@@ -435,6 +501,8 @@ test('history search, delete and clear work', async ({ context, extensionId }) =
   dashboard.on('dialog', (dialog) => void dialog.accept());
   await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/history`);
   await expect(dashboard.getByTestId('history-total')).toContainText('1');
+  await expect(dashboard.getByTestId('history-retention')).toContainText('最近 30 天');
+  await expect(dashboard.getByTestId('history-retention')).toContainText('最多 5000 条');
 
   await dashboard.getByTestId('history-search').fill('seed');
   await expect(dashboard.getByTestId('history-row-seed-r1')).toBeVisible();

@@ -741,44 +741,148 @@
   margin-top: 16px;
 }
 
-.settings-grid {
+.settings-sections {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
   margin: 16px 0;
 }
 
-.field {
+.settings-section {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.settings-section-head h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.settings-section-head p {
+  margin: 0;
+}
+
+.settings-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  max-width: 760px;
+}
+
+.settings-field {
   display: grid;
   gap: 6px;
+  max-width: 360px;
   font-size: 13px;
 }
 
-.field-inline {
-  align-self: end;
-  padding-bottom: 8px;
+.settings-field .input {
+  width: 100%;
+}
+
+.settings-help {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.settings-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 520px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.settings-toggle input {
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  flex: none;
+}
+
+.settings-toggle-text {
+  display: grid;
+  gap: 2px;
+}
+
+.settings-toggle-text strong {
+  font-weight: 600;
+}
+
+.settings-danger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.settings-danger h4 {
+  margin: 0 0 2px;
+  font-size: 13px;
+}
+
+.settings-danger p {
+  margin: 0;
 }
 
 .settings-actions {
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
-.capability-box {
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+.settings-support-summary {
+  margin: 0;
+  font-size: 13px;
 }
 
-.capability-box h3 {
-  margin: 0 0 6px;
-  font-size: 14px;
+.capability-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.capability-list strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.text-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
+.history-restore-note {
+  margin: -6px 0 14px;
 }
 
 @media (max-width: 720px) {
-  .settings-grid {
+  .settings-fields {
     grid-template-columns: 1fr;
+  }
+
+  .settings-fields .settings-field {
+    max-width: none;
+  }
+
+  .settings-danger {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .history-row {

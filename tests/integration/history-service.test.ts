@@ -74,6 +74,21 @@ describe('history service', () => {
     const page = await service.queryHistory({ page: 2, pageSize: 2 });
     expect(page.items).toHaveLength(1);
     expect(page.page).toBe(2);
+    expect(page.retention).toEqual({ days: 30, maxRecords: 5_000 });
+  });
+
+  it('applies a lower history limit immediately', async () => {
+    const { repo, service } = await setup([
+      record('a', { closedAt: now - 200 }),
+      record('b', { closedAt: now - 100 }),
+      record('c', { closedAt: now }),
+    ]);
+
+    await service.updateSettings({ historyMaxRecords: 2 });
+
+    expect((await repo.getHistoryIndex()).map((item) => item.id)).toEqual(['c', 'b']);
+    expect(await repo.getHistoryRecords(['a'])).toEqual([]);
+    expect((await service.queryHistory({ page: 1, pageSize: 50 })).retention.maxRecords).toBe(2);
   });
 
   it('restores tabs into the current window and marks them restored', async () => {
@@ -109,6 +124,29 @@ describe('history service', () => {
     expect(spy).toHaveBeenCalledTimes(2);
     expect(result.restored).toBe(2);
     expect((await browser.queryTabs()).some((tab) => tab.url === 'https://example.com/b')).toBe(true);
+  });
+
+  it('keeps original window placement ahead of complete restore', async () => {
+    const { browser, service } = await setup([
+      record('a', { sessionId: 'session-1' }),
+      record('b', { sessionId: 'session-2' }),
+    ]);
+    browser.restoredSessions.set('session-1', {
+      tab: { id: 98, url: 'https://example.com/a', windowId: 1 } as chrome.tabs.Tab,
+    } as chrome.sessions.Session);
+    browser.restoredSessions.set('session-2', {
+      tab: { id: 99, url: 'https://example.com/b', windowId: 1 } as chrome.tabs.Tab,
+    } as chrome.sessions.Session);
+    const spy = vi.spyOn(browser, 'restoreSession');
+
+    const result = await service.restoreHistory(['a', 'b'], {
+      mode: 'original-window-groups',
+      complete: true,
+    });
+
+    expect(spy).not.toHaveBeenCalled();
+    expect(result.restored).toBe(2);
+    expect(browser.windows).toHaveLength(2);
   });
 
   it('returns results newest-first regardless of storage order', async () => {

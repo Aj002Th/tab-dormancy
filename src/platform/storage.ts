@@ -35,7 +35,11 @@ export class Repo {
 
   async getSettings(): Promise<Settings> {
     const value = (await this.local.get(STORAGE_KEYS.settings))[STORAGE_KEYS.settings];
-    if (isSettings(value)) return value;
+    const settings = normalizeSettings(value);
+    if (settings) {
+      if (!isSettings(value)) await this.local.set({ [STORAGE_KEYS.settings]: settings });
+      return settings;
+    }
     if (value !== undefined) await this.backupCorrupt(STORAGE_KEYS.settings, value);
     await this.local.set({ [STORAGE_KEYS.settings]: DEFAULT_SETTINGS });
     return DEFAULT_SETTINGS;
@@ -141,6 +145,29 @@ export class Repo {
   }
 }
 
+function normalizeSettings(value: unknown): Settings | null {
+  if (!value || typeof value !== 'object') return null;
+  const settings = value as Record<string, unknown>;
+  if (
+    typeof settings.idleThresholdMinutes !== 'number' ||
+    typeof settings.lockCleanupEnabled !== 'boolean' ||
+    typeof settings.lockDelayMinutes !== 'number' ||
+    typeof settings.historyRetentionDays !== 'number' ||
+    typeof settings.activeStrategyId !== 'string'
+  ) {
+    return null;
+  }
+  return {
+    idleThresholdMinutes: settings.idleThresholdMinutes,
+    lockCleanupEnabled: settings.lockCleanupEnabled,
+    lockDelayMinutes: settings.lockDelayMinutes,
+    historyRetentionDays: settings.historyRetentionDays,
+    historyMaxRecords:
+      typeof settings.historyMaxRecords === 'number' ? settings.historyMaxRecords : DEFAULT_SETTINGS.historyMaxRecords,
+    activeStrategyId: settings.activeStrategyId,
+  };
+}
+
 function isSettings(value: unknown): value is Settings {
   if (!value || typeof value !== 'object') return false;
   const settings = value as Record<string, unknown>;
@@ -149,6 +176,7 @@ function isSettings(value: unknown): value is Settings {
     typeof settings.lockCleanupEnabled === 'boolean' &&
     typeof settings.lockDelayMinutes === 'number' &&
     typeof settings.historyRetentionDays === 'number' &&
+    typeof settings.historyMaxRecords === 'number' &&
     typeof settings.activeStrategyId === 'string'
   );
 }

@@ -34,6 +34,7 @@ describe('TabDormancyService foundation', () => {
     expect(state.strategies).toHaveLength(3);
     expect(state.activeStrategy.id).toBe('preset:standard');
     expect(state.settings.idleThresholdMinutes).toBe(15);
+    expect(state.settings.historyMaxRecords).toBe(5_000);
     expect(browser.detectionInterval).toBe(900);
     expect(await repo.getBrowserSessionId()).toBe('id-0');
   });
@@ -73,10 +74,21 @@ describe('TabDormancyService foundation', () => {
   it('validates and applies settings', async () => {
     const { browser, service } = setup();
     await service.bootstrap();
-    const settings = await service.updateSettings({ idleThresholdMinutes: 30, lockDelayMinutes: 0 });
+    const settings = await service.updateSettings({
+      idleThresholdMinutes: 30,
+      lockDelayMinutes: 0,
+      historyMaxRecords: 120,
+    });
     expect(settings.idleThresholdMinutes).toBe(30);
+    expect(settings.historyMaxRecords).toBe(120);
     expect(browser.detectionInterval).toBe(1800);
     await expect(service.updateSettings({ idleThresholdMinutes: 0 })).rejects.toMatchObject({
+      code: 'INVALID_SETTINGS',
+    });
+    await expect(service.updateSettings({ historyMaxRecords: 0 })).rejects.toMatchObject({
+      code: 'INVALID_SETTINGS',
+    });
+    await expect(service.updateSettings({ historyMaxRecords: 5_001 })).rejects.toMatchObject({
       code: 'INVALID_SETTINGS',
     });
   });

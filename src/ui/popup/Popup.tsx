@@ -50,7 +50,7 @@ export function Popup() {
     const ids = state.result?.recordIds ?? state.snapshot?.lastCleanup?.recordIds ?? [];
     if (ids.length === 0) return;
     try {
-      await send({ type: 'history.restore', ids, options: { mode: 'current-window', complete: false } });
+      await send({ type: 'history.restore', ids, options: { mode: 'current-window', complete: true } });
       dispatch({ type: 'reset' });
       await load();
     } catch (error) {

@@ -10,6 +10,7 @@ const snapshot: StateSnapshot = {
     lockCleanupEnabled: true,
     lockDelayMinutes: 15,
     historyRetentionDays: 30,
+    historyMaxRecords: 5_000,
     activeStrategyId: 'preset:standard',
   },
   strategies: [],

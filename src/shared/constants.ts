@@ -24,6 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lockCleanupEnabled: true,
   lockDelayMinutes: 15,
   historyRetentionDays: 30,
+  historyMaxRecords: 5_000,
   activeStrategyId: 'preset:standard',
 };
 

@@ -59,6 +59,7 @@ export type Settings = {
   lockCleanupEnabled: boolean;
   lockDelayMinutes: number;
   historyRetentionDays: number;
+  historyMaxRecords: number;
   activeStrategyId: string;
 };
 
@@ -199,6 +200,10 @@ export type HistoryQueryResult = {
   total: number;
   page: number;
   pageSize: number;
+  retention: {
+    days: number;
+    maxRecords: number;
+  };
 };
 
 export type RestoreOptions = {

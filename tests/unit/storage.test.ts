@@ -59,6 +59,24 @@ describe('Repo', () => {
     expect((await store.getSettings()).idleThresholdMinutes).toBe(30);
   });
 
+  it('migrates legacy settings without resetting other values', async () => {
+    const { local, repo: store } = repo();
+    const legacy = {
+      idleThresholdMinutes: 42,
+      lockCleanupEnabled: false,
+      lockDelayMinutes: 3,
+      historyRetentionDays: 7,
+      activeStrategyId: 'preset:mild',
+    };
+    await local.set({ [STORAGE_KEYS.settings]: legacy });
+
+    const migrated = { ...legacy, historyMaxRecords: DEFAULT_SETTINGS.historyMaxRecords };
+    expect(await store.getSettings()).toEqual(migrated);
+    expect((await local.get(STORAGE_KEYS.settings))[STORAGE_KEYS.settings]).toEqual(migrated);
+    const keys = Object.keys(local.data).filter((key) => key.startsWith(STORAGE_KEYS.chaosPrefix));
+    expect(keys).toHaveLength(0);
+  });
+
   it('backs up corrupt settings instead of throwing', async () => {
     const { local, repo: store } = repo();
     await local.set({ [STORAGE_KEYS.settings]: { nope: true } });

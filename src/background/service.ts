@@ -356,7 +356,7 @@ export class TabDormancyService {
       index,
       this.deps.now(),
       settings.historyRetentionDays,
-      LIMITS.maxHistory,
+      settings.historyMaxRecords,
     );
     if (removedIds.length === 0) return;
     await this.deps.repo.deleteHistoryRecords(removedIds);
@@ -365,6 +365,7 @@ export class TabDormancyService {
 
   async queryHistory(query: HistoryQuery): Promise<HistoryQueryResult> {
     await this.bootstrap();
+    const settings = await this.deps.repo.getSettings();
     const index = await this.deps.repo.getHistoryIndex();
     const search = (query.query ?? '').trim().toLowerCase();
     const filtered = index.filter((item) => {
@@ -386,6 +387,10 @@ export class TabDormancyService {
       total: filtered.length,
       page,
       pageSize,
+      retention: {
+        days: settings.historyRetentionDays,
+        maxRecords: settings.historyMaxRecords,
+      },
     };
   }
 
@@ -483,7 +488,7 @@ export class TabDormancyService {
     options: RestoreOptions,
     windowId: number | undefined,
   ): Promise<chrome.tabs.Tab | undefined> {
-    if (options.complete && record.sessionId) {
+    if (options.complete && options.mode === 'current-window' && record.sessionId) {
       try {
         const session = await this.deps.browser.restoreSession(record.sessionId);
         if (session.tab) return session.tab;
@@ -649,9 +654,22 @@ export class TabDormancyService {
     if (typeof next.lockCleanupEnabled !== 'boolean') {
       throw new AppError('INVALID_SETTINGS', '锁屏清理设置无效');
     }
+    if (
+      !Number.isInteger(next.historyMaxRecords) ||
+      next.historyMaxRecords < 1 ||
+      next.historyMaxRecords > LIMITS.maxHistory
+    ) {
+      throw new AppError('INVALID_SETTINGS', `历史保留条数需为 1–${LIMITS.maxHistory} 条`);
+    }
     await this.deps.repo.setSettings(next);
     await this.deps.browser.setIdleDetectionInterval(next.idleThresholdMinutes * 60);
     if (!next.lockCleanupEnabled) await this.deps.browser.clearAlarm(ALARM_LOCKED);
+    if (
+      next.historyRetentionDays !== current.historyRetentionDays ||
+      next.historyMaxRecords !== current.historyMaxRecords
+    ) {
+      await this.pruneHistory();
+    }
     return next;
   }
 

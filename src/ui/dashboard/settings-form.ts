@@ -1,3 +1,4 @@
+import { LIMITS } from '../../shared/constants';
 import type { Settings, SettingsPatch } from '../../shared/types';
 
 export type SettingsForm = {
@@ -5,6 +6,7 @@ export type SettingsForm = {
   lockCleanupEnabled: boolean;
   lockDelayMinutes: string;
   historyRetentionDays: string;
+  historyMaxRecords: string;
 };
 
 export function toSettingsForm(settings: Settings): SettingsForm {
@@ -13,6 +15,7 @@ export function toSettingsForm(settings: Settings): SettingsForm {
     lockCleanupEnabled: settings.lockCleanupEnabled,
     lockDelayMinutes: String(settings.lockDelayMinutes),
     historyRetentionDays: String(settings.historyRetentionDays),
+    historyMaxRecords: String(settings.historyMaxRecords),
   };
 }
 
@@ -32,12 +35,18 @@ export function parseSettingsForm(form: SettingsForm): { patch: SettingsPatch } 
     return { error: '历史保留需为 1–365 天' };
   }
 
+  const maxRecords = parseInteger(form.historyMaxRecords);
+  if (maxRecords === null || maxRecords < 1 || maxRecords > LIMITS.maxHistory) {
+    return { error: `历史保留条数需为 1–${LIMITS.maxHistory} 条` };
+  }
+
   return {
     patch: {
       idleThresholdMinutes: idle,
       lockCleanupEnabled: form.lockCleanupEnabled,
       lockDelayMinutes: lockDelay,
       historyRetentionDays: retention,
+      historyMaxRecords: maxRecords,
     },
   };
 }
@@ -48,7 +57,8 @@ export function isSettingsDirty(form: SettingsForm, saved: Settings): boolean {
     form.idleThresholdMinutes !== savedForm.idleThresholdMinutes ||
     form.lockCleanupEnabled !== savedForm.lockCleanupEnabled ||
     form.lockDelayMinutes !== savedForm.lockDelayMinutes ||
-    form.historyRetentionDays !== savedForm.historyRetentionDays
+    form.historyRetentionDays !== savedForm.historyRetentionDays ||
+    form.historyMaxRecords !== savedForm.historyMaxRecords
   );
 }
 
