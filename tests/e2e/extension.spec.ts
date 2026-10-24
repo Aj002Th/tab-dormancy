@@ -413,7 +413,7 @@ test('settings save follows unsaved changes and clears stale notices', async ({ 
   const status = dashboard.getByTestId('settings-status');
   await expect(idle).toHaveValue('15');
   await expect(save).toBeDisabled();
-  await expect(status).toContainText('所有设置已生效');
+  await expect(status).toHaveText('');
 
   await idle.fill('20');
   await expect(save).toBeEnabled();

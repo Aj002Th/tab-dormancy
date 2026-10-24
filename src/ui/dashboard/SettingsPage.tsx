@@ -149,7 +149,7 @@ export function SettingsPage() {
         ? notice.text
         : dirty
           ? '有未保存的更改，点击保存后生效'
-          : '所有设置已生效';
+          : null;
   const statusIcon = statusTone === 'error' ? '!' : statusTone === 'dirty' ? '!' : statusTone === 'saving' ? '…' : '✓';
 
   return (
@@ -299,9 +299,11 @@ export function SettingsPage() {
           aria-live="polite"
           data-testid="settings-status"
         >
-          <span class="settings-status-icon" aria-hidden="true">
-            {statusIcon}
-          </span>
+          {statusText && (
+            <span class="settings-status-icon" aria-hidden="true">
+              {statusIcon}
+            </span>
+          )}
           {statusText}
         </output>
         <div class="row">

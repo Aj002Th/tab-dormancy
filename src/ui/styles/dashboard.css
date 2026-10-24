@@ -905,6 +905,12 @@
   background: color-mix(in srgb, var(--warning) 5%, var(--surface));
 }
 
+.settings-savebar-idle {
+  width: fit-content;
+  margin-left: auto;
+  gap: 0;
+}
+
 .settings-savebar-saved {
   border-color: color-mix(in srgb, var(--success) 40%, var(--border));
 }
