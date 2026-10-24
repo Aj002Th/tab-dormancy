@@ -486,7 +486,14 @@ test('settings groups history retention and the history page shows the active po
   await expect(dashboard.getByRole('heading', { name: '锁屏清理' })).toBeVisible();
   await expect(dashboard.getByRole('heading', { name: '关闭历史', exact: true })).toBeVisible();
   await expect(dashboard.getByRole('heading', { name: '浏览器支持' })).toBeVisible();
-  await expect(dashboard.getByTestId('settings-support-summary')).not.toContainText('最后访问时间 可用');
+  await expect(dashboard.getByTestId('settings-support-status')).toHaveText('全部可用');
+  await expect(dashboard.getByTestId('settings-support-summary')).toContainText('规则中使用的全部能力均可用。');
+  const supportDetails = dashboard.getByTestId('settings-support-details');
+  await expect(supportDetails).toHaveJSProperty('open', false);
+  await expect(dashboard.getByTestId('settings-support-item-lastAccessed')).not.toBeVisible();
+  await supportDetails.locator('summary').click();
+  await expect(dashboard.getByTestId('settings-support-item-lastAccessed')).toContainText('最后访问时间');
+  await expect(dashboard.getByTestId('settings-support-item-frozen')).toContainText('“已冻结”规则依赖此能力。');
 
   const maxRecords = dashboard.getByTestId('settings-max-records');
   await expect(maxRecords).toHaveValue('5000');

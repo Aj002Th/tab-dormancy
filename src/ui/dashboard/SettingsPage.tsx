@@ -5,7 +5,25 @@ import { messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
 import { applyTheme } from '../theme';
+import { type CapabilityViewItem, capabilityView } from './capability-view';
 import { isSettingsDirty, parseSettingsForm, type SettingsForm, toSettingsForm } from './settings-form';
+
+function renderCapabilities(items: CapabilityViewItem[]) {
+  return items.map((item) => (
+    <li
+      key={item.key}
+      class={item.available ? 'capability-item' : 'capability-item unavailable'}
+      data-testid={`settings-support-item-${item.key}`}
+    >
+      <span class="capability-name">{item.label}</span>
+      <span class={item.available ? 'capability-pill ok' : 'capability-pill warn'}>
+        {item.available ? '可用' : '不可用'}
+      </span>
+      <span class="capability-description">{item.description}</span>
+      {!item.available && item.requirement && <span class="capability-requirement">{item.requirement}</span>}
+    </li>
+  ));
+}
 
 export function SettingsPage() {
   const [state, setState] = useState<StateSnapshot | null>(null);
@@ -119,30 +137,7 @@ export function SettingsPage() {
 
   const dirty = isSettingsDirty(form, saved);
   const atDefaults = !isSettingsDirty(form, DEFAULT_SETTINGS);
-  const chromeLabel = `Chrome ${state.capabilities.chromeMajor ?? '未知'}`;
-  const capabilities = [
-    {
-      label: '最后访问时间',
-      available: state.capabilities.lastAccessed,
-      impact: '依赖“距最后访问”的规则会被暂停。',
-    },
-    {
-      label: '冻结状态',
-      available: state.capabilities.frozen,
-      impact: '依赖“已冻结”的规则会被暂停。',
-    },
-    {
-      label: '标签组',
-      available: state.capabilities.tabGroups,
-      impact: '依赖标签组的规则会被暂停。',
-    },
-    {
-      label: '会话恢复',
-      available: state.capabilities.sessions,
-      impact: '恢复标签时只能重新打开网址，无法还原页面状态。',
-    },
-  ];
-  const unavailable = capabilities.filter((capability) => !capability.available);
+  const support = capabilityView(state.capabilities);
 
   return (
     <section class="page">
@@ -303,22 +298,30 @@ export function SettingsPage() {
 
       <section class="settings-section settings-support">
         <div class="settings-section-head">
-          <h3>浏览器支持</h3>
-          <p class="muted small">用于判断当前 Chrome 能使用哪些清理与恢复能力。</p>
+          <div class="settings-support-title">
+            <h3>浏览器支持</h3>
+            <span
+              class={support.allAvailable ? 'support-status ok' : 'support-status warn'}
+              data-testid="settings-support-status"
+            >
+              {support.allAvailable ? '全部可用' : `${support.unavailable.length} 项不可用`}
+            </span>
+          </div>
+          <p class="muted small">决定哪些规则可以执行。</p>
         </div>
-        <p class="settings-support-summary" data-testid="settings-support-summary">
-          {unavailable.length === 0
-            ? `${chromeLabel}：所有清理与恢复能力均可用。`
-            : `${chromeLabel}：有 ${unavailable.length} 项能力不可用，见下方说明。`}
-        </p>
-        {unavailable.length > 0 && (
-          <ul class="capability-list">
-            {unavailable.map((capability) => (
-              <li key={capability.label}>
-                <strong>{capability.label}</strong>：{capability.impact}
-              </li>
-            ))}
-          </ul>
+        <div class="support-overview">
+          <span class="support-version">{support.versionLabel}</span>
+          <p class="settings-support-summary" data-testid="settings-support-summary">
+            {support.summary}
+          </p>
+        </div>
+        {support.allAvailable ? (
+          <details class="support-details" data-testid="settings-support-details">
+            <summary>查看详情</summary>
+            <ul class="capability-list">{renderCapabilities(support.items)}</ul>
+          </details>
+        ) : (
+          <ul class="capability-list">{renderCapabilities(support.items)}</ul>
         )}
       </section>
     </section>
