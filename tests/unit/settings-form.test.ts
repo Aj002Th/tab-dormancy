@@ -14,6 +14,7 @@ const saved: Settings = {
   historyRetentionDays: 30,
   historyMaxRecords: 5_000,
   activeStrategyId: 'preset:standard',
+  theme: 'system',
 };
 
 function form(patch: Partial<SettingsForm> = {}): SettingsForm {
@@ -28,6 +29,7 @@ describe('settings form', () => {
       lockDelayMinutes: '15',
       historyRetentionDays: '30',
       historyMaxRecords: '5000',
+      theme: 'system',
     });
   });
 
@@ -39,6 +41,7 @@ describe('settings form', () => {
         lockDelayMinutes: '0',
         historyRetentionDays: '7',
         historyMaxRecords: '120',
+        theme: 'dark',
       }),
     ).toEqual({
       patch: {
@@ -47,7 +50,14 @@ describe('settings form', () => {
         lockDelayMinutes: 0,
         historyRetentionDays: 7,
         historyMaxRecords: 120,
+        theme: 'dark',
       },
+    });
+  });
+
+  it('rejects unsupported theme values', () => {
+    expect(parseSettingsForm(form({ theme: 'sepia' as SettingsForm['theme'] }))).toEqual({
+      error: '外观主题无效',
     });
   });
 
@@ -79,6 +89,7 @@ describe('settings form', () => {
     expect(isSettingsDirty(form({ lockDelayMinutes: '0' }), saved)).toBe(true);
     expect(isSettingsDirty(form({ historyRetentionDays: '7' }), saved)).toBe(true);
     expect(isSettingsDirty(form({ historyMaxRecords: '120' }), saved)).toBe(true);
+    expect(isSettingsDirty(form({ theme: 'dark' }), saved)).toBe(true);
   });
 
   it('ignores the active strategy when comparing settings', () => {

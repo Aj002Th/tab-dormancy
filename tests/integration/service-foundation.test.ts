@@ -35,6 +35,7 @@ describe('TabDormancyService foundation', () => {
     expect(state.activeStrategy.id).toBe('preset:standard');
     expect(state.settings.idleThresholdMinutes).toBe(15);
     expect(state.settings.historyMaxRecords).toBe(5_000);
+    expect(state.settings.theme).toBe('system');
     expect(browser.detectionInterval).toBe(900);
     expect(await repo.getBrowserSessionId()).toBe('id-0');
   });
@@ -78,10 +79,15 @@ describe('TabDormancyService foundation', () => {
       idleThresholdMinutes: 30,
       lockDelayMinutes: 0,
       historyMaxRecords: 120,
+      theme: 'dark',
     });
     expect(settings.idleThresholdMinutes).toBe(30);
     expect(settings.historyMaxRecords).toBe(120);
+    expect(settings.theme).toBe('dark');
     expect(browser.detectionInterval).toBe(1800);
+    await expect(service.updateSettings({ theme: 'sepia' as never })).rejects.toMatchObject({
+      code: 'INVALID_SETTINGS',
+    });
     await expect(service.updateSettings({ idleThresholdMinutes: 0 })).rejects.toMatchObject({
       code: 'INVALID_SETTINGS',
     });

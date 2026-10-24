@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'preact/hooks';
 import { DEFAULT_SETTINGS, LIMITS } from '../../shared/constants';
-import type { Settings, StateSnapshot } from '../../shared/types';
+import type { Settings, StateSnapshot, Theme } from '../../shared/types';
 import { messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
+import { applyTheme } from '../theme';
 import { isSettingsDirty, parseSettingsForm, type SettingsForm, toSettingsForm } from './settings-form';
 
 export function SettingsPage() {
@@ -21,6 +22,7 @@ export function SettingsPage() {
     setNotice(null);
     try {
       const next = await send<StateSnapshot>({ type: 'state.get' });
+      applyTheme(next.settings.theme);
       setState(next);
       setSaved(next.settings);
       setForm(toSettingsForm(next.settings));
@@ -59,6 +61,7 @@ export function SettingsPage() {
         type: 'settings.update',
         patch: parsed.patch,
       });
+      applyTheme(next.theme);
       setSaved(next);
       setForm(toSettingsForm(next));
       setNotice('设置已保存');
@@ -157,6 +160,28 @@ export function SettingsPage() {
       ))}
 
       <div class="settings-sections">
+        <section class="settings-section">
+          <div class="settings-section-head">
+            <h3>外观</h3>
+            <p class="muted small">控制控制台和弹窗的显示主题。</p>
+          </div>
+          <label class="settings-field">
+            <span>主题</span>
+            <select
+              class="input"
+              value={form.theme}
+              disabled={saving}
+              data-testid="settings-theme"
+              onChange={(event) => updateForm({ theme: (event.currentTarget as HTMLSelectElement).value as Theme })}
+            >
+              <option value="system">跟随系统</option>
+              <option value="light">浅色</option>
+              <option value="dark">深色</option>
+            </select>
+            <span class="settings-help">跟随系统会随操作系统的浅色 / 深色模式自动切换。</span>
+          </label>
+        </section>
+
         <section class="settings-section">
           <div class="settings-section-head">
             <h3>空闲清理</h3>

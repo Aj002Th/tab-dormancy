@@ -54,6 +54,8 @@ export type Strategy = {
   lastPreviewAt: number | null;
 };
 
+export type Theme = 'system' | 'light' | 'dark';
+
 export type Settings = {
   idleThresholdMinutes: number;
   lockCleanupEnabled: boolean;
@@ -61,6 +63,7 @@ export type Settings = {
   historyRetentionDays: number;
   historyMaxRecords: number;
   activeStrategyId: string;
+  theme: Theme;
 };
 
 export type SettingsPatch = Partial<Omit<Settings, 'activeStrategyId'>>;

@@ -1,5 +1,6 @@
 import { LIMITS } from '../../shared/constants';
-import type { Settings, SettingsPatch } from '../../shared/types';
+import { isTheme } from '../../shared/theme';
+import type { Settings, SettingsPatch, Theme } from '../../shared/types';
 
 export type SettingsForm = {
   idleThresholdMinutes: string;
@@ -7,6 +8,7 @@ export type SettingsForm = {
   lockDelayMinutes: string;
   historyRetentionDays: string;
   historyMaxRecords: string;
+  theme: Theme;
 };
 
 export function toSettingsForm(settings: Settings): SettingsForm {
@@ -16,10 +18,15 @@ export function toSettingsForm(settings: Settings): SettingsForm {
     lockDelayMinutes: String(settings.lockDelayMinutes),
     historyRetentionDays: String(settings.historyRetentionDays),
     historyMaxRecords: String(settings.historyMaxRecords),
+    theme: settings.theme,
   };
 }
 
 export function parseSettingsForm(form: SettingsForm): { patch: SettingsPatch } | { error: string } {
+  if (!isTheme(form.theme)) {
+    return { error: '外观主题无效' };
+  }
+
   const idle = parseInteger(form.idleThresholdMinutes);
   if (idle === null || idle < 1 || idle > 1_440) {
     return { error: '空闲阈值需为 1–1440 分钟' };
@@ -47,6 +54,7 @@ export function parseSettingsForm(form: SettingsForm): { patch: SettingsPatch } 
       lockDelayMinutes: lockDelay,
       historyRetentionDays: retention,
       historyMaxRecords: maxRecords,
+      theme: form.theme,
     },
   };
 }
@@ -58,7 +66,8 @@ export function isSettingsDirty(form: SettingsForm, saved: Settings): boolean {
     form.lockCleanupEnabled !== savedForm.lockCleanupEnabled ||
     form.lockDelayMinutes !== savedForm.lockDelayMinutes ||
     form.historyRetentionDays !== savedForm.historyRetentionDays ||
-    form.historyMaxRecords !== savedForm.historyMaxRecords
+    form.historyMaxRecords !== savedForm.historyMaxRecords ||
+    form.theme !== savedForm.theme
   );
 }
 

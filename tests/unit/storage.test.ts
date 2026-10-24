@@ -70,11 +70,17 @@ describe('Repo', () => {
     };
     await local.set({ [STORAGE_KEYS.settings]: legacy });
 
-    const migrated = { ...legacy, historyMaxRecords: DEFAULT_SETTINGS.historyMaxRecords };
+    const migrated = { ...legacy, historyMaxRecords: DEFAULT_SETTINGS.historyMaxRecords, theme: 'system' };
     expect(await store.getSettings()).toEqual(migrated);
     expect((await local.get(STORAGE_KEYS.settings))[STORAGE_KEYS.settings]).toEqual(migrated);
     const keys = Object.keys(local.data).filter((key) => key.startsWith(STORAGE_KEYS.chaosPrefix));
     expect(keys).toHaveLength(0);
+  });
+
+  it('normalizes unsupported themes to system', async () => {
+    const { local, repo: store } = repo();
+    await local.set({ [STORAGE_KEYS.settings]: { ...DEFAULT_SETTINGS, theme: 'sepia' } });
+    expect((await store.getSettings()).theme).toBe('system');
   });
 
   it('backs up corrupt settings instead of throwing', async () => {

@@ -1,3 +1,4 @@
+import { DEFAULT_THEME } from './theme';
 import type { Settings } from './types';
 
 export const SCHEMA_VERSION = 1;
@@ -26,6 +27,7 @@ export const DEFAULT_SETTINGS: Settings = {
   historyRetentionDays: 30,
   historyMaxRecords: 5_000,
   activeStrategyId: 'preset:standard',
+  theme: DEFAULT_THEME,
 };
 
 export const LIMITS = {

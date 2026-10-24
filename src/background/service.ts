@@ -14,6 +14,7 @@ import { runWithConcurrency } from '../shared/async';
 import { ALARM_LOCKED, LIMITS, SCHEMA_VERSION } from '../shared/constants';
 import { AppError } from '../shared/errors';
 import type { StrategyPreview } from '../shared/messages';
+import { isTheme } from '../shared/theme';
 import type {
   Capabilities,
   CleanupPreview,
@@ -653,6 +654,9 @@ export class TabDormancyService {
     }
     if (typeof next.lockCleanupEnabled !== 'boolean') {
       throw new AppError('INVALID_SETTINGS', '锁屏清理设置无效');
+    }
+    if (!isTheme(next.theme)) {
+      throw new AppError('INVALID_SETTINGS', '外观主题无效');
     }
     if (
       !Number.isInteger(next.historyMaxRecords) ||

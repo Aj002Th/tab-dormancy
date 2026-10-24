@@ -12,6 +12,7 @@ const snapshot: StateSnapshot = {
     historyRetentionDays: 30,
     historyMaxRecords: 5_000,
     activeStrategyId: 'preset:standard',
+    theme: 'system',
   },
   strategies: [],
   activeStrategy: {} as StateSnapshot['activeStrategy'],

@@ -500,6 +500,45 @@ test('settings groups history retention and the history page shows the active po
   await expect(dashboard.getByTestId('history-retention')).toContainText('最多 120 条');
 });
 
+test('settings theme applies to dashboard and popup', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.emulateMedia({ colorScheme: 'dark' });
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+
+  const theme = dashboard.getByTestId('settings-theme');
+  const background = () =>
+    dashboard.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
+
+  await expect(theme).toHaveValue('system');
+  await expect.poll(background).toBe('#111113');
+
+  await theme.selectOption('light');
+  await dashboard.getByTestId('settings-save').click();
+  await expect(dashboard.getByText('设置已保存')).toBeVisible();
+  await expect.poll(background).toBe('#fafafa');
+
+  await theme.selectOption('dark');
+  await dashboard.getByTestId('settings-save').click();
+  await expect(dashboard.getByText('设置已保存')).toBeVisible();
+  await expect.poll(background).toBe('#111113');
+  await expect.poll(() => dashboard.evaluate(() => document.documentElement.dataset.theme)).toBe('dark');
+
+  const popup = await context.newPage();
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  await expect.poll(() => popup.evaluate(() => document.documentElement.dataset.theme)).toBe('dark');
+  expect(await popup.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bg').trim())).toBe(
+    '#111113',
+  );
+
+  await theme.selectOption('system');
+  await dashboard.getByTestId('settings-save').click();
+  await expect(dashboard.getByText('设置已保存')).toBeVisible();
+  await expect.poll(background).toBe('#111113');
+
+  await dashboard.emulateMedia({ colorScheme: 'light' });
+  await expect.poll(background).toBe('#fafafa');
+});
+
 test('settings restore defaults fills the form for review before saving', async ({ context, extensionId }) => {
   const dashboard = await context.newPage();
   dashboard.on('dialog', (dialog) => void dialog.accept());

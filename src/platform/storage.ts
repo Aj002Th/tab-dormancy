@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../shared/constants';
+import { isTheme, themeOf } from '../shared/theme';
 import type {
   CleanupLock,
   CleanupRun,
@@ -165,6 +166,7 @@ function normalizeSettings(value: unknown): Settings | null {
     historyMaxRecords:
       typeof settings.historyMaxRecords === 'number' ? settings.historyMaxRecords : DEFAULT_SETTINGS.historyMaxRecords,
     activeStrategyId: settings.activeStrategyId,
+    theme: themeOf(settings.theme),
   };
 }
 
@@ -177,7 +179,8 @@ function isSettings(value: unknown): value is Settings {
     typeof settings.lockDelayMinutes === 'number' &&
     typeof settings.historyRetentionDays === 'number' &&
     typeof settings.historyMaxRecords === 'number' &&
-    typeof settings.activeStrategyId === 'string'
+    typeof settings.activeStrategyId === 'string' &&
+    isTheme(settings.theme)
   );
 }
 
