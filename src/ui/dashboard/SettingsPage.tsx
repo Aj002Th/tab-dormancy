@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'preact/hooks';
 import { DEFAULT_SETTINGS, LIMITS } from '../../shared/constants';
-import type { Settings, StateSnapshot, Theme } from '../../shared/types';
+import { t } from '../../shared/i18n';
+import type { Language, Settings, StateSnapshot, Theme } from '../../shared/types';
 import { messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
+import { applyLanguage } from '../i18n';
 import { applyTheme } from '../theme';
 import { isSettingsDirty, parseSettingsForm, type SettingsForm, toSettingsForm } from './settings-form';
 import { setSettingsDirty } from './unsaved';
@@ -31,6 +33,7 @@ export function SettingsPage() {
     try {
       const next = await send<StateSnapshot>({ type: 'state.get' });
       applyTheme(next.settings.theme);
+      applyLanguage(next.settings.language);
       setState(next);
       setSaved(next.settings);
       setForm(toSettingsForm(next.settings));
@@ -85,6 +88,7 @@ export function SettingsPage() {
         patch: parsed.patch,
       });
       applyTheme(next.theme);
+      applyLanguage(next.language);
       setSaved(next);
       setForm(toSettingsForm(next));
       showNotice('设置已保存');
@@ -198,6 +202,23 @@ export function SettingsPage() {
               <option value="dark">深色</option>
             </select>
             <span class="settings-help">跟随系统会随操作系统的浅色 / 深色模式自动切换。</span>
+          </label>
+          <label class="settings-field">
+            <span>{t('language.label')}</span>
+            <select
+              class="input"
+              value={form.language}
+              disabled={saving}
+              data-testid="settings-language"
+              onChange={(event) =>
+                updateForm({ language: (event.currentTarget as HTMLSelectElement).value as Language })
+              }
+            >
+              <option value="system">{t('language.follow')}</option>
+              <option value="zh">{t('language.zh')}</option>
+              <option value="en">{t('language.en')}</option>
+            </select>
+            <span class="settings-help">{t('language.help')}</span>
           </label>
         </section>
 

@@ -1,6 +1,8 @@
 import { LIMITS } from '../../shared/constants';
+import { t } from '../../shared/i18n';
+import { isLanguage } from '../../shared/language';
 import { isTheme } from '../../shared/theme';
-import type { Settings, SettingsPatch, Theme } from '../../shared/types';
+import type { Language, Settings, SettingsPatch, Theme } from '../../shared/types';
 
 export type SettingsForm = {
   idleThresholdMinutes: string;
@@ -9,6 +11,7 @@ export type SettingsForm = {
   historyRetentionDays: string;
   historyMaxRecords: string;
   theme: Theme;
+  language: Language;
 };
 
 export function toSettingsForm(settings: Settings): SettingsForm {
@@ -19,10 +22,15 @@ export function toSettingsForm(settings: Settings): SettingsForm {
     historyRetentionDays: String(settings.historyRetentionDays),
     historyMaxRecords: String(settings.historyMaxRecords),
     theme: settings.theme,
+    language: settings.language,
   };
 }
 
 export function parseSettingsForm(form: SettingsForm): { patch: SettingsPatch } | { error: string } {
+  if (!isLanguage(form.language)) {
+    return { error: t('errors.invalidLanguage') };
+  }
+
   if (!isTheme(form.theme)) {
     return { error: '外观主题无效' };
   }
@@ -55,6 +63,7 @@ export function parseSettingsForm(form: SettingsForm): { patch: SettingsPatch } 
       historyRetentionDays: retention,
       historyMaxRecords: maxRecords,
       theme: form.theme,
+      language: form.language,
     },
   };
 }
@@ -67,7 +76,8 @@ export function isSettingsDirty(form: SettingsForm, saved: Settings): boolean {
     form.lockDelayMinutes !== savedForm.lockDelayMinutes ||
     form.historyRetentionDays !== savedForm.historyRetentionDays ||
     form.historyMaxRecords !== savedForm.historyMaxRecords ||
-    form.theme !== savedForm.theme
+    form.theme !== savedForm.theme ||
+    form.language !== savedForm.language
   );
 }
 

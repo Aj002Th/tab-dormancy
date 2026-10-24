@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'preact/hooks';
 import { STORAGE_KEYS } from '../../shared/constants';
+import { t } from '../../shared/i18n';
 import type { StateSnapshot } from '../../shared/types';
 import { send } from '../api';
 import { Banner } from '../components/Banner';
+import { useLocale } from '../i18n';
 import { DiagnosticsPage } from './DiagnosticsPage';
 import { HistoryPage } from './HistoryPage';
 import { parseRoute, type Route, routeHref } from './routes';
@@ -11,16 +13,17 @@ import { StrategiesPage } from './StrategiesPage';
 import { TabsPage } from './TabsPage';
 import { hasUnsavedSettings } from './unsaved';
 
-const NAV: Array<{ route: Route; label: string }> = [
-  { route: 'tabs', label: '标签页' },
-  { route: 'history', label: '关闭历史' },
-  { route: 'strategies', label: '策略' },
-  { route: 'settings', label: '设置' },
-];
-
 export function Dashboard() {
+  useLocale();
   const [route, setRoute] = useState<Route>(() => parseRoute(location.hash));
   const [warnings, setWarnings] = useState<string[]>([]);
+
+  const NAV: Array<{ route: Route; label: string }> = [
+    { route: 'tabs', label: t('nav.tabs') },
+    { route: 'history', label: t('nav.history') },
+    { route: 'strategies', label: t('nav.strategies') },
+    { route: 'settings', label: t('nav.settings') },
+  ];
 
   useEffect(() => {
     const onHash = () => setRoute(parseRoute(location.hash));
@@ -57,7 +60,7 @@ export function Dashboard() {
 
   function navigate(event: MouseEvent, next: Route) {
     if (next === route) return;
-    if (hasUnsavedSettings() && !window.confirm('有未保存的设置，离开后修改将丢失。确定离开吗？')) {
+    if (hasUnsavedSettings() && !window.confirm(t('nav.leaveConfirm'))) {
       event.preventDefault();
       return;
     }
@@ -86,10 +89,10 @@ export function Dashboard() {
             class={route === 'diagnostics' ? 'nav-link active' : 'nav-link'}
             onClick={(event) => navigate(event, 'diagnostics')}
           >
-            诊断
+            {t('nav.diagnostics')}
           </a>
         </nav>
-        <p class="sidebar-note muted">只在空闲时关闭标签页，不采集使用数据。</p>
+        <p class="sidebar-note muted">{t('nav.note')}</p>
       </aside>
       <main class="content">
         {warnings.map((warning) => (

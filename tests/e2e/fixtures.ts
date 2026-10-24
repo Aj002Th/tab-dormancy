@@ -4,10 +4,10 @@ import { type BrowserContext, test as base, chromium } from '@playwright/test';
 const extensionPath = resolve('dist');
 
 export const test = base.extend<{ context: BrowserContext; extensionId: string }>({
-  // biome-ignore lint/correctness/noEmptyPattern: Playwright requires the fixture arg to be destructured
-  context: async ({}, use) => {
+  context: async ({ locale }, use) => {
     const context = await chromium.launchPersistentContext('', {
       headless: false,
+      locale,
       args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
     });
     await use(context);

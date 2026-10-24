@@ -69,6 +69,7 @@ export const en: Record<MessageKey, Message> = {
   'errors.invalidLockDelay': 'Lock delay must be between 0 and 1440 minutes',
   'errors.invalidRetention': 'History retention must be between 1 and 365 days',
   'errors.invalidLockSettings': 'Invalid lock cleanup settings',
+  'errors.invalidLanguage': 'Invalid interface language',
   'errors.invalidTheme': 'Invalid appearance theme',
   'errors.invalidMaxRecords': 'History must keep between 1 and {max} records',
   'warnings.unsupportedFactsPaused':

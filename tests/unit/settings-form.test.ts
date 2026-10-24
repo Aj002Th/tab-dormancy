@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { setLocale } from '../../src/shared/i18n';
 import type { Settings } from '../../src/shared/types';
 import {
   isSettingsDirty,
@@ -6,6 +7,10 @@ import {
   type SettingsForm,
   toSettingsForm,
 } from '../../src/ui/dashboard/settings-form';
+
+beforeAll(() => {
+  setLocale('zh');
+});
 
 const saved: Settings = {
   idleThresholdMinutes: 15,
@@ -31,6 +36,7 @@ describe('settings form', () => {
       historyRetentionDays: '30',
       historyMaxRecords: '5000',
       theme: 'system',
+      language: 'system',
     });
   });
 
@@ -43,6 +49,7 @@ describe('settings form', () => {
         historyRetentionDays: '7',
         historyMaxRecords: '120',
         theme: 'dark',
+        language: 'system',
       }),
     ).toEqual({
       patch: {
@@ -52,6 +59,7 @@ describe('settings form', () => {
         historyRetentionDays: 7,
         historyMaxRecords: 120,
         theme: 'dark',
+        language: 'system',
       },
     });
   });
@@ -91,9 +99,22 @@ describe('settings form', () => {
     expect(isSettingsDirty(form({ historyRetentionDays: '7' }), saved)).toBe(true);
     expect(isSettingsDirty(form({ historyMaxRecords: '120' }), saved)).toBe(true);
     expect(isSettingsDirty(form({ theme: 'dark' }), saved)).toBe(true);
+    expect(isSettingsDirty(form({ language: 'en' }), saved)).toBe(true);
   });
 
   it('ignores the active strategy when comparing settings', () => {
     expect(isSettingsDirty(form(), { ...saved, activeStrategyId: 'preset:mild' })).toBe(false);
+  });
+
+  it('includes language in the form and dirty check', () => {
+    const parsed = parseSettingsForm(form({ language: 'en' }));
+    expect('patch' in parsed && parsed.patch.language).toBe('en');
+    expect(isSettingsDirty(form({ language: 'en' }), saved)).toBe(true);
+  });
+
+  it('rejects invalid language values', () => {
+    expect(parseSettingsForm(form({ language: 'fr' as SettingsForm['language'] }))).toEqual({
+      error: '界面语言无效',
+    });
   });
 });

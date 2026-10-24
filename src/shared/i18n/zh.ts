@@ -68,6 +68,7 @@ export const zh = {
   'errors.invalidLockDelay': '锁屏延迟需为 0–1440 分钟',
   'errors.invalidRetention': '历史保留需为 1–365 天',
   'errors.invalidLockSettings': '锁屏清理设置无效',
+  'errors.invalidLanguage': '界面语言无效',
   'errors.invalidTheme': '外观主题无效',
   'errors.invalidMaxRecords': '历史保留条数需为 1–{max} 条',
   'warnings.unsupportedFactsPaused': '当前浏览器不支持策略中的事实：{facts}；自动清理已暂停。',
