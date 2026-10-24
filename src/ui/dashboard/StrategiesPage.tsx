@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { cloneStrategy, createCustomStrategy } from '../../core/rules/presets';
 import { canonicalExpr } from '../../core/rules/signature';
-import { validateExpr } from '../../core/rules/validate';
+import { validateExpr, validationMessage } from '../../core/rules/validate';
 import type { StrategyPreview } from '../../shared/messages';
 import type { StateSnapshot, Strategy } from '../../shared/types';
 import { ApiError, messageOf, send } from '../api';
@@ -76,7 +76,7 @@ export function StrategiesPage() {
 
   const duplicate = (strategy: Strategy) => {
     scrollOnNextSelection.current = true;
-    setEditing(cloneStrategy(strategy, Date.now(), ''));
+    setEditing(cloneStrategy(strategy, Date.now(), '', `${strategy.name} 副本`));
     setPreview(null);
     setError(null);
   };
@@ -327,7 +327,7 @@ export function StrategiesPage() {
 
             <div class="editor-foot">
               {validation && !validation.valid && validation.issues[0] && (
-                <Banner tone="error">{validation.issues[0].message}</Banner>
+                <Banner tone="error">{validationMessage(validation.issues[0])}</Banner>
               )}
               {preview && (
                 <div class="preview-status" data-testid="rule-preview-count">

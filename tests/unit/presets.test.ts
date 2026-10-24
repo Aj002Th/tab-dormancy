@@ -43,7 +43,7 @@ describe('presets', () => {
     const source = createPresetStrategies(1_000)[1];
     expect(source).toBeDefined();
     if (!source) return;
-    const clone = cloneStrategy(source, 2_000, 'custom:1');
+    const clone = cloneStrategy(source, 2_000, 'custom:1', `${source.name} 副本`);
     expect(clone.builtin).toBe(false);
     expect(clone.id).toBe('custom:1');
     expect(clone.name).toBe('标准 副本');

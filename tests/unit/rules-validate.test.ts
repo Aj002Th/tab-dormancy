@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { validateExpr, validateStrategy } from '../../src/core/rules/validate';
+import { validateExpr, validateStrategy, validationMessage } from '../../src/core/rules/validate';
+import { setLocale } from '../../src/shared/i18n';
 import type { Expr, FactValue, Operator } from '../../src/shared/types';
 
 const condition = (id: string, fact: string, op: Operator, value?: FactValue): Expr =>
@@ -36,14 +37,21 @@ describe('validateExpr', () => {
   it('rejects unknown facts, bad operators and bad values', () => {
     expect(validateExpr(condition('a', 'nope', 'is', true)).issues[0]?.code).toBe('UNKNOWN_FACT');
     expect(validateExpr(condition('a', 'pinned', 'gt', 1)).issues[0]?.code).toBe('BAD_OPERATOR');
-    expect(validateExpr(condition('a', 'lastActiveMinutes', 'gt', '60')).issues[0]?.code).toBe('BAD_VALUE');
-    expect(validateExpr(condition('a', 'domain', 'inDomainList', [])).issues[0]?.code).toBe('BAD_VALUE');
+    expect(validateExpr(condition('a', 'lastActiveMinutes', 'gt', '60')).issues[0]?.code).toBe('BAD_VALUE_NUMBER');
+    expect(validateExpr(condition('a', 'domain', 'inDomainList', [])).issues[0]?.code).toBe('BAD_VALUE_DOMAIN_LIST');
   });
 
   it('disables facts that the browser cannot provide', () => {
     const caps = { chromeMajor: 121, lastAccessed: false, frozen: false, tabGroups: false, sessions: true };
     const result = validateExpr(condition('a', 'lastActiveMinutes', 'gt', 60), caps);
     expect(result.issues.some((issue) => issue.code === 'FACT_UNAVAILABLE')).toBe(true);
+  });
+
+  it('renders localized validation messages', () => {
+    setLocale('zh');
+    expect(validationMessage(validateExpr(condition('a', 'nope', 'is', true)).issues[0])).toContain('未知事实');
+    setLocale('en');
+    expect(validationMessage(validateExpr(condition('a', 'nope', 'is', true)).issues[0])).toContain('Unknown fact');
   });
 
   it('validates strategy names', () => {

@@ -6,7 +6,7 @@ import { selectExpired } from '../core/retention';
 import { evaluateStrategy } from '../core/rules/evaluate';
 import { createPresetStrategies } from '../core/rules/presets';
 import { signatureOf } from '../core/rules/signature';
-import { validateStrategy } from '../core/rules/validate';
+import { validateStrategy, validationMessage } from '../core/rules/validate';
 import { requireStrategy, unsupportedFacts } from '../core/strategies';
 import type { Browser } from '../platform/browser';
 import type { Repo } from '../platform/storage';
@@ -127,7 +127,10 @@ export class TabDormancyService {
     const caps = await this.getCapabilities();
     const validation = validateStrategy(strategy, caps);
     if (!validation.valid) {
-      throw new AppError('INVALID_EXPRESSION', validation.issues[0]?.message ?? '规则无效');
+      throw new AppError(
+        'INVALID_EXPRESSION',
+        validation.issues[0] ? validationMessage(validation.issues[0]) : 'Invalid expression',
+      );
     }
     this.assertUsable(strategy, caps);
     const [tabs, windows, groups] = await Promise.all([
@@ -563,7 +566,10 @@ export class TabDormancyService {
     const caps = await this.getCapabilities();
     const validation = validateStrategy(input, caps);
     if (!validation.valid) {
-      throw new AppError('INVALID_EXPRESSION', validation.issues[0]?.message ?? '规则无效');
+      throw new AppError(
+        'INVALID_EXPRESSION',
+        validation.issues[0] ? validationMessage(validation.issues[0]) : 'Invalid expression',
+      );
     }
 
     const strategies = await this.deps.repo.getStrategies();
@@ -607,7 +613,10 @@ export class TabDormancyService {
     const caps = await this.getCapabilities();
     const validation = validateStrategy(strategy, caps);
     if (!validation.valid) {
-      throw new AppError('INVALID_EXPRESSION', validation.issues[0]?.message ?? '策略无效');
+      throw new AppError(
+        'INVALID_EXPRESSION',
+        validation.issues[0] ? validationMessage(validation.issues[0]) : 'Invalid expression',
+      );
     }
     this.assertUsable(strategy, caps);
     if (!strategy.builtin) {

@@ -1,5 +1,5 @@
 import { browserLanguages, resolveLocale } from '../language';
-import type { Locale } from '../types';
+import type { FactKey, Locale, Operator } from '../types';
 import { en } from './en';
 import type { Message, MessageParams } from './types';
 import { type MessageKey, zh } from './zh';
@@ -40,4 +40,16 @@ export function translate(next: Locale, key: MessageKey, params: MessageParams =
 
 export function t(key: MessageKey, params: MessageParams = {}): string {
   return translate(locale, key, params);
+}
+
+export function factLabel(key: FactKey, localeOverride?: Locale): string {
+  return translate(localeOverride ?? locale, `facts.${key}.label` as MessageKey);
+}
+
+export function factDescription(key: FactKey, localeOverride?: Locale): string {
+  return translate(localeOverride ?? locale, `facts.${key}.description` as MessageKey);
+}
+
+export function operatorLabel(op: Operator, localeOverride?: Locale): string {
+  return translate(localeOverride ?? locale, `operators.${op}` as MessageKey);
 }

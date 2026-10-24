@@ -1,4 +1,5 @@
 import { AppError } from '../shared/errors';
+import { t } from '../shared/i18n';
 import type { Capabilities, Expr, FactKey, Strategy } from '../shared/types';
 import { FACT_BY_KEY, isFactAvailable } from './rules/registry';
 
@@ -8,7 +9,7 @@ export function findStrategy(strategies: Strategy[], id: string): Strategy | und
 
 export function requireStrategy(strategies: Strategy[], id: string): Strategy {
   const strategy = findStrategy(strategies, id);
-  if (!strategy) throw new AppError('NOT_FOUND', '策略不存在');
+  if (!strategy) throw new AppError('NOT_FOUND', t('errors.strategyNotFound'));
   return strategy;
 }
 

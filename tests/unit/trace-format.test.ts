@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { setLocale } from '../../src/shared/i18n';
 import {
   formatTraceExpected,
   formatTraceValue,
@@ -7,6 +8,7 @@ import {
 } from '../../src/ui/dashboard/trace-format';
 
 describe('trace formatting', () => {
+  beforeEach(() => setLocale('zh'));
   it('uses Chinese fact labels', () => {
     expect(traceFactLabel('lastActiveMinutes')).toBe('距最后访问');
     expect(traceFactLabel('grouped')).toBe('在标签组中');

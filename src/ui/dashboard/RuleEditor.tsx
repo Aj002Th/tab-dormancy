@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { FACT_BY_KEY, isFactAvailable } from '../../core/rules/registry';
+import { factLabel } from '../../shared/i18n';
 import type { Capabilities, Expr, FactKey, Operator } from '../../shared/types';
 import {
   addChild,
@@ -230,7 +231,7 @@ function ConditionRow({
       >
         {[...FACT_BY_KEY.values()].map((item) => (
           <option key={item.key} value={item.key} disabled={!isFactAvailable(item, capabilities)}>
-            {item.label}
+            {factLabel(item.key)}
             {!isFactAvailable(item, capabilities) ? '（不可用）' : ''}
           </option>
         ))}

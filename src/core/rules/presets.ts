@@ -74,10 +74,10 @@ export function regenerateNodeIds(expr: Expr, nextId: () => string): Expr {
   }
 }
 
-export function cloneStrategy(source: Strategy, now: number, id: string): Strategy {
+export function cloneStrategy(source: Strategy, now: number, id: string, name: string): Strategy {
   return {
     id,
-    name: `${source.name} 副本`.slice(0, 80),
+    name: name.trim().slice(0, 80),
     builtin: false,
     expression: regenerateNodeIds(source.expression, () => `node:${Math.random().toString(36).slice(2)}`),
     createdAt: now,

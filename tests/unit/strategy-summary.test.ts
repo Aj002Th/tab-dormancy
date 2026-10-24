@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { createPresetStrategies } from '../../src/core/rules/presets';
+import { setLocale } from '../../src/shared/i18n';
 import type { Expr, FactKey, FactValue, Operator } from '../../src/shared/types';
 import { expressionSummary, formatDurationMinutes, strategyCardSummary } from '../../src/ui/dashboard/strategy-summary';
 import { defined } from '../helpers/assert-defined';
@@ -15,6 +16,8 @@ const condition = (id: string, fact: FactKey, op: Operator, value?: FactValue): 
 const not = (id: string, child: Expr): Expr => ({ type: 'not', id, child });
 
 describe('strategy summary', () => {
+  beforeEach(() => setLocale('zh'));
+
   it('formats durations with the largest readable unit', () => {
     expect(formatDurationMinutes(10_080)).toBe('7 天');
     expect(formatDurationMinutes(4_320)).toBe('3 天');
@@ -49,6 +52,8 @@ describe('strategy summary', () => {
 });
 
 describe('strategy card summary', () => {
+  beforeEach(() => setLocale('zh'));
+
   it('turns presets into a primary condition and exclusion tags', () => {
     const [mild, standard, aggressive] = createPresetStrategies(0);
     const standardSummary = strategyCardSummary(defined(standard).expression);

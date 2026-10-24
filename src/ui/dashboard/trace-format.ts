@@ -1,11 +1,11 @@
-import { FACT_BY_KEY } from '../../core/rules/registry';
+import { factLabel } from '../../shared/i18n';
 import { formatMinutesAgo } from '../../shared/time';
 import type { FactKey, FactValue, TraceNode } from '../../shared/types';
 
 const COUNT_FACTS = new Set<FactKey>(['totalTabCount', 'windowTabCount']);
 
 export function traceFactLabel(fact: FactKey): string {
-  return FACT_BY_KEY.get(fact)?.label ?? fact;
+  return factLabel(fact);
 }
 
 function baseValue(value: FactValue | null | undefined): string {

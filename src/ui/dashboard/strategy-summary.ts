@@ -1,4 +1,5 @@
 import { FACT_BY_KEY } from '../../core/rules/registry';
+import { factLabel } from '../../shared/i18n';
 import type { Expr, FactKey } from '../../shared/types';
 import { effectiveBooleanNegated, formatFactValue, operatorLabel, unwrapNot } from './expr-edit';
 
@@ -36,7 +37,7 @@ export function expressionSummary(expression: Expr): string {
     const definition = FACT_BY_KEY.get(inner.fact);
     if (!definition) return inner.fact;
     if (definition.type === 'boolean') {
-      return effectiveBooleanNegated(inner.value, negated) ? `非（${definition.label}）` : definition.label;
+      return effectiveBooleanNegated(inner.value, negated) ? `非（${factLabel(inner.fact)}）` : factLabel(inner.fact);
     }
     const summary = conditionSummary(inner);
     return negated ? `非（${summary}）` : summary;
@@ -106,12 +107,12 @@ function classifyClause(expression: Expr): CardClause {
   if (definition?.type === 'boolean') {
     if (effectiveBooleanNegated(inner.value, negated)) {
       return {
-        summary: compactBooleanLabel(inner.fact, definition.label),
+        summary: compactBooleanLabel(inner.fact, factLabel(inner.fact)),
         exclusion: true,
         score: 4,
       };
     }
-    return { summary: definition.label, exclusion: false, score: 2 };
+    return { summary: factLabel(inner.fact), exclusion: false, score: 2 };
   }
 
   const base = naturalConditionSummary(inner);
@@ -125,7 +126,9 @@ function classifyClause(expression: Expr): CardClause {
 function conditionCardSummary(condition: Extract<Expr, { type: 'condition' }>): string {
   const definition = FACT_BY_KEY.get(condition.fact);
   if (definition?.type === 'boolean') {
-    return effectiveBooleanNegated(condition.value, false) ? `非（${definition.label}）` : definition.label;
+    return effectiveBooleanNegated(condition.value, false)
+      ? `非（${factLabel(condition.fact)}）`
+      : factLabel(condition.fact);
   }
   return naturalConditionSummary(condition);
 }
@@ -175,7 +178,7 @@ function buildTagGroups(
 }
 
 function conditionSummary(condition: Extract<Expr, { type: 'condition' }>): string {
-  const label = FACT_BY_KEY.get(condition.fact)?.label ?? condition.fact;
+  const label = factLabel(condition.fact);
   return `${label} ${operatorLabel(condition.op)} ${formatConditionValue(condition)}`.trim();
 }
 
