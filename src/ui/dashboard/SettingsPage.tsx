@@ -5,25 +5,7 @@ import { messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
 import { applyTheme } from '../theme';
-import { type CapabilityViewItem, capabilityView } from './capability-view';
 import { isSettingsDirty, parseSettingsForm, type SettingsForm, toSettingsForm } from './settings-form';
-
-function renderCapabilities(items: CapabilityViewItem[]) {
-  return items.map((item) => (
-    <li
-      key={item.key}
-      class={item.available ? 'capability-item' : 'capability-item unavailable'}
-      data-testid={`settings-support-item-${item.key}`}
-    >
-      <span class="capability-name">{item.label}</span>
-      <span class={item.available ? 'capability-pill ok' : 'capability-pill warn'}>
-        {item.available ? '可用' : '不可用'}
-      </span>
-      <span class="capability-description">{item.description}</span>
-      {!item.available && item.requirement && <span class="capability-requirement">{item.requirement}</span>}
-    </li>
-  ));
-}
 
 export function SettingsPage() {
   const [state, setState] = useState<StateSnapshot | null>(null);
@@ -137,7 +119,6 @@ export function SettingsPage() {
 
   const dirty = isSettingsDirty(form, saved);
   const atDefaults = !isSettingsDirty(form, DEFAULT_SETTINGS);
-  const support = capabilityView(state.capabilities);
 
   return (
     <section class="page">
@@ -150,9 +131,6 @@ export function SettingsPage() {
 
       {error && <Banner tone="error">{error}</Banner>}
       {notice && <Banner>{notice}</Banner>}
-      {state.warnings.map((warning) => (
-        <Banner key={warning}>{warning}</Banner>
-      ))}
 
       <div class="settings-sections">
         <section class="settings-section">
@@ -295,35 +273,6 @@ export function SettingsPage() {
         </Button>
         {dirty && <span class="muted small">有未保存的更改</span>}
       </div>
-
-      <section class="settings-section settings-support">
-        <div class="settings-section-head">
-          <div class="settings-support-title">
-            <h3>浏览器支持</h3>
-            <span
-              class={support.allAvailable ? 'support-status ok' : 'support-status warn'}
-              data-testid="settings-support-status"
-            >
-              {support.allAvailable ? '全部可用' : `${support.unavailable.length} 项不可用`}
-            </span>
-          </div>
-          <p class="muted small">决定哪些规则可以执行。</p>
-        </div>
-        <div class="support-overview">
-          <span class="support-version">{support.versionLabel}</span>
-          <p class="settings-support-summary" data-testid="settings-support-summary">
-            {support.summary}
-          </p>
-        </div>
-        {support.allAvailable ? (
-          <details class="support-details" data-testid="settings-support-details">
-            <summary>查看详情</summary>
-            <ul class="capability-list">{renderCapabilities(support.items)}</ul>
-          </details>
-        ) : (
-          <ul class="capability-list">{renderCapabilities(support.items)}</ul>
-        )}
-      </section>
     </section>
   );
 }

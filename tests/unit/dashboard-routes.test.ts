@@ -7,6 +7,7 @@ describe('dashboard routes', () => {
     expect(parseRoute('#/history')).toBe('history');
     expect(parseRoute('#/strategies')).toBe('strategies');
     expect(parseRoute('#/settings')).toBe('settings');
+    expect(parseRoute('#/diagnostics')).toBe('diagnostics');
     expect(parseRoute('#/unknown')).toBe('tabs');
     expect(parseRoute('')).toBe('tabs');
   });

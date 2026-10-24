@@ -130,6 +130,12 @@
   font-weight: 600;
 }
 
+.nav-secondary {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
 .sidebar-note {
   margin-top: 32px;
   font-size: 12px;
@@ -877,17 +883,27 @@
   margin-bottom: 20px;
 }
 
-.settings-support-title {
+.diagnostics-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.support-title {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.settings-support-title h3 {
+.support-title h3 {
   margin: 0;
 }
 
-.settings-support-title + p {
+.support-title + p {
   margin-top: 4px;
 }
 
@@ -927,39 +943,9 @@
   letter-spacing: 0.02em;
 }
 
-.settings-support-summary {
+.support-summary {
   margin: 0;
   font-size: 13px;
-}
-
-.support-details summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  width: fit-content;
-  color: var(--accent);
-  font-size: 12px;
-  list-style: none;
-  cursor: pointer;
-}
-
-.support-details summary::-webkit-details-marker {
-  display: none;
-}
-
-.support-details summary::after {
-  content: "›";
-  display: inline-block;
-  line-height: 1;
-  transition: transform 120ms ease;
-}
-
-.support-details[open] summary {
-  margin-bottom: 8px;
-}
-
-.support-details[open] summary::after {
-  transform: rotate(90deg);
 }
 
 .capability-list {

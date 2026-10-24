@@ -485,15 +485,7 @@ test('settings groups history retention and the history page shows the active po
   await expect(dashboard.getByRole('heading', { name: '空闲清理' })).toBeVisible();
   await expect(dashboard.getByRole('heading', { name: '锁屏清理' })).toBeVisible();
   await expect(dashboard.getByRole('heading', { name: '关闭历史', exact: true })).toBeVisible();
-  await expect(dashboard.getByRole('heading', { name: '浏览器支持' })).toBeVisible();
-  await expect(dashboard.getByTestId('settings-support-status')).toHaveText('全部可用');
-  await expect(dashboard.getByTestId('settings-support-summary')).toContainText('规则中使用的全部能力均可用。');
-  const supportDetails = dashboard.getByTestId('settings-support-details');
-  await expect(supportDetails).toHaveJSProperty('open', false);
-  await expect(dashboard.getByTestId('settings-support-item-lastAccessed')).not.toBeVisible();
-  await supportDetails.locator('summary').click();
-  await expect(dashboard.getByTestId('settings-support-item-lastAccessed')).toContainText('最后访问时间');
-  await expect(dashboard.getByTestId('settings-support-item-frozen')).toContainText('“已冻结”规则依赖此能力。');
+  await expect(dashboard.getByRole('heading', { name: '浏览器支持' })).toHaveCount(0);
 
   const maxRecords = dashboard.getByTestId('settings-max-records');
   await expect(maxRecords).toHaveValue('5000');
@@ -505,6 +497,67 @@ test('settings groups history retention and the history page shows the active po
   await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/history`);
   await expect(dashboard.getByTestId('history-retention')).toContainText('最近 7 天');
   await expect(dashboard.getByTestId('history-retention')).toContainText('最多 120 条');
+});
+
+test('diagnostics page shows browser capabilities outside settings', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await expect(dashboard.getByRole('heading', { name: '浏览器支持' })).toHaveCount(0);
+
+  await dashboard.getByRole('link', { name: '诊断', exact: true }).click();
+  await expect(dashboard.getByRole('heading', { name: '诊断', exact: true })).toBeVisible();
+  await expect(dashboard.getByTestId('diagnostics-status')).toHaveText('全部可用');
+  await expect(dashboard.getByTestId('diagnostics-version')).toContainText('Chrome');
+  await expect(dashboard.getByTestId('diagnostics-summary')).toContainText('规则中使用的全部能力均可用。');
+
+  for (const key of ['lastAccessed', 'frozen', 'tabGroups', 'sessions']) {
+    await expect(dashboard.getByTestId(`diagnostics-item-${key}`)).toContainText('可用');
+  }
+});
+
+test('strategy warnings appear on every dashboard page and refresh from storage', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/tabs`);
+  await expect(dashboard.getByTestId('tabs-strategy')).toHaveText('标准');
+  const worker = defined(context.serviceWorkers()[0], 'service worker');
+
+  await worker.evaluate(async () => {
+    const stored = await chrome.storage.local.get(['settings', 'strategies']);
+    const draft = {
+      id: 'e2e-unpreviewed',
+      name: 'E2E 未预览',
+      builtin: false,
+      expression: {
+        type: 'condition',
+        id: 'e2e-unpreviewed-condition',
+        fact: 'lastActiveMinutes',
+        op: 'gt',
+        value: 1440,
+      },
+      createdAt: 0,
+      updatedAt: 0,
+      lastPreviewHash: null,
+      lastPreviewAt: null,
+    };
+    await chrome.storage.local.set({
+      strategies: [...(stored.strategies as unknown[]), draft],
+      settings: { ...(stored.settings as Record<string, unknown>), activeStrategyId: draft.id },
+    });
+  });
+
+  const warning = dashboard.getByText('该策略尚未预览，自动清理不会执行。');
+  await expect(warning).toBeVisible();
+
+  await dashboard.getByRole('link', { name: '设置', exact: true }).click();
+  await expect(warning).toBeVisible();
+
+  await worker.evaluate(async () => {
+    const stored = await chrome.storage.local.get('settings');
+    await chrome.storage.local.set({
+      settings: { ...(stored.settings as Record<string, unknown>), activeStrategyId: 'preset:standard' },
+    });
+  });
+  await expect(warning).toHaveCount(0);
 });
 
 test('settings theme applies to dashboard and popup', async ({ context, extensionId }) => {
