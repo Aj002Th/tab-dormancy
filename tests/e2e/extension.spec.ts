@@ -428,6 +428,50 @@ test('settings save follows unsaved changes and clears stale notices', async ({ 
   await expect(save).toBeEnabled();
 });
 
+test('settings discards unsaved changes back to the saved values', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+
+  const idle = dashboard.getByTestId('settings-idle');
+  const theme = dashboard.getByTestId('settings-theme');
+  const maxRecords = dashboard.getByTestId('settings-max-records');
+  const lockEnabled = dashboard.getByTestId('settings-lock-enabled');
+  const save = dashboard.getByTestId('settings-save');
+  const discard = dashboard.getByTestId('settings-discard');
+  const status = dashboard.getByTestId('settings-status');
+  await expect(discard).toBeDisabled();
+
+  await idle.fill('20');
+  await theme.selectOption('dark');
+  await maxRecords.fill('100');
+  await lockEnabled.uncheck();
+  await expect(discard).toBeEnabled();
+  await expect(save).toBeEnabled();
+
+  await discard.click();
+  await expect(idle).toHaveValue('15');
+  await expect(theme).toHaveValue('system');
+  await expect(maxRecords).toHaveValue('5000');
+  await expect(lockEnabled).toBeChecked();
+  await expect(status).toContainText('已放弃未保存的修改');
+  await expect(save).toBeDisabled();
+  await expect(discard).toBeDisabled();
+
+  await idle.fill('21');
+  await expect(status).not.toContainText('已放弃未保存的修改');
+  await expect(status).toContainText('有未保存的更改');
+  await discard.click();
+  await expect(idle).toHaveValue('15');
+
+  await dashboard.getByRole('link', { name: '标签页', exact: true }).click();
+  await expect(dashboard.getByRole('heading', { name: '标签页', exact: true })).toBeVisible();
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await expect(idle).toHaveValue('15');
+  await expect(theme).toHaveValue('system');
+  await expect(maxRecords).toHaveValue('5000');
+});
+
 test('settings asks before leaving with unsaved changes', async ({ context, extensionId }) => {
   const dashboard = await context.newPage();
   await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);

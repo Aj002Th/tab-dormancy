@@ -956,6 +956,15 @@
   color: var(--muted);
 }
 
+.settings-status-info {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.settings-status-info .settings-status-icon {
+  background: var(--surface-2);
+}
+
 .settings-status-saved {
   color: var(--success);
   font-weight: 600;

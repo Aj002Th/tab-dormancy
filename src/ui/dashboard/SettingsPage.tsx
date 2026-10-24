@@ -15,13 +15,13 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ text: string } | null>(null);
+  const [notice, setNotice] = useState<{ text: string; tone: 'saved' | 'info' } | null>(null);
 
   const dirty = form !== null && saved !== null && isSettingsDirty(form, saved);
   const atDefaults = form !== null && !isSettingsDirty(form, DEFAULT_SETTINGS);
 
-  function showNotice(text: string) {
-    setNotice({ text });
+  function showNotice(text: string, tone: 'saved' | 'info' = 'saved') {
+    setNotice({ text, tone });
   }
 
   async function load() {
@@ -104,6 +104,14 @@ export function SettingsPage() {
     showNotice(isSettingsDirty(next, saved) ? '已恢复默认值，点击“保存设置”后生效。' : '已恢复默认值。');
   }
 
+  function discardChanges() {
+    if (!saved || saving) return;
+    setForm(toSettingsForm(saved));
+    applyTheme(saved.theme);
+    setError(null);
+    showNotice('已放弃未保存的修改', 'info');
+  }
+
   async function clearHistory() {
     if (!window.confirm('清空全部关闭历史？')) return;
     try {
@@ -140,7 +148,7 @@ export function SettingsPage() {
     );
   }
 
-  const statusTone = saving ? 'saving' : error ? 'error' : notice ? 'saved' : dirty ? 'dirty' : 'idle';
+  const statusTone = saving ? 'saving' : error ? 'error' : notice ? notice.tone : dirty ? 'dirty' : 'idle';
   const statusText = saving
     ? '正在保存…'
     : error
@@ -150,7 +158,16 @@ export function SettingsPage() {
         : dirty
           ? '有未保存的更改，点击保存后生效'
           : null;
-  const statusIcon = statusTone === 'error' ? '!' : statusTone === 'dirty' ? '!' : statusTone === 'saving' ? '…' : '✓';
+  const statusIcon =
+    statusTone === 'error'
+      ? '!'
+      : statusTone === 'dirty'
+        ? '!'
+        : statusTone === 'saving'
+          ? '…'
+          : statusTone === 'info'
+            ? '↺'
+            : '✓';
 
   return (
     <section class="page">
@@ -309,6 +326,9 @@ export function SettingsPage() {
         <div class="row">
           <Button onClick={restoreDefaults} disabled={saving || atDefaults} data-testid="settings-restore-defaults">
             恢复默认值
+          </Button>
+          <Button onClick={discardChanges} disabled={!dirty || saving} data-testid="settings-discard">
+            放弃修改
           </Button>
           <Button variant="primary" onClick={() => void save()} disabled={!dirty || saving} data-testid="settings-save">
             {saving ? '保存中…' : '保存设置'}
