@@ -1,3 +1,4 @@
+import { DEFAULT_LANGUAGE } from './language';
 import { DEFAULT_THEME } from './theme';
 import type { Settings } from './types';
 
@@ -28,6 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
   historyMaxRecords: 5_000,
   activeStrategyId: 'preset:standard',
   theme: DEFAULT_THEME,
+  language: DEFAULT_LANGUAGE,
 };
 
 export const LIMITS = {

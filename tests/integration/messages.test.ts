@@ -13,6 +13,7 @@ const snapshot: StateSnapshot = {
     historyMaxRecords: 5_000,
     activeStrategyId: 'preset:standard',
     theme: 'system',
+    language: 'system',
   },
   strategies: [],
   activeStrategy: {} as StateSnapshot['activeStrategy'],

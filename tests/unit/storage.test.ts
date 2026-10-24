@@ -70,7 +70,12 @@ describe('Repo', () => {
     };
     await local.set({ [STORAGE_KEYS.settings]: legacy });
 
-    const migrated = { ...legacy, historyMaxRecords: DEFAULT_SETTINGS.historyMaxRecords, theme: 'system' };
+    const migrated = {
+      ...legacy,
+      historyMaxRecords: DEFAULT_SETTINGS.historyMaxRecords,
+      theme: 'system',
+      language: 'system',
+    };
     expect(await store.getSettings()).toEqual(migrated);
     expect((await local.get(STORAGE_KEYS.settings))[STORAGE_KEYS.settings]).toEqual(migrated);
     const keys = Object.keys(local.data).filter((key) => key.startsWith(STORAGE_KEYS.chaosPrefix));
@@ -141,5 +146,15 @@ describe('Repo', () => {
     await store.setHistoryIndex([]);
     expect(await store.getHistoryIndex()).toEqual([]);
     expect(await store.getHistoryRecords(['r1'])).toEqual([]);
+  });
+
+  it('migrates missing language to system and keeps explicit values', async () => {
+    const { local, repo: store } = repo();
+    const legacy = { ...DEFAULT_SETTINGS } as Record<string, unknown>;
+    delete legacy.language;
+    await local.set({ [STORAGE_KEYS.settings]: legacy });
+    expect((await store.getSettings()).language).toBe('system');
+    await store.setSettings({ ...DEFAULT_SETTINGS, language: 'en' });
+    expect((await store.getSettings()).language).toBe('en');
   });
 });

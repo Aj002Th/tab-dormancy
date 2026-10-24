@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../shared/constants';
+import { isLanguage, languageOf } from '../shared/language';
 import { isTheme, themeOf } from '../shared/theme';
 import type {
   CleanupLock,
@@ -167,6 +168,7 @@ function normalizeSettings(value: unknown): Settings | null {
       typeof settings.historyMaxRecords === 'number' ? settings.historyMaxRecords : DEFAULT_SETTINGS.historyMaxRecords,
     activeStrategyId: settings.activeStrategyId,
     theme: themeOf(settings.theme),
+    language: languageOf(settings.language),
   };
 }
 
@@ -180,7 +182,8 @@ function isSettings(value: unknown): value is Settings {
     typeof settings.historyRetentionDays === 'number' &&
     typeof settings.historyMaxRecords === 'number' &&
     typeof settings.activeStrategyId === 'string' &&
-    isTheme(settings.theme)
+    isTheme(settings.theme) &&
+    isLanguage(settings.language)
   );
 }
 

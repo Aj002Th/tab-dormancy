@@ -15,6 +15,7 @@ const saved: Settings = {
   historyMaxRecords: 5_000,
   activeStrategyId: 'preset:standard',
   theme: 'system',
+  language: 'system',
 };
 
 function form(patch: Partial<SettingsForm> = {}): SettingsForm {

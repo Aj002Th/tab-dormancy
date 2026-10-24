@@ -56,6 +56,9 @@ export type Strategy = {
 
 export type Theme = 'system' | 'light' | 'dark';
 
+export type Language = 'system' | 'zh' | 'en';
+export type Locale = 'zh' | 'en';
+
 export type Settings = {
   idleThresholdMinutes: number;
   lockCleanupEnabled: boolean;
@@ -64,6 +67,7 @@ export type Settings = {
   historyMaxRecords: number;
   activeStrategyId: string;
   theme: Theme;
+  language: Language;
 };
 
 export type SettingsPatch = Partial<Omit<Settings, 'activeStrategyId'>>;
