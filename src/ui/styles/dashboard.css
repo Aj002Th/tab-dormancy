@@ -883,6 +883,91 @@
   margin-bottom: 20px;
 }
 
+.settings-savebar {
+  position: sticky;
+  bottom: 16px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 10%);
+}
+
+.settings-savebar-dirty {
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
+  background: color-mix(in srgb, var(--warning) 5%, var(--surface));
+}
+
+.settings-savebar-saved {
+  border-color: color-mix(in srgb, var(--success) 40%, var(--border));
+}
+
+.settings-savebar-error {
+  border-color: var(--danger);
+}
+
+.settings-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.settings-status-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.settings-status-idle {
+  color: var(--muted);
+}
+
+.settings-status-dirty {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.settings-status-dirty .settings-status-icon {
+  background: color-mix(in srgb, var(--warning) 18%, var(--surface));
+}
+
+.settings-status-saving {
+  color: var(--muted);
+}
+
+.settings-status-saved {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.settings-status-saved .settings-status-icon {
+  background: color-mix(in srgb, var(--success) 18%, var(--surface));
+}
+
+.settings-status-error {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.settings-status-error .settings-status-icon {
+  background: color-mix(in srgb, var(--danger) 18%, var(--surface));
+}
+
 .diagnostics-card {
   display: grid;
   gap: 14px;

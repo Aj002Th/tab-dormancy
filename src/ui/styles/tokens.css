@@ -10,6 +10,7 @@
   --accent-strong: #2f4fb8;
   --danger: #c2413a;
   --success: #267a4b;
+  --warning: #b45309;
   --radius: 10px;
   --shadow: 0 1px 2px rgb(0 0 0 / 5%);
   --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -27,6 +28,7 @@
   --accent-strong: #a9bcff;
   --danger: #f08b84;
   --success: #79d3a2;
+  --warning: #fbbf24;
   --shadow: none;
 }
 
@@ -43,6 +45,7 @@
     --accent-strong: #a9bcff;
     --danger: #f08b84;
     --success: #79d3a2;
+    --warning: #fbbf24;
     --shadow: none;
   }
 }

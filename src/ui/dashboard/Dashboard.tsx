@@ -9,6 +9,7 @@ import { parseRoute, type Route, routeHref } from './routes';
 import { SettingsPage } from './SettingsPage';
 import { StrategiesPage } from './StrategiesPage';
 import { TabsPage } from './TabsPage';
+import { hasUnsavedSettings } from './unsaved';
 
 const NAV: Array<{ route: Route; label: string }> = [
   { route: 'tabs', label: '标签页' },
@@ -54,6 +55,15 @@ export function Dashboard() {
     };
   }, []);
 
+  function navigate(event: MouseEvent, next: Route) {
+    if (next === route) return;
+    if (hasUnsavedSettings() && !window.confirm('有未保存的设置，离开后修改将丢失。确定离开吗？')) {
+      event.preventDefault();
+      return;
+    }
+    setRoute(next);
+  }
+
   return (
     <div class="dashboard-shell">
       <aside class="sidebar">
@@ -64,7 +74,7 @@ export function Dashboard() {
               key={item.route}
               href={routeHref(item.route)}
               class={item.route === route ? 'nav-link active' : 'nav-link'}
-              onClick={() => setRoute(item.route)}
+              onClick={(event) => navigate(event, item.route)}
             >
               {item.label}
             </a>
@@ -74,7 +84,7 @@ export function Dashboard() {
           <a
             href={routeHref('diagnostics')}
             class={route === 'diagnostics' ? 'nav-link active' : 'nav-link'}
-            onClick={() => setRoute('diagnostics')}
+            onClick={(event) => navigate(event, 'diagnostics')}
           >
             诊断
           </a>

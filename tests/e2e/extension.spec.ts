@@ -410,18 +410,48 @@ test('settings save follows unsaved changes and clears stale notices', async ({ 
 
   const idle = dashboard.getByTestId('settings-idle');
   const save = dashboard.getByTestId('settings-save');
+  const status = dashboard.getByTestId('settings-status');
   await expect(idle).toHaveValue('15');
   await expect(save).toBeDisabled();
+  await expect(status).toContainText('所有设置已生效');
 
   await idle.fill('20');
   await expect(save).toBeEnabled();
+  await expect(status).toContainText('有未保存的更改');
   await save.click();
-  await expect(dashboard.getByText('设置已保存')).toBeVisible();
+  await expect(status).toContainText('设置已保存');
   await expect(save).toBeDisabled();
 
   await idle.fill('21');
-  await expect(dashboard.getByText('设置已保存')).toHaveCount(0);
+  await expect(status).not.toContainText('设置已保存');
+  await expect(status).toContainText('有未保存的更改');
   await expect(save).toBeEnabled();
+});
+
+test('settings asks before leaving with unsaved changes', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await dashboard.getByTestId('settings-idle').fill('20');
+  await expect(dashboard.getByTestId('settings-status')).toContainText('有未保存的更改');
+
+  const prompts: string[] = [];
+  dashboard.once('dialog', async (dialog) => {
+    prompts.push(dialog.message());
+    await dialog.dismiss();
+  });
+  await dashboard.getByRole('link', { name: '标签页', exact: true }).click();
+  await expect(dashboard.getByRole('heading', { name: '设置', exact: true })).toBeVisible();
+  expect(prompts).toHaveLength(1);
+  expect(prompts[0]).toContain('未保存');
+
+  dashboard.once('dialog', (dialog) => void dialog.accept());
+  await dashboard.getByRole('link', { name: '标签页', exact: true }).click();
+  await expect(dashboard.getByRole('heading', { name: '标签页', exact: true })).toBeVisible();
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await expect(dashboard.getByTestId('settings-idle')).toHaveValue('15');
+  await dashboard.getByRole('link', { name: '诊断', exact: true }).click();
+  await expect(dashboard.getByRole('heading', { name: '诊断', exact: true })).toBeVisible();
 });
 
 test('settings number fields can be cleared and invalid values are rejected', async ({ context, extensionId }) => {
@@ -436,12 +466,12 @@ test('settings number fields can be cleared and invalid values are rejected', as
   await expect(idle).toHaveValue('');
   await expect(save).toBeEnabled();
   await save.click();
-  await expect(dashboard.locator('.banner-error')).toHaveText('空闲阈值需为 1–1440 分钟');
+  await expect(dashboard.getByTestId('settings-status')).toContainText('空闲阈值需为 1–1440 分钟');
 
   await idle.fill('20');
-  await expect(dashboard.locator('.banner-error')).toHaveCount(0);
+  await expect(dashboard.getByTestId('settings-status')).not.toContainText('空闲阈值');
   await save.click();
-  await expect(dashboard.getByText('设置已保存')).toBeVisible();
+  await expect(dashboard.getByTestId('settings-status')).toContainText('设置已保存');
   await expect(save).toBeDisabled();
 });
 
@@ -644,14 +674,15 @@ test('settings clear history replaces stale banners', async ({ context, extensio
   const idle = dashboard.getByTestId('settings-idle');
   await idle.fill('');
   await dashboard.getByTestId('settings-save').click();
-  await expect(dashboard.locator('.banner-error')).toHaveText('空闲阈值需为 1–1440 分钟');
+  await expect(dashboard.getByTestId('settings-status')).toContainText('空闲阈值需为 1–1440 分钟');
 
   await dashboard.getByTestId('settings-clear-history').click();
-  await expect(dashboard.getByText('关闭历史已清空')).toBeVisible();
-  await expect(dashboard.locator('.banner-error')).toHaveCount(0);
+  await expect(dashboard.getByTestId('settings-status')).toContainText('关闭历史已清空');
+  await expect(dashboard.getByTestId('settings-status')).not.toContainText('空闲阈值');
 
   await idle.fill('20');
-  await expect(dashboard.getByText('关闭历史已清空')).toHaveCount(0);
+  await expect(dashboard.getByTestId('settings-status')).not.toContainText('关闭历史已清空');
+  await expect(dashboard.getByTestId('settings-status')).toContainText('有未保存的更改');
 });
 
 test('history search, delete and clear work', async ({ context, extensionId }) => {

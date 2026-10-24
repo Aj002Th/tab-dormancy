@@ -6,6 +6,7 @@ import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
 import { applyTheme } from '../theme';
 import { isSettingsDirty, parseSettingsForm, type SettingsForm, toSettingsForm } from './settings-form';
+import { setSettingsDirty } from './unsaved';
 
 export function SettingsPage() {
   const [state, setState] = useState<StateSnapshot | null>(null);
@@ -14,7 +15,14 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ text: string } | null>(null);
+
+  const dirty = form !== null && saved !== null && isSettingsDirty(form, saved);
+  const atDefaults = form !== null && !isSettingsDirty(form, DEFAULT_SETTINGS);
+
+  function showNotice(text: string) {
+    setNotice({ text });
+  }
 
   async function load() {
     setLoading(true);
@@ -36,6 +44,21 @@ export function SettingsPage() {
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    setSettingsDirty(dirty);
+    return () => setSettingsDirty(false);
+  }, [dirty]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [dirty]);
 
   function updateForm(patch: Partial<SettingsForm>) {
     if (!form) return;
@@ -64,7 +87,7 @@ export function SettingsPage() {
       applyTheme(next.theme);
       setSaved(next);
       setForm(toSettingsForm(next));
-      setNotice('设置已保存');
+      showNotice('设置已保存');
     } catch (error) {
       setError(messageOf(error));
     } finally {
@@ -78,14 +101,14 @@ export function SettingsPage() {
     const next = toSettingsForm(DEFAULT_SETTINGS);
     setForm(next);
     setError(null);
-    setNotice(isSettingsDirty(next, saved) ? '已恢复默认值，点击“保存设置”后生效。' : '已恢复默认值。');
+    showNotice(isSettingsDirty(next, saved) ? '已恢复默认值，点击“保存设置”后生效。' : '已恢复默认值。');
   }
 
   async function clearHistory() {
     if (!window.confirm('清空全部关闭历史？')) return;
     try {
       await send({ type: 'history.clear' });
-      setNotice('关闭历史已清空');
+      showNotice('关闭历史已清空');
       setError(null);
     } catch (error) {
       setError(messageOf(error));
@@ -117,8 +140,17 @@ export function SettingsPage() {
     );
   }
 
-  const dirty = isSettingsDirty(form, saved);
-  const atDefaults = !isSettingsDirty(form, DEFAULT_SETTINGS);
+  const statusTone = saving ? 'saving' : error ? 'error' : notice ? 'saved' : dirty ? 'dirty' : 'idle';
+  const statusText = saving
+    ? '正在保存…'
+    : error
+      ? error
+      : notice
+        ? notice.text
+        : dirty
+          ? '有未保存的更改，点击保存后生效'
+          : '所有设置已生效';
+  const statusIcon = statusTone === 'error' ? '!' : statusTone === 'dirty' ? '!' : statusTone === 'saving' ? '…' : '✓';
 
   return (
     <section class="page">
@@ -128,9 +160,6 @@ export function SettingsPage() {
           <p class="muted">只使用 Chrome 原生状态，不采集使用数据，不发网络请求。</p>
         </div>
       </header>
-
-      {error && <Banner tone="error">{error}</Banner>}
-      {notice && <Banner>{notice}</Banner>}
 
       <div class="settings-sections">
         <section class="settings-section">
@@ -264,14 +293,25 @@ export function SettingsPage() {
         </section>
       </div>
 
-      <div class="row settings-actions">
-        <Button variant="primary" onClick={() => void save()} disabled={!dirty || saving} data-testid="settings-save">
-          {saving ? '保存中…' : '保存设置'}
-        </Button>
-        <Button onClick={restoreDefaults} disabled={saving || atDefaults} data-testid="settings-restore-defaults">
-          恢复默认值
-        </Button>
-        {dirty && <span class="muted small">有未保存的更改</span>}
+      <div class={`settings-savebar settings-savebar-${statusTone}`} data-testid="settings-savebar">
+        <output
+          class={`settings-status settings-status-${statusTone}`}
+          aria-live="polite"
+          data-testid="settings-status"
+        >
+          <span class="settings-status-icon" aria-hidden="true">
+            {statusIcon}
+          </span>
+          {statusText}
+        </output>
+        <div class="row">
+          <Button onClick={restoreDefaults} disabled={saving || atDefaults} data-testid="settings-restore-defaults">
+            恢复默认值
+          </Button>
+          <Button variant="primary" onClick={() => void save()} disabled={!dirty || saving} data-testid="settings-save">
+            {saving ? '保存中…' : '保存设置'}
+          </Button>
+        </div>
       </div>
     </section>
   );
