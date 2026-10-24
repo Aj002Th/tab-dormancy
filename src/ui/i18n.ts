@@ -52,6 +52,9 @@ export function startLanguage(): void {
 
 export function useLocale(): Locale {
   const [value, setValue] = useState(getLocale);
-  useEffect(() => subscribeLocale(() => setValue(getLocale())), []);
+  useEffect(() => {
+    const unsubscribe = subscribeLocale(() => setValue(getLocale()));
+    return unsubscribe;
+  }, []);
   return value;
 }
