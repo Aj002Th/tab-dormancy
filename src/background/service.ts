@@ -118,6 +118,7 @@ export class TabDormancyService {
         .slice(0, 5)
         .map((tab) => ({ tabId: tab.tabId, title: tab.title, url: tab.url, trace: tab.trace })),
       totalManagedTabs: plan.totalManagedTabs,
+      strategyId: active.id,
       strategyName: active.name,
     };
   }
@@ -145,6 +146,7 @@ export class TabDormancyService {
         .slice(0, 5)
         .map((tab) => ({ tabId: tab.tabId, title: tab.title, url: tab.url, trace: tab.trace })),
       totalManagedTabs: plan.totalManagedTabs,
+      strategyId: strategy.id,
       strategyName: strategy.name,
       signature: await signatureOf(strategy.expression),
     };

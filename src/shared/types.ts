@@ -227,6 +227,7 @@ export type CleanupPreview = {
   matched: number;
   sample: Array<{ tabId: number; title: string; url: string; trace: TraceNode[] }>;
   totalManagedTabs: number;
+  strategyId: string;
   strategyName: string;
 };
 

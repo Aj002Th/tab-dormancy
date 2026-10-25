@@ -40,3 +40,14 @@ test('settings and diagnostics render in English', async ({ context, extensionId
   await expect(page.getByTestId('diagnostics-status')).toHaveText('All available');
   await expect(page.getByTestId('diagnostics-item-lastAccessed')).toContainText('Available');
 });
+
+test('tabs page renders in English', async ({ context, extensionId }) => {
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await switchLanguage(page, 'en');
+  await page.getByRole('link', { name: 'Tabs', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Tabs', exact: true })).toBeVisible();
+  await expect(page.getByText('Active strategy:')).toBeVisible();
+  await expect(page.getByPlaceholder('Search title, URL, or domain')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Clean up' }).first()).toBeVisible();
+});

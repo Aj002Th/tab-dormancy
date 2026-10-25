@@ -28,7 +28,13 @@ const snapshot: StateSnapshot = {
   capabilities: { chromeMajor: 121, lastAccessed: true, frozen: true, tabGroups: true, sessions: true },
   warnings: ['测试警告'],
 };
-const preview: CleanupPreview = { matched: 3, sample: [], totalManagedTabs: 10, strategyName: '标准' };
+const preview: CleanupPreview = {
+  matched: 3,
+  sample: [],
+  totalManagedTabs: 10,
+  strategyId: 'preset:standard',
+  strategyName: '标准',
+};
 const result: CleanupResult = {
   runId: 'r',
   trigger: 'manual',
