@@ -201,10 +201,13 @@ export function StrategiesPage() {
     if (initialLoad && offset === 0) return;
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const behavior: ScrollBehavior = initialLoad || reduceMotion ? 'auto' : 'smooth';
+    const behavior: ScrollBehavior = reduceMotion ? 'auto' : 'smooth';
+    // Initial entry only scrolls as far as needed to reveal the active card.
+    // User selections keep aligning the card to the top of the viewport.
+    const block: ScrollLogicalPosition = initialLoad ? 'nearest' : 'start';
     requestAnimationFrame(() => {
       if (card.isConnected && selectedCardRef.current === card) {
-        card.scrollIntoView({ block: 'start', inline: 'nearest', behavior });
+        card.scrollIntoView({ block, inline: 'nearest', behavior });
       }
     });
   }, [editing?.id, visibleStrategies.length]);
