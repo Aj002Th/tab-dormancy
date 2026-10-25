@@ -1,6 +1,6 @@
 import { FACT_BY_KEY } from '../../core/rules/registry';
-import { operatorLabel, t } from '../../shared/i18n';
-import type { Expr, FactKey, FactValue, Operator } from '../../shared/types';
+import { getLocale, operatorLabel, translate } from '../../shared/i18n';
+import type { Expr, FactKey, FactValue, Locale, Operator } from '../../shared/types';
 
 export { operatorLabel };
 
@@ -18,10 +18,11 @@ export function defaultValue(fact: FactKey): FactValue {
   return '';
 }
 
-export function formatFactValue(value: FactValue | undefined): string {
+export function formatFactValue(value: FactValue | undefined, locale?: Locale): string {
   if (value === undefined) return '';
-  if (typeof value === 'boolean') return value ? t('app.yes') : t('app.no');
-  if (Array.isArray(value)) return value.join(t('listSeparator'));
+  const active = locale ?? getLocale();
+  if (typeof value === 'boolean') return translate(active, value ? 'app.yes' : 'app.no');
+  if (Array.isArray(value)) return value.join(translate(active, 'listSeparator'));
   return String(value);
 }
 

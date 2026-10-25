@@ -2,18 +2,29 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { cloneStrategy, createCustomStrategy } from '../../core/rules/presets';
 import { canonicalExpr } from '../../core/rules/signature';
 import { validateExpr, validationMessage } from '../../core/rules/validate';
+import { type MessageKey, type MessageParams, translate } from '../../shared/i18n';
 import type { StrategyPreview } from '../../shared/messages';
 import type { StateSnapshot, Strategy } from '../../shared/types';
 import { ApiError, messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
+import { useLocale } from '../i18n';
 import { newCondition, newGroup } from './expr-edit';
 import { RuleEditor } from './RuleEditor';
-import { strategyCardSummary } from './strategy-summary';
+import { strategyDisplayName } from './strategy-name';
+import { type StrategyCardTagGroup, strategyCardSummary } from './strategy-summary';
 
 const newId = () => crypto.randomUUID();
 
+const TAG_GROUP_KEYS = {
+  together: 'summary.groupTogether',
+  exclude: 'summary.groupExclude',
+  branch: 'summary.groupBranch',
+} as const satisfies Record<StrategyCardTagGroup['label'], MessageKey>;
+
 export function StrategiesPage() {
+  const locale = useLocale();
+  const tr = (key: MessageKey, params: MessageParams = {}) => translate(locale, key, params);
   const [state, setState] = useState<StateSnapshot | null>(null);
   const [editing, setEditing] = useState<Strategy | null>(null);
   const [preview, setPreview] = useState<StrategyPreview | null>(null);
@@ -69,14 +80,15 @@ export function StrategiesPage() {
   const startNew = () => {
     const expression = newGroup('all', newId(), newCondition(newId()));
     scrollOnNextSelection.current = true;
-    setEditing(createCustomStrategy('新策略', expression, Date.now(), ''));
+    setEditing(createCustomStrategy(tr('strategies.newName'), expression, Date.now(), ''));
     setPreview(null);
     setError(null);
   };
 
   const duplicate = (strategy: Strategy) => {
     scrollOnNextSelection.current = true;
-    setEditing(cloneStrategy(strategy, Date.now(), '', `${strategy.name} 副本`));
+    const name = tr('strategies.copyName', { name: strategyDisplayName(strategy, locale) });
+    setEditing(cloneStrategy(strategy, Date.now(), '', name));
     setPreview(null);
     setError(null);
   };
@@ -212,11 +224,11 @@ export function StrategiesPage() {
     <section class="page">
       <header class="page-head">
         <div>
-          <h2>策略</h2>
-          <p class="muted">点击左侧策略卡片查看和编辑规则；内置策略不可修改，自定义策略必须先预览才能启用自动清理。</p>
+          <h2>{tr('strategies.title')}</h2>
+          <p class="muted">{tr('strategies.subtitle')}</p>
         </div>
         <Button variant="primary" onClick={startNew} data-testid="new-strategy">
-          新建策略
+          {tr('strategies.create')}
         </Button>
       </header>
 
@@ -228,8 +240,10 @@ export function StrategiesPage() {
             const draft = !strategy.id;
             const active = state?.activeStrategy.id === strategy.id;
             const selected = editing?.id === strategy.id;
-            const title = draft ? strategy.name.trim() || '未命名策略' : strategy.name;
-            const summary = strategyCardSummary(strategy.expression);
+            const title = draft
+              ? strategy.name.trim() || tr('strategies.unnamed')
+              : strategyDisplayName(strategy, locale);
+            const summary = strategyCardSummary(strategy.expression, locale);
             return (
               <div
                 class={`strategy-card${selected ? ' selected' : ''}${draft ? ' draft' : ''}`}
@@ -243,21 +257,21 @@ export function StrategiesPage() {
                     type="button"
                     class="strategy-card-hitbox"
                     aria-pressed={selected}
-                    aria-label={`选择策略 ${strategy.name}`}
+                    aria-label={tr('strategies.select', { name: strategyDisplayName(strategy, locale) })}
                     onClick={() => selectStrategy(strategy)}
                   />
                 )}
                 <div class="strategy-card-content">
                   <div class="strategy-card-head">
                     <strong>{title}</strong>
-                    {strategy.builtin && <span class="badge">内置</span>}
-                    {draft && <span class="badge draft">草稿</span>}
+                    {strategy.builtin && <span class="badge">{tr('strategies.builtin')}</span>}
+                    {draft && <span class="badge draft">{tr('strategies.draft')}</span>}
                   </div>
                   <div class="strategy-card-summary">
                     <p class="strategy-card-primary">{summary.primary}</p>
                     {summary.groups.map((group) => (
                       <div class="strategy-card-tags" key={group.label}>
-                        <span class="strategy-card-tag-label">{group.label}</span>
+                        <span class="strategy-card-tag-label">{tr(TAG_GROUP_KEYS[group.label])}</span>
                         {group.tags.map((tag, index) => (
                           <span class="strategy-tag" key={`${group.label}-${index}`}>
                             {tag}
@@ -275,10 +289,10 @@ export function StrategiesPage() {
                         onClick={active ? undefined : () => void activate(strategy.id)}
                         data-testid={`strategy-activate-${strategy.id}`}
                       >
-                        {active ? '启用中' : '启用'}
+                        {active ? tr('strategies.active') : tr('strategies.enable')}
                       </Button>
                       <Button onClick={() => duplicate(strategy)} data-testid={`strategy-duplicate-${strategy.id}`}>
-                        复制
+                        {tr('strategies.copy')}
                       </Button>
                       {!strategy.builtin && !active && (
                         <Button
@@ -286,7 +300,7 @@ export function StrategiesPage() {
                           onClick={() => void remove(strategy.id)}
                           data-testid={`strategy-delete-${strategy.id}`}
                         >
-                          删除
+                          {tr('strategies.delete')}
                         </Button>
                       )}
                     </div>
@@ -302,16 +316,16 @@ export function StrategiesPage() {
             <div class="editor-head">
               <input
                 class="input"
-                value={editing.name}
+                value={strategyDisplayName(editing, locale)}
                 disabled={editing.builtin}
                 onInput={(event) => {
                   setError(null);
                   setEditing({ ...editing, name: (event.currentTarget as HTMLInputElement).value });
                 }}
-                aria-label="策略名称"
+                aria-label={tr('strategies.name')}
               />
               <span class="grow" />
-              {editing.builtin && <span class="badge">只读</span>}
+              {editing.builtin && <span class="badge">{tr('strategies.readOnly')}</span>}
             </div>
 
             <RuleEditor
@@ -332,7 +346,10 @@ export function StrategiesPage() {
               {preview && (
                 <div class="preview-status" data-testid="rule-preview-count">
                   <button type="button" class="preview-trigger" aria-describedby="strategy-preview-sample">
-                    预览：将关闭 {preview.matched} 个标签（共 {preview.totalManagedTabs} 个可管理标签）
+                    {tr('strategies.preview', {
+                      count: preview.matched,
+                      total: preview.totalManagedTabs,
+                    })}
                   </button>
                   <div
                     class="preview-sample"
@@ -340,7 +357,7 @@ export function StrategiesPage() {
                     role="tooltip"
                     data-testid="rule-preview-sample"
                   >
-                    <strong>命中示例</strong>
+                    <strong>{tr('strategies.matches')}</strong>
                     {preview.sample.length > 0 ? (
                       <ul class="preview-sample-list">
                         {preview.sample.map((tab) => (
@@ -351,10 +368,12 @@ export function StrategiesPage() {
                         ))}
                       </ul>
                     ) : (
-                      <p class="preview-sample-note">当前没有命中的标签。</p>
+                      <p class="preview-sample-note">{tr('strategies.noMatches')}</p>
                     )}
                     {preview.matched > preview.sample.length && (
-                      <p class="preview-sample-note">仅展示前 {preview.sample.length} 条。</p>
+                      <p class="preview-sample-note">
+                        {tr('strategies.sampleLimit', { count: preview.sample.length })}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -367,18 +386,18 @@ export function StrategiesPage() {
                     onClick={() => void save()}
                     data-testid="save-strategy"
                   >
-                    {saving ? '保存中…' : '保存'}
+                    {saving ? tr('common.saving') : tr('common.save')}
                   </Button>
                   <Button
                     disabled={saving || activeUnchanged || !preview || !validation?.valid}
                     onClick={() => void saveAndActivate()}
                     data-testid="activate-strategy"
                   >
-                    保存并启用
+                    {tr('strategies.saveEnable')}
                   </Button>
                   {!editing.id && (
                     <Button disabled={saving} onClick={cancelDraft} data-testid="cancel-strategy">
-                      取消创建
+                      {tr('strategies.cancelCreate')}
                     </Button>
                   )}
                 </div>
@@ -387,7 +406,7 @@ export function StrategiesPage() {
           </div>
         ) : (
           <div class="editor-panel editor-placeholder">
-            <p class="muted">从左侧选择一个策略查看规则。</p>
+            <p class="muted">{tr('strategies.selectPrompt')}</p>
           </div>
         )}
       </div>

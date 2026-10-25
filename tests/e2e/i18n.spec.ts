@@ -63,6 +63,19 @@ test('closed history renders in English', async ({ context, extensionId }) => {
   await expect(page.getByPlaceholder('Search title, URL, or domain')).toBeVisible();
 });
 
+test('strategy names and editor render in English', async ({ context, extensionId }) => {
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await switchLanguage(page, 'en');
+  await page.getByRole('link', { name: 'Strategies', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Strategies', exact: true })).toBeVisible();
+  await expect(page.getByText('Standard', { exact: true })).toBeVisible();
+  await expect(page.getByText('Built-in', { exact: true }).first()).toBeVisible();
+  await expect(page.getByTestId('new-strategy')).toHaveText('New strategy');
+  await expect(page.getByTestId('rule-editor')).toContainText('Match all (AND)');
+  await expect(page.getByLabel('Strategy name')).toHaveValue('Standard');
+});
+
 test('closed history row shows localized preset strategy name', async ({ context, extensionId }) => {
   const worker = context.serviceWorkers()[0];
   if (!worker) throw new Error('service worker missing');

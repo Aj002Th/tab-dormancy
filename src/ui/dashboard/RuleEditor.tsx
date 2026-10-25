@@ -1,7 +1,8 @@
 import { useState } from 'preact/hooks';
 import { FACT_BY_KEY, isFactAvailable } from '../../core/rules/registry';
-import { factLabel } from '../../shared/i18n';
-import type { Capabilities, Expr, FactKey, Operator } from '../../shared/types';
+import { factLabel, translate } from '../../shared/i18n';
+import type { Capabilities, Expr, FactKey, Locale, Operator } from '../../shared/types';
+import { useLocale } from '../i18n';
 import {
   addChild,
   defaultOperator,
@@ -26,11 +27,13 @@ type RuleEditorProps = {
 const newId = () => crypto.randomUUID();
 
 export function RuleEditor({ expression, capabilities, disabled, onChange }: RuleEditorProps) {
+  const locale = useLocale();
   return (
     <div class="rule-editor" data-testid="rule-editor">
       <NodeView
         root={expression}
         node={expression}
+        locale={locale}
         capabilities={capabilities}
         disabled={disabled}
         onChange={onChange}
@@ -43,16 +46,18 @@ export function RuleEditor({ expression, capabilities, disabled, onChange }: Rul
 type NodeViewProps = Pick<RuleEditorProps, 'capabilities' | 'disabled' | 'onChange'> & {
   root: Expr;
   node: Expr;
+  locale: Locale;
   depth: number;
 };
 
-function NodeView({ root, node, capabilities, disabled, onChange, depth }: NodeViewProps) {
+function NodeView({ root, node, locale, capabilities, disabled, onChange, depth }: NodeViewProps) {
   const { inner, negated } = unwrapNot(node);
   if (inner.type === 'condition') {
     return (
       <ConditionRow
         root={root}
         node={inner}
+        locale={locale}
         negated={negated}
         capabilities={capabilities}
         disabled={disabled}
@@ -66,6 +71,7 @@ function NodeView({ root, node, capabilities, disabled, onChange, depth }: NodeV
       <GroupCard
         root={root}
         node={inner}
+        locale={locale}
         negated={negated}
         capabilities={capabilities}
         disabled={disabled}
@@ -80,6 +86,7 @@ function NodeView({ root, node, capabilities, disabled, onChange, depth }: NodeV
 function GroupCard({
   root,
   node,
+  locale,
   negated,
   capabilities,
   disabled,
@@ -104,10 +111,10 @@ function GroupCard({
           value={node.type}
           disabled={disabled}
           onChange={toggleType}
-          aria-label="规则组类型"
+          aria-label={translate(locale, 'editor.groupType')}
         >
-          <option value="all">全部满足 (AND)</option>
-          <option value="any">任一满足 (OR)</option>
+          <option value="all">{translate(locale, 'editor.matchAll')}</option>
+          <option value="any">{translate(locale, 'editor.matchAny')}</option>
         </select>
         <label class="checkbox">
           <input
@@ -116,7 +123,7 @@ function GroupCard({
             disabled={disabled}
             onChange={() => onChange(toggleNot(root, node.id, newId))}
           />
-          取反
+          {translate(locale, 'editor.negate')}
         </label>
         <span class="grow" />
         {depth > 0 && (
@@ -126,7 +133,7 @@ function GroupCard({
             disabled={disabled}
             onClick={() => onChange(removeNode(root, node.id))}
           >
-            删除组
+            {translate(locale, 'editor.deleteGroup')}
           </button>
         )}
       </div>
@@ -137,6 +144,7 @@ function GroupCard({
             key={child.id}
             root={root}
             node={child}
+            locale={locale}
             capabilities={capabilities}
             disabled={disabled}
             onChange={onChange}
@@ -152,7 +160,7 @@ function GroupCard({
           disabled={disabled}
           onClick={() => onChange(addChild(root, node.id, newCondition(newId())))}
         >
-          + 条件
+          {translate(locale, 'editor.addCondition')}
         </button>
         <button
           type="button"
@@ -160,7 +168,7 @@ function GroupCard({
           disabled={disabled}
           onClick={() => onChange(addChild(root, node.id, newGroup('any', newId(), newCondition(newId()))))}
         >
-          + 子组
+          {translate(locale, 'editor.addGroup')}
         </button>
       </div>
     </div>
@@ -170,6 +178,7 @@ function GroupCard({
 function ConditionRow({
   root,
   node,
+  locale,
   negated,
   capabilities,
   disabled,
@@ -220,7 +229,7 @@ function ConditionRow({
     <div class={`condition-row ${unavailable ? 'unavailable' : ''}`}>
       <label class="checkbox">
         <input type="checkbox" checked={booleanNegated} disabled={disabled} onChange={toggleNegation} />
-        取反
+        {translate(locale, 'editor.negate')}
       </label>
 
       <select
@@ -231,8 +240,8 @@ function ConditionRow({
       >
         {[...FACT_BY_KEY.values()].map((item) => (
           <option key={item.key} value={item.key} disabled={!isFactAvailable(item, capabilities)}>
-            {factLabel(item.key)}
-            {!isFactAvailable(item, capabilities) ? '（不可用）' : ''}
+            {factLabel(item.key, locale)}
+            {!isFactAvailable(item, capabilities) ? translate(locale, 'editor.unavailable') : ''}
           </option>
         ))}
       </select>
@@ -247,7 +256,7 @@ function ConditionRow({
           >
             {definition.operators.map((operator) => (
               <option key={operator} value={operator}>
-                {operatorLabel(operator)}
+                {operatorLabel(operator, locale)}
               </option>
             ))}
           </select>
@@ -269,9 +278,9 @@ function ConditionRow({
                 disabled={disabled}
                 onChange={(event) => setUnit((event.currentTarget as HTMLSelectElement).value as typeof unit)}
               >
-                <option value="minutes">分钟</option>
-                <option value="hours">小时</option>
-                <option value="days">天</option>
+                <option value="minutes">{translate(locale, 'editor.minutes')}</option>
+                <option value="hours">{translate(locale, 'editor.hours')}</option>
+                <option value="days">{translate(locale, 'editor.days')}</option>
               </select>
             </span>
           ) : node.op === 'inDomainList' ? (
@@ -279,7 +288,7 @@ function ConditionRow({
               class="input domain-list"
               value={Array.isArray(node.value) ? node.value.join('\n') : ''}
               disabled={disabled}
-              placeholder="每行一个域名，例如 google.com"
+              placeholder={translate(locale, 'editor.domainPlaceholder')}
               onInput={(event) =>
                 update({
                   value: (event.currentTarget as HTMLTextAreaElement).value
@@ -295,14 +304,14 @@ function ConditionRow({
               type="text"
               value={typeof node.value === 'string' ? node.value : ''}
               disabled={disabled}
-              placeholder={definition.type === 'domain' ? 'example.com' : '文本'}
+              placeholder={definition.type === 'domain' ? 'example.com' : translate(locale, 'editor.text')}
               onInput={(event) => update({ value: (event.currentTarget as HTMLInputElement).value })}
             />
           )}
         </>
       )}
 
-      {unavailable && <span class="unavailable-note">当前浏览器不可用</span>}
+      {unavailable && <span class="unavailable-note">{translate(locale, 'editor.unavailableNote')}</span>}
       {depth > 0 && (
         <button
           type="button"
@@ -310,7 +319,7 @@ function ConditionRow({
           disabled={disabled}
           onClick={() => onChange(removeNode(root, node.id))}
         >
-          删除
+          {translate(locale, 'editor.delete')}
         </button>
       )}
     </div>

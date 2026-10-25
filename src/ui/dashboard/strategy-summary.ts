@@ -1,12 +1,12 @@
 import { FACT_BY_KEY } from '../../core/rules/registry';
-import { factLabel } from '../../shared/i18n';
-import type { Expr, FactKey } from '../../shared/types';
+import { factLabel, getLocale, type MessageKey, type MessageParams, translate } from '../../shared/i18n';
+import type { Expr, FactKey, Locale } from '../../shared/types';
 import { effectiveBooleanNegated, formatFactValue, operatorLabel, unwrapNot } from './expr-edit';
 
 const CARD_TAG_LIMIT = 4;
 
 export type StrategyCardTagGroup = {
-  label: '同时' | '排除' | '分支';
+  label: 'together' | 'exclude' | 'branch';
   tags: string[];
   hidden: number;
 };
@@ -17,59 +17,68 @@ export type StrategyCardSummary = {
   full: string;
 };
 
-const COMPACT_BOOLEAN_LABELS: Partial<Record<FactKey, string>> = {
-  pinned: '已固定',
-  audible: '播放中',
-  active: '当前激活',
-  muted: '已静音',
-  discarded: '已丢弃',
-  frozen: '已冻结',
-  grouped: '标签组中',
-  groupCollapsed: '折叠组',
-  windowFocused: '窗口聚焦',
-  onlyTabInWindow: '窗口唯一',
+const COMPACT_BOOLEAN_KEYS: Partial<Record<FactKey, MessageKey>> = {
+  pinned: 'summary.boolean.pinned',
+  audible: 'summary.boolean.audible',
+  active: 'summary.boolean.active',
+  muted: 'summary.boolean.muted',
+  discarded: 'summary.boolean.discarded',
+  frozen: 'summary.boolean.frozen',
+  grouped: 'summary.boolean.grouped',
+  groupCollapsed: 'summary.boolean.groupCollapsed',
+  windowFocused: 'summary.boolean.windowFocused',
+  onlyTabInWindow: 'summary.boolean.onlyTabInWindow',
 };
 
-export function expressionSummary(expression: Expr): string {
+function tr(locale: Locale | undefined, key: MessageKey, params: MessageParams = {}): string {
+  return translate(locale ?? getLocale(), key, params);
+}
+
+export function expressionSummary(expression: Expr, locale?: Locale): string {
   const { inner, negated } = unwrapNot(expression);
 
   if (inner.type === 'condition') {
     const definition = FACT_BY_KEY.get(inner.fact);
     if (!definition) return inner.fact;
     if (definition.type === 'boolean') {
-      return effectiveBooleanNegated(inner.value, negated) ? `非（${factLabel(inner.fact)}）` : factLabel(inner.fact);
+      const label = factLabel(inner.fact, locale);
+      return effectiveBooleanNegated(inner.value, negated) ? tr(locale, 'summary.not', { value: label }) : label;
     }
-    const summary = conditionSummary(inner);
-    return negated ? `非（${summary}）` : summary;
+    const summary = conditionSummary(inner, locale);
+    return negated ? tr(locale, 'summary.not', { value: summary }) : summary;
   }
 
-  const summary = inner.children.map(expressionSummary).join(inner.type === 'all' ? ' 且 ' : ' 或 ');
-  return negated ? `非（${summary}）` : summary;
+  const summary = inner.children
+    .map((child) => expressionSummary(child, locale))
+    .join(tr(locale, inner.type === 'all' ? 'summary.and' : 'summary.or'));
+  return negated ? tr(locale, 'summary.not', { value: summary }) : summary;
 }
 
-export function strategyCardSummary(expression: Expr): StrategyCardSummary {
-  const full = expressionSummary(expression);
+export function strategyCardSummary(expression: Expr, locale?: Locale): StrategyCardSummary {
+  const full = expressionSummary(expression, locale);
   const { inner, negated } = unwrapNot(expression);
 
   if (negated) return { primary: full, groups: [], full };
-  if (inner.type === 'condition') return { primary: conditionCardSummary(inner), groups: [], full };
+  if (inner.type === 'condition') return { primary: conditionCardSummary(inner, locale), groups: [], full };
 
   if (inner.type === 'any') {
     return {
-      primary: `任一满足 · ${inner.children.length} 个条件`,
-      groups: buildTagGroups([{ label: '分支', tags: inner.children.map(expressionSummary) }]),
+      primary: tr(locale, 'summary.anyCount', { count: inner.children.length }),
+      groups: buildTagGroups([
+        { label: 'branch', tags: inner.children.map((child) => expressionSummary(child, locale)) },
+      ]),
       full,
     };
   }
 
-  const clauses = inner.children.map(classifyClause);
+  const clauses = inner.children.map((child) => classifyClause(child, locale));
   const requirements = clauses.filter((clause) => !clause.exclusion);
   const exclusions = clauses.filter((clause) => clause.exclusion);
 
   if (requirements.length === 0) {
     return {
-      primary: `全部满足 · ${exclusions.length} 个排除条件`,
-      groups: buildTagGroups([{ label: '排除', tags: exclusions.map((clause) => clause.summary) }]),
+      primary: tr(locale, 'summary.allExcluded', { count: exclusions.length }),
+      groups: buildTagGroups([{ label: 'exclude', tags: exclusions.map((clause) => clause.summary) }]),
       full,
     };
   }
@@ -84,8 +93,10 @@ export function strategyCardSummary(expression: Expr): StrategyCardSummary {
   return {
     primary,
     groups: buildTagGroups([
-      ...(otherRequirements.length > 0 ? [{ label: '同时' as const, tags: otherRequirements }] : []),
-      ...(exclusions.length > 0 ? [{ label: '排除' as const, tags: exclusions.map((clause) => clause.summary) }] : []),
+      ...(otherRequirements.length > 0 ? [{ label: 'together' as const, tags: otherRequirements }] : []),
+      ...(exclusions.length > 0
+        ? [{ label: 'exclude' as const, tags: exclusions.map((clause) => clause.summary) }]
+        : []),
     ]),
     full,
   };
@@ -97,62 +108,61 @@ type CardClause = {
   score: number;
 };
 
-function classifyClause(expression: Expr): CardClause {
+function classifyClause(expression: Expr, locale?: Locale): CardClause {
   const { inner, negated } = unwrapNot(expression);
   if (inner.type !== 'condition') {
-    return { summary: expressionSummary(expression), exclusion: false, score: 3 };
+    return { summary: expressionSummary(expression, locale), exclusion: false, score: 3 };
   }
 
   const definition = FACT_BY_KEY.get(inner.fact);
   if (definition?.type === 'boolean') {
     if (effectiveBooleanNegated(inner.value, negated)) {
       return {
-        summary: compactBooleanLabel(inner.fact, factLabel(inner.fact)),
+        summary: compactBooleanLabel(inner.fact, factLabel(inner.fact, locale), locale),
         exclusion: true,
         score: 4,
       };
     }
-    return { summary: factLabel(inner.fact), exclusion: false, score: 2 };
+    return { summary: factLabel(inner.fact, locale), exclusion: false, score: 2 };
   }
 
-  const base = naturalConditionSummary(inner);
+  const base = naturalConditionSummary(inner, locale);
   return {
-    summary: negated ? `非（${base}）` : base,
+    summary: negated ? tr(locale, 'summary.not', { value: base }) : base,
     exclusion: false,
     score: conditionScore(inner),
   };
 }
 
-function conditionCardSummary(condition: Extract<Expr, { type: 'condition' }>): string {
+function conditionCardSummary(condition: Extract<Expr, { type: 'condition' }>, locale?: Locale): string {
   const definition = FACT_BY_KEY.get(condition.fact);
   if (definition?.type === 'boolean') {
-    return effectiveBooleanNegated(condition.value, false)
-      ? `非（${factLabel(condition.fact)}）`
-      : factLabel(condition.fact);
+    const label = factLabel(condition.fact, locale);
+    return effectiveBooleanNegated(condition.value, false) ? tr(locale, 'summary.not', { value: label }) : label;
   }
-  return naturalConditionSummary(condition);
+  return naturalConditionSummary(condition, locale);
 }
 
-function naturalConditionSummary(condition: Extract<Expr, { type: 'condition' }>): string {
+function naturalConditionSummary(condition: Extract<Expr, { type: 'condition' }>, locale?: Locale): string {
   if (condition.fact === 'lastActiveMinutes' && typeof condition.value === 'number') {
-    const duration = formatDurationMinutes(condition.value);
+    const duration = formatDurationMinutes(condition.value, locale);
     switch (condition.op) {
       case 'gt':
-        return `超过 ${duration}未访问`;
+        return tr(locale, 'summary.visitOver', { duration });
       case 'gte':
-        return `至少 ${duration}未访问`;
+        return tr(locale, 'summary.visitAtLeast', { duration });
       case 'lt':
       case 'lte':
-        return `${duration}内访问过`;
+        return tr(locale, 'summary.visitWithin', { duration });
       case 'eq':
-        return `正好 ${duration}未访问`;
+        return tr(locale, 'summary.visitExactly', { duration });
       case 'neq':
-        return `不是 ${duration}未访问`;
+        return tr(locale, 'summary.visitNot', { duration });
       default:
-        return conditionSummary(condition);
+        return conditionSummary(condition, locale);
     }
   }
-  return conditionSummary(condition);
+  return conditionSummary(condition, locale);
 }
 
 function conditionScore(condition: Extract<Expr, { type: 'condition' }>): number {
@@ -161,8 +171,9 @@ function conditionScore(condition: Extract<Expr, { type: 'condition' }>): number
   return 2;
 }
 
-function compactBooleanLabel(fact: FactKey, fallback: string): string {
-  return COMPACT_BOOLEAN_LABELS[fact] ?? fallback;
+function compactBooleanLabel(fact: FactKey, fallback: string, locale?: Locale): string {
+  const key = COMPACT_BOOLEAN_KEYS[fact];
+  return key ? tr(locale, key) : fallback;
 }
 
 function buildTagGroups(
@@ -177,26 +188,30 @@ function buildTagGroups(
     .filter((group) => group.tags.length > 0);
 }
 
-function conditionSummary(condition: Extract<Expr, { type: 'condition' }>): string {
-  const label = factLabel(condition.fact);
-  return `${label} ${operatorLabel(condition.op)} ${formatConditionValue(condition)}`.trim();
+function conditionSummary(condition: Extract<Expr, { type: 'condition' }>, locale?: Locale): string {
+  const label = factLabel(condition.fact, locale);
+  return `${label} ${operatorLabel(condition.op, locale)} ${formatConditionValue(condition, locale)}`.trim();
 }
 
-function formatConditionValue(condition: Extract<Expr, { type: 'condition' }>): string {
+function formatConditionValue(condition: Extract<Expr, { type: 'condition' }>, locale?: Locale): string {
   if (condition.fact === 'lastActiveMinutes' && typeof condition.value === 'number') {
-    return formatDurationMinutes(condition.value);
+    return formatDurationMinutes(condition.value, locale);
   }
   if (
     (condition.fact === 'totalTabCount' || condition.fact === 'windowTabCount') &&
     typeof condition.value === 'number'
   ) {
-    return `${condition.value} 个`;
+    return tr(locale, 'summary.count', { count: condition.value });
   }
-  return formatFactValue(condition.value);
+  return formatFactValue(condition.value, locale);
 }
 
-export function formatDurationMinutes(minutes: number): string {
-  if (minutes > 0 && minutes % 1_440 === 0) return `${minutes / 1_440} 天`;
-  if (minutes > 0 && minutes % 60 === 0) return `${minutes / 60} 小时`;
-  return `${minutes} 分钟`;
+export function formatDurationMinutes(minutes: number, locale?: Locale): string {
+  if (minutes > 0 && minutes % 1_440 === 0) {
+    return tr(locale, 'summary.durationDays', { count: minutes / 1_440 });
+  }
+  if (minutes > 0 && minutes % 60 === 0) {
+    return tr(locale, 'summary.durationHours', { count: minutes / 60 });
+  }
+  return tr(locale, 'summary.durationMinutes', { count: minutes });
 }
