@@ -154,6 +154,15 @@
   margin-bottom: 20px;
 }
 
+.page-head > div {
+  min-width: 0;
+}
+
+.page-head > :not(div) {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .page-head h2 {
   margin: 0 0 4px;
   font-size: 22px;
