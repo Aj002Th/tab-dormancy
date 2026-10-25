@@ -1,8 +1,10 @@
-export function Spinner({ label = '正在加载…' }: { label?: string }) {
+import { t } from '../../shared/i18n';
+
+export function Spinner({ label }: { label?: string }) {
   return (
     <output class="spinner">
       <span class="spinner-dot" />
-      <span class="muted">{label}</span>
+      <span class="muted">{label ?? t('app.loading')}</span>
     </output>
   );
 }

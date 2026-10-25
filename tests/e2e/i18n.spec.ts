@@ -76,6 +76,17 @@ test('strategy names and editor render in English', async ({ context, extensionI
   await expect(page.getByLabel('Strategy name')).toHaveValue('Standard');
 });
 
+test('popup renders in the saved language', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await switchLanguage(dashboard, 'en');
+
+  const popup = await context.newPage();
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  await expect(popup.getByRole('button', { name: 'Open dashboard' })).toBeVisible();
+  await expect(popup.getByText('Active strategy')).toBeVisible();
+});
+
 test('closed history row shows localized preset strategy name', async ({ context, extensionId }) => {
   const worker = context.serviceWorkers()[0];
   if (!worker) throw new Error('service worker missing');

@@ -1,13 +1,17 @@
 import { useEffect, useReducer } from 'preact/hooks';
+import { t } from '../../shared/i18n';
 import { formatRelativeTime } from '../../shared/time';
 import type { CleanupPreview, CleanupResult, StateSnapshot } from '../../shared/types';
 import { messageOf, openDashboard, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
 import { Spinner } from '../components/Spinner';
+import { strategyDisplayName } from '../dashboard/strategy-name';
+import { useLocale } from '../i18n';
 import { initialPopupState, popupReducer } from './state';
 
 export function Popup() {
+  const locale = useLocale();
   const [state, dispatch] = useReducer(popupReducer, undefined, initialPopupState);
 
   useEffect(() => {
@@ -31,7 +35,7 @@ export function Popup() {
         type: 'loaded',
         snapshot,
         preview: null,
-        error: '无法获取清理预览，请稍后重试。',
+        error: t('popup.previewError'),
       });
     }
   }
@@ -62,19 +66,28 @@ export function Popup() {
   const preview = state.preview;
   const hasPreview = snapshot && preview;
 
+  const lastCleanup = snapshot?.lastCleanup
+    ? t('popup.lastCleanup', {
+        time: formatRelativeTime(Date.now(), snapshot.lastCleanup.at, locale),
+        count: snapshot.lastCleanup.closed,
+      })
+    : t('popup.noCleanup');
+
   return (
     <main class="popup">
       <header class="popup-head">
         <div>
           <h1>Tab Dormancy</h1>
-          <p class="muted popup-subtitle">{snapshot?.activeStrategy.name ?? '正在读取策略'}</p>
+          <p class="muted popup-subtitle">
+            {snapshot ? strategyDisplayName(snapshot.activeStrategy, locale) : t('popup.readingStrategy')}
+          </p>
         </div>
         <Button
           class="icon-button"
           onClick={openDashboard}
           data-testid="open-dashboard"
-          aria-label="打开控制台"
-          title="打开控制台"
+          aria-label={t('popup.openDashboard')}
+          title={t('popup.openDashboard')}
         >
           ⚙
         </Button>
@@ -84,7 +97,7 @@ export function Popup() {
       {state.phase === 'error' && (
         <>
           <Banner tone="error">{state.error}</Banner>
-          <Button onClick={() => void load()}>重试</Button>
+          <Button onClick={() => void load()}>{t('app.retry')}</Button>
         </>
       )}
 
@@ -94,13 +107,9 @@ export function Popup() {
             <Banner key={warning}>{warning}</Banner>
           ))}
           <Banner tone="error">{state.error}</Banner>
-          <Button onClick={() => void load()}>重试</Button>
+          <Button onClick={() => void load()}>{t('app.retry')}</Button>
 
-          <p class="muted popup-footnote">
-            {snapshot.lastCleanup
-              ? `上次清理：${formatRelativeTime(Date.now(), snapshot.lastCleanup.at)}，关闭 ${snapshot.lastCleanup.closed} 个`
-              : '还没有清理记录'}
-          </p>
+          <p class="muted popup-footnote">{lastCleanup}</p>
         </>
       )}
 
@@ -114,10 +123,13 @@ export function Popup() {
             <span class="popup-number" data-testid="popup-preview-count">
               {preview.matched}
             </span>
-            <span class="muted">个标签可清理</span>
+            <span class="muted">{t('popup.tabsToClean')}</span>
           </section>
           <p class="muted">
-            当前策略「{preview.strategyName}」，共 {preview.totalManagedTabs} 个可管理标签。
+            {t('popup.activeStrategy', {
+              name: strategyDisplayName(snapshot.activeStrategy, locale),
+              total: preview.totalManagedTabs,
+            })}
           </p>
 
           {state.phase === 'ready' ? (
@@ -127,41 +139,37 @@ export function Popup() {
               onClick={() => dispatch({ type: 'confirm' })}
               data-testid="cleanup-button"
             >
-              {preview.matched === 0 ? '没有可清理的标签' : `清理 ${preview.matched} 个标签`}
+              {preview.matched === 0 ? t('popup.nothingToClean') : t('popup.cleanCount', { count: preview.matched })}
             </Button>
           ) : (
             <div class="confirm-box">
-              <p>将关闭 {preview.matched} 个标签，关闭后可在控制台恢复。</p>
+              <p>{t('popup.confirmClean', { count: preview.matched })}</p>
               <div class="row">
                 <Button variant="danger" onClick={() => void run()} data-testid="confirm-cleanup">
-                  确认清理
+                  {t('popup.confirmCleanup')}
                 </Button>
                 <Button onClick={() => dispatch({ type: 'cancel' })} data-testid="cancel-cleanup">
-                  取消
+                  {t('common.cancel')}
                 </Button>
               </div>
             </div>
           )}
 
-          <p class="muted popup-footnote">
-            {snapshot.lastCleanup
-              ? `上次清理：${formatRelativeTime(Date.now(), snapshot.lastCleanup.at)}，关闭 ${snapshot.lastCleanup.closed} 个`
-              : '还没有清理记录'}
-          </p>
+          <p class="muted popup-footnote">{lastCleanup}</p>
         </>
       )}
 
-      {state.phase === 'running' && <Spinner label="正在清理…" />}
+      {state.phase === 'running' && <Spinner label={t('popup.cleaning')} />}
 
       {state.phase === 'done' && state.result && (
         <section class="done-box">
-          <h2>已关闭 {state.result.closed} 个标签</h2>
-          {state.result.failed > 0 && <p class="muted">{state.result.failed} 个失败</p>}
-          {state.result.skipped > 0 && <p class="muted">{state.result.skipped} 个因页面变化跳过</p>}
+          <h2>{t('popup.closedCount', { count: state.result.closed })}</h2>
+          {state.result.failed > 0 && <p class="muted">{t('popup.failed', { count: state.result.failed })}</p>}
+          {state.result.skipped > 0 && <p class="muted">{t('popup.skipped', { count: state.result.skipped })}</p>}
           <div class="row">
             {state.result.recordIds.length > 0 && (
               <Button onClick={() => void undo()} data-testid="undo-button">
-                撤销
+                {t('popup.undo')}
               </Button>
             )}
             <Button
@@ -171,7 +179,7 @@ export function Popup() {
                 void load();
               }}
             >
-              完成
+              {t('popup.done')}
             </Button>
           </div>
         </section>
