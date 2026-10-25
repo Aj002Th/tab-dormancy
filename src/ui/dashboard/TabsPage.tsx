@@ -98,6 +98,7 @@ export function TabsPage() {
           <h2>{t('tabs.title')}</h2>
           <p class="muted">
             {t('tabs.activeStrategy')}
+            {locale === 'en' ? ' ' : ''}
             <strong data-testid="tabs-strategy">{strategyName}</strong>
             {' · '}
             {t('tabs.description')}

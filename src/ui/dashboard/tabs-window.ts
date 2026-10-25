@@ -3,6 +3,7 @@ import type { Locale, TabFacts } from '../../shared/types';
 
 type WindowFacts = Pick<TabFacts, 'windowId' | 'windowFocused'>;
 
+/** `id` is semantic; `label` is localized presentation text. */
 export type WindowLabel = {
   id: number;
   label: string;

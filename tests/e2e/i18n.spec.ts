@@ -47,7 +47,8 @@ test('tabs page renders in English', async ({ context, extensionId }) => {
   await switchLanguage(page, 'en');
   await page.getByRole('link', { name: 'Tabs', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Tabs', exact: true })).toBeVisible();
-  await expect(page.getByText('Active strategy:')).toBeVisible();
+  await expect(page.getByTestId('tabs-strategy')).toHaveText('Standard');
+  await expect(page.getByText('Active strategy: Standard')).toBeVisible();
   await expect(page.getByPlaceholder('Search title, URL, or domain')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Clean up' }).first()).toBeVisible();
 });
