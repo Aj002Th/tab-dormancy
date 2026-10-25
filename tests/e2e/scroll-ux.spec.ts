@@ -1,5 +1,42 @@
 import { expect, test } from './fixtures';
 
+type Rect = { top: number; bottom: number };
+
+async function geometry(
+  page: import('@playwright/test').Page,
+): Promise<{ scrollY: number; viewport: number; card: Rect | null; editor: Rect | null }> {
+  return page.evaluate(() => {
+    const box = (selector: string) => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const rect = element.getBoundingClientRect();
+      return { top: rect.top, bottom: rect.bottom };
+    };
+    return {
+      scrollY: window.scrollY,
+      viewport: window.innerHeight,
+      card: box('.strategy-card.selected'),
+      editor: box('.editor-panel'),
+    };
+  });
+}
+
+async function expectFullyVisible(page: import('@playwright/test').Page): Promise<void> {
+  await expect
+    .poll(async () => {
+      const { card, editor, viewport } = await geometry(page);
+      return (
+        card !== null &&
+        editor !== null &&
+        card.top >= 0 &&
+        card.bottom <= viewport + 1 &&
+        editor.top >= 0 &&
+        editor.bottom <= viewport + 1
+      );
+    })
+    .toBe(true);
+}
+
 test('sidebar stays pinned and the note sits at the bottom while the page scrolls', async ({
   context,
   extensionId,
@@ -23,18 +60,33 @@ test('sidebar stays pinned and the note sits at the bottom while the page scroll
   expect(note.y + note.height).toBeGreaterThan(sidebar.y + sidebar.height - 40);
 });
 
-test('entering strategies does not jump when the active card is already visible', async ({ context, extensionId }) => {
+test('entering strategies does not scroll when the card and editor already fit', async ({ context, extensionId }) => {
+  const page = await context.newPage();
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+
+  await expect(page.locator('.strategy-card.selected')).toBeVisible();
+  await expectFullyVisible(page);
+
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
+test('entering strategies reveals the whole editor in a stacked layout', async ({ context, extensionId }) => {
   const page = await context.newPage();
   await page.setViewportSize({ width: 900, height: 800 });
   await page.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
 
-  const activeCard = page.locator('.strategy-card.selected');
-  await expect(activeCard).toBeVisible();
-  await page.waitForTimeout(400);
+  await expect(page.locator('.strategy-card.selected')).toBeVisible();
+  await expectFullyVisible(page);
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+});
 
-  expect(await page.evaluate(() => window.scrollY)).toBe(0);
-  const card = await activeCard.boundingBox();
-  const heading = await page.locator('.page-head h2').boundingBox();
-  expect(heading?.y ?? Number.NEGATIVE_INFINITY).toBeGreaterThanOrEqual(0);
-  expect((card?.y ?? Number.POSITIVE_INFINITY) + (card?.height ?? 0)).toBeLessThanOrEqual(800);
+test('entering strategies reveals the whole editor in a short window', async ({ context, extensionId }) => {
+  const page = await context.newPage();
+  await page.setViewportSize({ width: 1280, height: 600 });
+  await page.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+
+  await expect(page.locator('.strategy-card.selected')).toBeVisible();
+  await expectFullyVisible(page);
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 });

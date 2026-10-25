@@ -16,6 +16,56 @@ import { type StrategyCardTagGroup, strategyCardSummary } from './strategy-summa
 
 const newId = () => crypto.randomUUID();
 
+const STACKED_LAYOUT = '(max-width: 980px)'; // keep in sync with .strategy-layout in dashboard.css
+const SCROLL_GUTTER = 16;
+
+type ScrollRange = { lo: number; hi: number };
+
+function editorTopOffset(list: HTMLElement, card: HTMLElement): number {
+  // In the stacked layout the editor sits below the list, so aligning it with
+  // the selected card would only add an empty gap.
+  if (window.matchMedia(STACKED_LAYOUT).matches) return 0;
+  return Math.max(0, card.getBoundingClientRect().top - list.getBoundingClientRect().top);
+}
+
+function visibleRange(element: HTMLElement, viewport: number, scrollY: number): ScrollRange | null {
+  const rect = element.getBoundingClientRect();
+  const available = viewport - SCROLL_GUTTER * 2;
+  if (rect.height > available) return null;
+  return {
+    lo: scrollY + rect.bottom - (viewport - SCROLL_GUTTER),
+    hi: scrollY + rect.top - SCROLL_GUTTER,
+  };
+}
+
+/**
+ * Scroll position that reveals the selected card and the editor. Prefer the
+ * smallest movement; if both cannot fit, keep the editor fully visible.
+ */
+function initialScrollTop(editor: HTMLElement | null, card: HTMLElement): number {
+  const viewport = window.innerHeight;
+  const scrollY = window.scrollY;
+  const maxScroll = Math.max(0, document.documentElement.scrollHeight - viewport);
+  const editorRange = editor ? visibleRange(editor, viewport, scrollY) : null;
+  const cardRange = visibleRange(card, viewport, scrollY);
+  const both =
+    editorRange && cardRange
+      ? { lo: Math.max(editorRange.lo, cardRange.lo), hi: Math.min(editorRange.hi, cardRange.hi) }
+      : null;
+
+  let target: number;
+  if (both && both.lo <= both.hi) {
+    target = Math.min(Math.max(scrollY, both.lo), both.hi);
+  } else if (editorRange && editorRange.lo <= editorRange.hi) {
+    target = Math.min(Math.max(scrollY, editorRange.lo), editorRange.hi);
+  } else {
+    // The editor is taller than the viewport: start at its top.
+    const rect = (editor ?? card).getBoundingClientRect();
+    target = scrollY + rect.top - SCROLL_GUTTER;
+  }
+  return Math.min(maxScroll, Math.max(0, target));
+}
+
 const TAG_GROUP_KEYS = {
   together: 'summary.groupTogether',
   exclude: 'summary.groupExclude',
@@ -32,6 +82,7 @@ export function StrategiesPage() {
   const [saving, setSaving] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const selectedCardRef = useRef<HTMLDivElement | null>(null);
+  const editorRef = useRef<HTMLDivElement | null>(null);
   const scrollOnNextSelection = useRef(false);
   const initialScrollPending = useRef(true);
   const [editorOffset, setEditorOffset] = useState(0);
@@ -189,8 +240,7 @@ export function StrategiesPage() {
       return;
     }
 
-    const offset = Math.max(0, card.getBoundingClientRect().top - list.getBoundingClientRect().top);
-    setEditorOffset(offset);
+    setEditorOffset(editorTopOffset(list, card));
 
     const selectedByUser = scrollOnNextSelection.current;
     const initialLoad = initialScrollPending.current;
@@ -198,17 +248,21 @@ export function StrategiesPage() {
 
     scrollOnNextSelection.current = false;
     initialScrollPending.current = false;
-    if (initialLoad && offset === 0) return;
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const behavior: ScrollBehavior = reduceMotion ? 'auto' : 'smooth';
-    // Initial entry only scrolls as far as needed to reveal the active card.
-    // User selections keep aligning the card to the top of the viewport.
-    const block: ScrollLogicalPosition = initialLoad ? 'nearest' : 'start';
     requestAnimationFrame(() => {
-      if (card.isConnected && selectedCardRef.current === card) {
-        card.scrollIntoView({ block, inline: 'nearest', behavior });
+      if (!card.isConnected || selectedCardRef.current !== card) return;
+      if (initialLoad) {
+        // Entering the page reveals the active card together with its editor
+        // instead of only the card. User selections still align to the top.
+        const top = initialScrollTop(editorRef.current, card);
+        if (Math.abs(top - window.scrollY) >= 1) {
+          window.scrollTo({ top, behavior });
+        }
+        return;
       }
+      card.scrollIntoView({ block: 'start', inline: 'nearest', behavior });
     });
   }, [editing?.id, visibleStrategies.length]);
 
@@ -217,7 +271,7 @@ export function StrategiesPage() {
       const list = listRef.current;
       const card = selectedCardRef.current;
       if (!list || !card) return;
-      setEditorOffset(Math.max(0, card.getBoundingClientRect().top - list.getBoundingClientRect().top));
+      setEditorOffset(editorTopOffset(list, card));
     };
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
@@ -315,7 +369,7 @@ export function StrategiesPage() {
         </div>
 
         {editing && state ? (
-          <div class="editor-panel" style={{ marginTop: `${editorOffset}px` }}>
+          <div class="editor-panel" ref={editorRef} style={{ marginTop: `${editorOffset}px` }}>
             <div class="editor-head">
               <input
                 class="input"
@@ -408,7 +462,7 @@ export function StrategiesPage() {
             </div>
           </div>
         ) : (
-          <div class="editor-panel editor-placeholder">
+          <div class="editor-panel editor-placeholder" ref={editorRef}>
             <p class="muted">{tr('strategies.selectPrompt')}</p>
           </div>
         )}
