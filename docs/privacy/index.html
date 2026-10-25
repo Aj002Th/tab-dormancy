@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tab Dormancy Privacy Policy</title>
+    <meta
+      name="description"
+      content="Privacy policy for the Tab Dormancy extension for Microsoft Edge."
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #fafafa;
+        --surface: #ffffff;
+        --text: #18181b;
+        --muted: #5f5f6b;
+        --border: #e4e4e7;
+        --accent: #3d63dd;
+        --code-bg: #f1f1f3;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #111113;
+          --surface: #18181b;
+          --text: #f4f4f5;
+          --muted: #a1a1aa;
+          --border: #2a2a2e;
+          --accent: #8ab4ff;
+          --code-bg: #232327;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        font-size: 16px;
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main {
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 56px 24px 40px;
+      }
+
+      header {
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(28px, 5vw, 36px);
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+      }
+
+      .meta {
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .lead {
+        margin: 28px 0 0;
+        font-size: 17px;
+      }
+
+      h2 {
+        margin: 36px 0 12px;
+        font-size: 20px;
+        line-height: 1.3;
+        letter-spacing: -0.01em;
+      }
+
+      h3 {
+        margin: 24px 0 8px;
+        font-size: 16px;
+      }
+
+      p {
+        margin: 0 0 14px;
+      }
+
+      ul {
+        margin: 0 0 16px;
+        padding-left: 22px;
+      }
+
+      li {
+        margin: 4px 0;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration-thickness: 1px;
+        text-underline-offset: 2px;
+      }
+
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+        border-radius: 2px;
+      }
+
+      code {
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: var(--code-bg);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.9em;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        margin: 8px 0 18px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15px;
+      }
+
+      th,
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+
+      .lang-divider {
+        margin: 56px 0 0;
+        border: 0;
+        border-top: 1px solid var(--border);
+      }
+
+      footer {
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 0 24px 48px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 520px) {
+        main {
+          padding-top: 40px;
+        }
+
+        th,
+        td {
+          padding: 9px 8px;
+        }
+      }
+
+      @media print {
+        :root {
+          --bg: #ffffff;
+          --text: #000000;
+          --muted: #444444;
+          --border: #cccccc;
+          --accent: #000000;
+          --code-bg: #f2f2f2;
+        }
+
+        main {
+          padding-top: 0;
+        }
+
+        a {
+          text-decoration: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">Tab Dormancy</p>
+        <h1>Privacy Policy</h1>
+        <p class="meta">
+          Effective date: October 25, 2026 · Applies to the Tab Dormancy
+          extension for Microsoft Edge
+        </p>
+      </header>
+
+      <p class="lead">
+        Tab Dormancy is a browser extension that closes tabs after your device
+        has been idle, based on rules you configure, and keeps a local history
+        so you can restore them. This policy explains what data the extension
+        accesses, how it is used, where it is stored, and the choices you have.
+        The extension is not affiliated with Microsoft.
+      </p>
+
+      <h2>1. Data the extension accesses and stores</h2>
+      <p>
+        To provide its single purpose, the extension accesses the following
+        data from your browser:
+      </p>
+      <ul>
+        <li>
+          <strong>Tab metadata:</strong> the URL, title, and domain of open
+          tabs, plus state such as active, pinned, audible, muted, discarded,
+          grouped, and last-accessed time. The URLs and titles of open tabs may
+          be considered web history. The extension does not use the browser's
+          <code>history</code> API to read your stored browsing history.
+        </li>
+        <li>
+          <strong>Tab-group metadata:</strong> group title, color, and collapsed
+          state.
+        </li>
+        <li>
+          <strong>Idle and lock state:</strong> whether the browser reports the
+          device as active, idle, or locked.
+        </li>
+        <li>
+          <strong>Extension data:</strong> your settings and the cleanup
+          strategies you create.
+        </li>
+        <li>
+          <strong>Session identifier:</strong> a randomly generated identifier
+          stored in session storage and cleared when the browser session ends.
+          It is used to group restored tabs correctly.
+        </li>
+      </ul>
+
+      <p>
+        When the extension closes a tab, it creates a local history record. A
+        record can contain the tab's URL, title, domain, close time, trigger,
+        window ID, tab-group metadata, pinned state, tab index, strategy name,
+        an optional browser session ID, and whether the tab has been restored.
+      </p>
+
+      <p>
+        The extension does not access page content, form data, passwords,
+        cookies, keystrokes, mouse movements, downloads, bookmarks, or your
+        location. It does not inject content scripts and does not read the text
+        of the pages you visit.
+      </p>
+
+      <h2>2. How the data is used</h2>
+      <p>The data is used only to:</p>
+      <ul>
+        <li>
+          Evaluate the cleanup rules you configure and show a preview of which
+          tabs would be closed.
+        </li>
+        <li>
+          Close the tabs selected by your enabled strategy and record them in
+          the local history.
+        </li>
+        <li>
+          Display, search, filter, restore, or delete history entries at your
+          request.
+        </li>
+        <li>Remember your settings and strategies.</li>
+      </ul>
+
+      <h2>3. Storage and sharing</h2>
+      <p>
+        All data is stored locally on your device using the browser's extension
+        storage APIs (<code>chrome.storage.local</code> and
+        <code>chrome.storage.session</code>). The extension does not use cloud
+        sync, does not make network requests, and does not include analytics,
+        telemetry, advertising, or crash reporting. It does not transmit data
+        to the developer or to any third party. We do not sell, rent, or
+        transfer user data.
+      </p>
+
+      <h2>4. Retention and deletion</h2>
+      <ul>
+        <li>
+          Closed-tab history is kept for 30 days by default, with a maximum of
+          5,000 records. You can change the retention period in Settings.
+        </li>
+        <li>
+          You can delete individual history records or clear all history at any
+          time from the History page.
+        </li>
+        <li>
+          Uninstalling the extension removes its local storage, subject to the
+          browser's own storage cleanup behavior.
+        </li>
+        <li>
+          Settings and strategies remain until you change or delete them, or
+          uninstall the extension.
+        </li>
+      </ul>
+
+      <h2>5. Permissions</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Permission</th>
+              <th scope="col">Why it is needed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>tabs</code></td>
+              <td>
+                Read tab URL, title, and state; close tabs selected by your
+                rules; restore tabs from local history.
+              </td>
+            </tr>
+            <tr>
+              <td><code>storage</code></td>
+              <td>
+                Save settings, strategies, and local closed-tab history on your
+                device.
+              </td>
+            </tr>
+            <tr>
+              <td><code>idle</code></td>
+              <td>
+                Detect when the device is idle or locked to trigger automatic
+                cleanup.
+              </td>
+            </tr>
+            <tr>
+              <td><code>alarms</code></td>
+              <td>
+                Schedule a one-shot delayed cleanup after the screen is locked.
+                No recurring alarms or polling are used.
+              </td>
+            </tr>
+            <tr>
+              <td><code>tabGroups</code></td>
+              <td>
+                Read tab-group metadata for rules that protect grouped tabs, and
+                restore closed tabs into a group.
+              </td>
+            </tr>
+            <tr>
+              <td><code>sessions</code></td>
+              <td>
+                Optionally restore a closed tab with its navigation stack when
+                you explicitly request a full restore. Falls back to opening the
+                URL if the session is unavailable.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>6. Children</h2>
+      <p>
+        The extension is not directed to children and does not knowingly
+        collect personal information from children.
+      </p>
+
+      <h2>7. Changes to this policy</h2>
+      <p>
+        We may update this policy. The effective date at the top of this page
+        will change, and the updated policy will be posted at this URL.
+      </p>
+
+      <h2>8. Contact</h2>
+      <p>
+        For privacy questions, open an issue at
+        <a href="https://github.com/Aj002Th/tab-dormancy/issues"
+          >github.com/Aj002Th/tab-dormancy/issues</a
+        >. Please do not include sensitive personal information in a public
+        issue.
+      </p>
+
+      <hr class="lang-divider" />
+
+      <section lang="zh-CN">
+        <header>
+          <p class="eyebrow">Tab Dormancy</p>
+          <h1>隐私政策</h1>
+          <p class="meta">
+            生效日期：2026 年 10 月 25 日 · 适用于 Microsoft Edge 版 Tab
+            Dormancy 扩展
+          </p>
+        </header>
+
+        <p class="lead">
+          Tab Dormancy 是一个浏览器扩展：当设备空闲达到你设定的时间后，它按你配置的规则关闭标签页，并在本地保留关闭历史，方便你恢复。本政策说明扩展访问哪些数据、如何使用、存储在哪里，以及你有哪些选择。本扩展与 Microsoft 无隶属关系。
+        </p>
+
+        <h2>1. 扩展访问和存储的数据</h2>
+        <p>为实现单一用途，扩展会访问以下浏览器数据：</p>
+        <ul>
+          <li>
+            <strong>标签页元数据：</strong>打开标签页的 URL、标题、域名，以及是否当前标签、是否固定、是否发声、是否静音、是否已卸载、是否属于标签组、最后访问时间等状态。打开标签页的 URL 和标题可能被视为浏览历史。扩展不会调用浏览器的
+            <code>history</code> API 读取你已保存的浏览历史。
+          </li>
+          <li>
+            <strong>标签组元数据：</strong>标签组名称、颜色和折叠状态。
+          </li>
+          <li>
+            <strong>空闲和锁屏状态：</strong>浏览器报告的设备处于活跃、空闲还是锁屏状态。
+          </li>
+          <li><strong>扩展数据：</strong>你的设置和你创建的清理策略。</li>
+          <li>
+            <strong>会话标识：</strong>一个随机生成的标识，保存在会话存储中，浏览器会话结束后清除，用于正确分组恢复的标签页。
+          </li>
+        </ul>
+
+        <p>
+          当扩展关闭标签页时，会在本地创建一条历史记录。记录可能包含标签页的 URL、标题、域名、关闭时间、触发方式、窗口 ID、标签组元数据、固定状态、标签页序号、策略名称、可选的浏览器会话 ID，以及是否已恢复。
+        </p>
+
+        <p>
+          扩展不会访问页面正文、表单数据、密码、Cookie、键盘输入、鼠标移动、下载内容、书签或你的位置。扩展不注入内容脚本，也不读取你所访问页面的文字内容。
+        </p>
+
+        <h2>2. 数据如何使用</h2>
+        <p>数据仅用于：</p>
+        <ul>
+          <li>评估你配置的清理规则，并预览哪些标签页将被关闭。</li>
+          <li>关闭当前启用策略选中的标签页，并记录到本地历史。</li>
+          <li>按你的请求展示、搜索、筛选、恢复或删除历史记录。</li>
+          <li>记住你的设置和策略。</li>
+        </ul>
+
+        <h2>3. 存储与共享</h2>
+        <p>
+          所有数据都通过浏览器的扩展存储 API（<code>chrome.storage.local</code>
+          和 <code>chrome.storage.session</code>）保存在你的设备本地。扩展不使用云同步，不发起网络请求，不包含分析、遥测、广告或崩溃上报，也不会把数据发送给开发者或任何第三方。我们不会出售、出租或转让用户数据。
+        </p>
+
+        <h2>4. 保留与删除</h2>
+        <ul>
+          <li>
+            关闭历史默认保留 30 天，最多 5,000 条。你可以在设置中修改保留期限。
+          </li>
+          <li>你可以随时在历史页面删除单条记录或清空全部历史。</li>
+          <li>卸载扩展会移除其本地存储，具体行为受浏览器自身存储清理机制影响。</li>
+          <li>设置和策略会一直保留，直到你修改、删除它们或卸载扩展。</li>
+        </ul>
+
+        <h2>5. 权限说明</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">权限</th>
+                <th scope="col">用途</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>tabs</code></td>
+                <td>
+                  读取标签页 URL、标题和状态；关闭规则选中的标签页；从本地历史恢复标签页。
+                </td>
+              </tr>
+              <tr>
+                <td><code>storage</code></td>
+                <td>在本地保存设置、策略和关闭历史。</td>
+              </tr>
+              <tr>
+                <td><code>idle</code></td>
+                <td>检测设备空闲或锁屏状态，触发自动清理。</td>
+              </tr>
+              <tr>
+                <td><code>alarms</code></td>
+                <td>
+                  在锁屏后安排一次延迟清理；不使用周期闹钟或轮询。
+                </td>
+              </tr>
+              <tr>
+                <td><code>tabGroups</code></td>
+                <td>
+                  读取标签组元数据，用于保护标签组的规则，以及恢复标签组。
+                </td>
+              </tr>
+              <tr>
+                <td><code>sessions</code></td>
+                <td>
+                  仅在你主动选择“完整恢复”时，用于恢复标签页的导航栈；会话不可用时回退为打开 URL。
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>6. 儿童隐私</h2>
+        <p>
+          本扩展不面向儿童，也不会有意收集儿童的个人信息。
+        </p>
+
+        <h2>7. 政策变更</h2>
+        <p>
+          我们可能更新本政策。页面顶部的生效日期会随之更新，更新后的政策仍发布在此 URL。
+        </p>
+
+        <h2>8. 联系方式</h2>
+        <p>
+          如有隐私相关问题，请在
+          <a href="https://github.com/Aj002Th/tab-dormancy/issues"
+            >github.com/Aj002Th/tab-dormancy/issues</a
+          >
+          提交 issue。请不要在公开 issue 中包含敏感个人信息。
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Tab Dormancy · Privacy policy for the Microsoft Edge extension ·
+        Effective October 25, 2026
+      </p>
+    </footer>
+  </body>
+</html>
