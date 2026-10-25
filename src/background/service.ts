@@ -388,8 +388,16 @@ export class TabDormancyService {
     const pageSize = Math.max(1, Math.min(query.pageSize || 50, 200));
     const page = Math.max(1, query.page || 1);
     const start = (page - 1) * pageSize;
+    const items = filtered.slice(start, start + pageSize);
+    // Index entries written by older versions may not carry strategy info; hydrate
+    // it from the full records so the history rows can show a localized name.
+    const records = await this.deps.repo.getHistoryRecords(items.map((item) => item.id));
+    const recordsById = new Map(records.map((record) => [record.id, record]));
     return {
-      items: filtered.slice(start, start + pageSize),
+      items: items.map((item) => {
+        const record = recordsById.get(item.id);
+        return record ? { ...item, strategyId: record.strategyId, strategyName: record.strategyName } : item;
+      }),
       total: filtered.length,
       page,
       pageSize,

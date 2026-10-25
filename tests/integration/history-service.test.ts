@@ -149,6 +149,13 @@ describe('history service', () => {
     expect(browser.windows).toHaveLength(2);
   });
 
+  it('hydrates strategy info for index entries written without it', async () => {
+    const { service } = await setup([record('a')]);
+
+    const page = await service.queryHistory({ page: 1, pageSize: 50 });
+    expect(page.items[0]).toMatchObject({ id: 'a', strategyId: 'preset:standard', strategyName: '标准' });
+  });
+
   it('returns results newest-first regardless of storage order', async () => {
     const { service } = await setup([
       record('a', { closedAt: now - 200 }),

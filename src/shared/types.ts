@@ -111,6 +111,8 @@ export type ClosedTabSummary = {
   trigger: Trigger;
   status: 'pending' | 'closed';
   restoredAt: number | null;
+  strategyId?: string;
+  strategyName?: string;
 };
 
 export type ClosedTabRecord = ClosedTabSummary & {

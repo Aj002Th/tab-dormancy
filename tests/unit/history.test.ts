@@ -112,4 +112,19 @@ describe('history planning', () => {
     const next = markRestored(index, ['r'], now + 1);
     expect(next[0]?.restoredAt).toBe(now + 1);
   });
+
+  it('keeps strategy info in summaries', () => {
+    const record = defined(
+      buildClosedRecords(plan, {
+        trigger: 'idle',
+        strategy,
+        browserSessionId: 's1',
+        now,
+        ids: () => 'r',
+      })[0],
+      'first closed record',
+    );
+
+    expect(toSummary(record)).toMatchObject({ strategyId: 'preset:standard', strategyName: '标准' });
+  });
 });

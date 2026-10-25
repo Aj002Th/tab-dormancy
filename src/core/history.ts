@@ -65,6 +65,8 @@ export function toSummary(record: ClosedTabRecord): ClosedTabSummary {
     trigger: record.trigger,
     status: record.status,
     restoredAt: record.restoredAt,
+    strategyId: record.strategyId,
+    strategyName: record.strategyName,
   };
 }
 

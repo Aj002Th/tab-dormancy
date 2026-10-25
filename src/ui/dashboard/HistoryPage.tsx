@@ -1,15 +1,26 @@
 import { useEffect, useState } from 'preact/hooks';
+import { t, translate } from '../../shared/i18n';
 import { formatRelativeTime } from '../../shared/time';
-import type { HistoryQuery, HistoryQueryResult, RestoreOptions, RestoreResult, Trigger } from '../../shared/types';
+import type {
+  HistoryQuery,
+  HistoryQueryResult,
+  Locale,
+  RestoreOptions,
+  RestoreResult,
+  Trigger,
+} from '../../shared/types';
 import { messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
 import { Spinner } from '../components/Spinner';
+import { useLocale } from '../i18n';
 import { toggleSelection } from './history-selection';
+import { strategyDisplayName } from './strategy-name';
 
 const PAGE_SIZE = 50;
 
 export function HistoryPage() {
+  const locale = useLocale();
   const [query, setQuery] = useState('');
   const [trigger, setTrigger] = useState<Trigger | 'all'>('all');
   const [restored, setRestored] = useState<'all' | 'yes' | 'no'>('all');
@@ -56,8 +67,11 @@ export function HistoryPage() {
       setFailures(response.failed);
       setNotice(
         response.failed.length > 0
-          ? `已恢复 ${response.restored} 个标签，${response.failed.length} 个失败`
-          : `已恢复 ${response.restored} 个标签`,
+          ? translate(locale, 'history.restored', {
+              restored: response.restored,
+              failed: response.failed.length,
+            })
+          : translate(locale, 'history.restoredOnly', { restored: response.restored }),
       );
       setSelected(new Set());
       await load();
@@ -68,7 +82,7 @@ export function HistoryPage() {
 
   async function remove() {
     if (selected.size === 0) return;
-    if (!window.confirm(`删除 ${selected.size} 条历史记录？`)) return;
+    if (!window.confirm(translate(locale, 'history.deleteConfirm', { count: selected.size }))) return;
     try {
       await send({ type: 'history.delete', ids: [...selected] });
       setSelected(new Set());
@@ -79,7 +93,7 @@ export function HistoryPage() {
   }
 
   async function clear() {
-    if (!window.confirm('清空全部关闭历史？此操作不可撤销。')) return;
+    if (!window.confirm(t('history.clearConfirm'))) return;
     try {
       await send({ type: 'history.clear' });
       setSelected(new Set());
@@ -96,26 +110,29 @@ export function HistoryPage() {
     <section class="page">
       <header class="page-head">
         <div>
-          <h2>关闭历史</h2>
+          <h2>{t('history.title')}</h2>
           <p class="muted">
             {result ? (
               <>
                 <span data-testid="history-retention">
-                  当前保留最近 {result.retention.days} 天内的记录，最多 {result.retention.maxRecords}{' '}
-                  条；超出后删除最旧记录。
+                  {translate(locale, 'history.retention', {
+                    days: result.retention.days,
+                    max: result.retention.maxRecords,
+                  })}
                 </span>{' '}
                 <a class="text-link" href="#/settings">
-                  在设置中调整
+                  {t('history.adjust')}
                 </a>
-                。恢复不会删除记录。
+                {locale === 'en' ? '. ' : ''}
+                {t('history.retentionTail')}
               </>
             ) : (
-              '正在读取保留策略…'
+              t('history.loadingRetention')
             )}
           </p>
         </div>
         <span class="muted" data-testid="history-total">
-          共 {result?.total ?? 0} 条
+          {translate(locale, 'history.total', { count: result?.total ?? 0 })}
         </span>
       </header>
 
@@ -123,11 +140,11 @@ export function HistoryPage() {
       {notice && <Banner>{notice}</Banner>}
       {failures.length > 0 && (
         <Banner tone="error">
-          <div>以下标签恢复失败：</div>
+          <div>{t('history.restoreFailed')}</div>
           <ul class="restore-failures">
             {failures.map((failure) => (
               <li key={failure.id}>
-                {failure.url}：{failure.reason}
+                {failure.url}: {failure.reason}
               </li>
             ))}
           </ul>
@@ -138,7 +155,7 @@ export function HistoryPage() {
         <input
           class="input"
           type="search"
-          placeholder="搜索标题、URL 或域名"
+          placeholder={t('tabs.searchPlaceholder')}
           value={query}
           data-testid="history-search"
           onInput={(event) => {
@@ -154,10 +171,10 @@ export function HistoryPage() {
             setPage(1);
           }}
         >
-          <option value="all">全部触发方式</option>
-          <option value="idle">空闲</option>
-          <option value="locked">锁屏</option>
-          <option value="manual">手动</option>
+          <option value="all">{t('history.triggerAll')}</option>
+          <option value="idle">{t('history.triggerIdle')}</option>
+          <option value="locked">{t('history.triggerLocked')}</option>
+          <option value="manual">{t('history.triggerManual')}</option>
         </select>
         <select
           class="input"
@@ -167,9 +184,9 @@ export function HistoryPage() {
             setPage(1);
           }}
         >
-          <option value="all">全部状态</option>
-          <option value="no">未恢复</option>
-          <option value="yes">已恢复</option>
+          <option value="all">{t('history.statusAll')}</option>
+          <option value="no">{t('history.statusNotRestored')}</option>
+          <option value="yes">{t('history.statusRestored')}</option>
         </select>
       </div>
 
@@ -180,12 +197,12 @@ export function HistoryPage() {
           data-testid="history-restore-mode"
           onChange={(event) => setMode((event.currentTarget as HTMLSelectElement).value as RestoreOptions['mode'])}
         >
-          <option value="current-window">恢复到当前窗口</option>
-          <option value="original-window-groups">按原窗口分组新建</option>
+          <option value="current-window">{t('history.restoreCurrent')}</option>
+          <option value="original-window-groups">{t('history.restoreOriginal')}</option>
         </select>
         <span class="grow" />
         <Button disabled={selected.size === 0} onClick={() => void restore()} data-testid="history-restore">
-          恢复所选
+          {t('history.restoreSelected')}
         </Button>
         <Button
           variant="danger"
@@ -193,15 +210,13 @@ export function HistoryPage() {
           onClick={() => void remove()}
           data-testid="history-delete"
         >
-          删除所选
+          {t('history.deleteSelected')}
         </Button>
         <Button variant="danger" onClick={() => void clear()} data-testid="history-clear">
-          清空
+          {t('history.clear')}
         </Button>
       </div>
-      <p class="muted small history-restore-note">
-        恢复到当前窗口时会尽量还原页面状态（如滚动位置、表单内容），无法还原时改为普通打开；重建原窗口时优先保证窗口和分组位置。
-      </p>
+      <p class="muted small history-restore-note">{t('history.restoreNote')}</p>
 
       {loading && <Spinner />}
       <div class="history-list">
@@ -216,38 +231,45 @@ export function HistoryPage() {
                   toggleSelection(current, item.id, (event.currentTarget as HTMLInputElement).checked),
                 )
               }
-              aria-label={`选择 ${item.title}`}
+              aria-label={translate(locale, 'history.select', { title: item.title })}
             />
             <div class="history-main">
               <div class="history-title">{item.title || item.url}</div>
               <div class="muted small history-url">{item.url}</div>
             </div>
             <div class="history-meta">
-              <span>{item.domain || '本地文件'}</span>
-              <span>{formatRelativeTime(Date.now(), item.closedAt)}</span>
-              <span>{triggerLabel(item.trigger)}</span>
-              <span>{item.restoredAt === null ? '未恢复' : '已恢复'}</span>
+              <span>{item.domain || t('app.localFile')}</span>
+              <span>{formatRelativeTime(Date.now(), item.closedAt, locale)}</span>
+              <span>{triggerLabel(item.trigger, locale)}</span>
+              <span>{item.restoredAt === null ? t('history.statusNotRestored') : t('history.statusRestored')}</span>
+              {item.strategyName && (
+                <span class="muted small history-strategy">
+                  {strategyDisplayName({ id: item.strategyId ?? '', name: item.strategyName }, locale)}
+                </span>
+              )}
             </div>
           </div>
         ))}
-        {!loading && items.length === 0 && <p class="muted empty">没有关闭历史。</p>}
+        {!loading && items.length === 0 && <p class="muted empty">{t('history.empty')}</p>}
       </div>
 
       <div class="pager">
         <Button disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
-          上一页
+          {t('history.prev')}
         </Button>
-        <span class="muted">
-          第 {page} / {totalPages} 页
-        </span>
+        <span class="muted">{translate(locale, 'history.page', { page, total: totalPages })}</span>
         <Button disabled={page >= totalPages} onClick={() => setPage((value) => value + 1)}>
-          下一页
+          {t('history.next')}
         </Button>
       </div>
     </section>
   );
 }
 
-function triggerLabel(trigger: Trigger): string {
-  return trigger === 'idle' ? '空闲' : trigger === 'locked' ? '锁屏' : '手动';
+function triggerLabel(trigger: Trigger, locale: Locale): string {
+  return trigger === 'idle'
+    ? translate(locale, 'history.triggerIdle')
+    : trigger === 'locked'
+      ? translate(locale, 'history.triggerLocked')
+      : translate(locale, 'history.triggerManual');
 }
