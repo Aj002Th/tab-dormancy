@@ -10,6 +10,8 @@ const manifest = JSON.parse(readFileSync('public/manifest.json', 'utf8')) as {
   background: { service_worker: string; type: string };
   action: { default_popup: string };
   options_ui: { page: string; open_in_tab: boolean };
+  description: string;
+  default_locale: string;
 };
 
 describe('manifest', () => {
@@ -27,5 +29,14 @@ describe('manifest', () => {
     );
     expect(manifest.host_permissions).toBeUndefined();
     expect(manifest.content_scripts).toBeUndefined();
+  });
+
+  it('localizes the extension description', () => {
+    expect(manifest.default_locale).toBe('en');
+    expect(manifest.description).toBe('__MSG_extDescription__');
+    const en = JSON.parse(readFileSync('public/_locales/en/messages.json', 'utf8'));
+    const zh = JSON.parse(readFileSync('public/_locales/zh_CN/messages.json', 'utf8'));
+    expect(en.extDescription.message).toContain('Close tabs');
+    expect(zh.extDescription.message).toContain('关闭标签页');
   });
 });
