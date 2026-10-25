@@ -1,4 +1,5 @@
-import type { Capabilities } from '../../shared/types';
+import { getLocale, type MessageKey, translate } from '../../shared/i18n';
+import type { Capabilities, Locale } from '../../shared/types';
 
 export type CapabilityKey = 'lastAccessed' | 'frozen' | 'tabGroups' | 'sessions';
 
@@ -21,61 +22,64 @@ export type CapabilityView = {
 
 const CAPABILITIES: Array<{
   key: CapabilityKey;
-  label: string;
-  availableDescription: string;
-  unavailableDescription: string;
-  requirement: string | null;
+  labelKey: MessageKey;
+  availableKey: MessageKey;
+  unavailableKey: MessageKey;
+  requirementKey: MessageKey | null;
 }> = [
   {
     key: 'lastAccessed',
-    label: '最后访问时间',
-    availableDescription: '“距最后访问”规则依赖此能力。',
-    unavailableDescription: '用到“距最后访问”的规则会自动暂停。',
-    requirement: '需要 Chrome 121 或更高版本',
+    labelKey: 'capabilities.lastAccessed.label',
+    availableKey: 'capabilities.lastAccessed.available',
+    unavailableKey: 'capabilities.lastAccessed.unavailable',
+    requirementKey: 'capabilities.lastAccessed.requirement',
   },
   {
     key: 'frozen',
-    label: '冻结状态',
-    availableDescription: '“已冻结”规则依赖此能力。',
-    unavailableDescription: '用到“已冻结”的规则会自动暂停。',
-    requirement: '需要 Chrome 132 或更高版本',
+    labelKey: 'capabilities.frozen.label',
+    availableKey: 'capabilities.frozen.available',
+    unavailableKey: 'capabilities.frozen.unavailable',
+    requirementKey: 'capabilities.frozen.requirement',
   },
   {
     key: 'tabGroups',
-    label: '标签组',
-    availableDescription: '“标签组”规则依赖此能力。',
-    unavailableDescription: '用到“标签组”的规则会自动暂停。',
-    requirement: null,
+    labelKey: 'capabilities.tabGroups.label',
+    availableKey: 'capabilities.tabGroups.available',
+    unavailableKey: 'capabilities.tabGroups.unavailable',
+    requirementKey: null,
   },
   {
     key: 'sessions',
-    label: '会话恢复',
-    availableDescription: '恢复标签时用于还原页面状态。',
-    unavailableDescription: '恢复标签时只能重新打开网址，无法还原页面状态。',
-    requirement: null,
+    labelKey: 'capabilities.sessions.label',
+    availableKey: 'capabilities.sessions.available',
+    unavailableKey: 'capabilities.sessions.unavailable',
+    requirementKey: null,
   },
 ];
 
-export function capabilityView(capabilities: Capabilities): CapabilityView {
-  const items = CAPABILITIES.map(({ availableDescription, unavailableDescription, ...capability }) => {
-    const available = capabilities[capability.key];
+export function capabilityView(capabilities: Capabilities, locale: Locale = getLocale()): CapabilityView {
+  const items = CAPABILITIES.map(({ key, labelKey, availableKey, unavailableKey, requirementKey }) => {
+    const available = capabilities[key];
     return {
-      ...capability,
+      key,
+      label: translate(locale, labelKey),
       available,
-      description: available ? availableDescription : unavailableDescription,
+      description: translate(locale, available ? availableKey : unavailableKey),
+      requirement: requirementKey ? translate(locale, requirementKey) : null,
     };
   });
   const unavailable = items.filter((item) => !item.available);
   const availableCount = items.length - unavailable.length;
   return {
-    versionLabel: `Chrome ${capabilities.chromeMajor ?? '版本未知'}`,
+    versionLabel: translate(locale, 'diagnostics.version', {
+      version: capabilities.chromeMajor ?? translate(locale, 'diagnostics.versionUnknown'),
+    }),
     items,
     unavailable,
     availableCount,
     allAvailable: unavailable.length === 0,
-    summary:
-      unavailable.length === 0
-        ? '规则中使用的全部能力均可用。'
-        : `有 ${unavailable.length} 项能力暂不可用，相关规则不会执行。`,
+    summary: translate(locale, unavailable.length === 0 ? 'diagnostics.summaryAll' : 'diagnostics.summarySome', {
+      count: unavailable.length,
+    }),
   };
 }

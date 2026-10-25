@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'preact/hooks';
+import { t } from '../../shared/i18n';
 import type { StateSnapshot } from '../../shared/types';
 import { messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Spinner } from '../components/Spinner';
+import { useLocale } from '../i18n';
 import { type CapabilityViewItem, capabilityView } from './capability-view';
 
 function renderCapabilities(items: CapabilityViewItem[]) {
@@ -14,7 +16,7 @@ function renderCapabilities(items: CapabilityViewItem[]) {
     >
       <span class="capability-name">{item.label}</span>
       <span class={item.available ? 'capability-pill ok' : 'capability-pill warn'}>
-        {item.available ? '可用' : '不可用'}
+        {item.available ? t('diagnostics.available') : t('diagnostics.unavailable')}
       </span>
       <span class="capability-description">{item.description}</span>
       {!item.available && item.requirement && <span class="capability-requirement">{item.requirement}</span>}
@@ -23,6 +25,7 @@ function renderCapabilities(items: CapabilityViewItem[]) {
 }
 
 export function DiagnosticsPage() {
+  const locale = useLocale();
   const [state, setState] = useState<StateSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,14 +45,14 @@ export function DiagnosticsPage() {
     };
   }, []);
 
-  const support = state ? capabilityView(state.capabilities) : null;
+  const support = state ? capabilityView(state.capabilities, locale) : null;
 
   return (
     <section class="page">
       <header class="page-head">
         <div>
-          <h2>诊断</h2>
-          <p class="muted">只读信息，用于判断规则能否在当前浏览器中执行。</p>
+          <h2>{t('diagnostics.title')}</h2>
+          <p class="muted">{t('diagnostics.subtitle')}</p>
         </div>
       </header>
 
@@ -59,12 +62,14 @@ export function DiagnosticsPage() {
         <section class="diagnostics-card">
           <div class="settings-section-head">
             <div class="support-title">
-              <h3>运行环境</h3>
+              <h3>{t('diagnostics.environment')}</h3>
               <span
                 class={support.allAvailable ? 'support-status ok' : 'support-status warn'}
                 data-testid="diagnostics-status"
               >
-                {support.allAvailable ? '全部可用' : `${support.unavailable.length} 项不可用`}
+                {support.allAvailable
+                  ? t('diagnostics.allAvailable')
+                  : t('diagnostics.unavailableCount', { count: support.unavailable.length })}
               </span>
             </div>
             <p class="muted small">{`Tab Dormancy ${chrome.runtime.getManifest().version}`}</p>

@@ -91,6 +91,26 @@ describe('settings form', () => {
     expect(parseSettingsForm(form(patch))).toEqual({ error: message });
   });
 
+  it('returns validation errors in the active language', () => {
+    setLocale('en');
+    try {
+      expect(parseSettingsForm(form({ theme: 'sepia' as SettingsForm['theme'] }))).toEqual({
+        error: 'Invalid appearance theme',
+      });
+      expect(parseSettingsForm(form({ idleThresholdMinutes: '' }))).toEqual({
+        error: 'Idle threshold must be between 1 and 1440 minutes',
+      });
+      expect(parseSettingsForm(form({ historyMaxRecords: '5001' }))).toEqual({
+        error: 'History must keep between 1 and 5000 records',
+      });
+      expect(parseSettingsForm(form({ language: 'fr' as SettingsForm['language'] }))).toEqual({
+        error: 'Invalid interface language',
+      });
+    } finally {
+      setLocale('zh');
+    }
+  });
+
   it('detects changes to every editable setting', () => {
     expect(isSettingsDirty(form(), saved)).toBe(false);
     expect(isSettingsDirty(form({ idleThresholdMinutes: '16' }), saved)).toBe(true);

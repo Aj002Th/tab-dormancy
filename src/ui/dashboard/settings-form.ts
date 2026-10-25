@@ -32,27 +32,27 @@ export function parseSettingsForm(form: SettingsForm): { patch: SettingsPatch } 
   }
 
   if (!isTheme(form.theme)) {
-    return { error: '外观主题无效' };
+    return { error: t('errors.invalidTheme') };
   }
 
   const idle = parseInteger(form.idleThresholdMinutes);
   if (idle === null || idle < 1 || idle > 1_440) {
-    return { error: '空闲阈值需为 1–1440 分钟' };
+    return { error: t('errors.invalidIdle') };
   }
 
   const lockDelay = parseInteger(form.lockDelayMinutes);
   if (lockDelay === null || lockDelay < 0 || lockDelay > 1_440) {
-    return { error: '锁屏延迟需为 0–1440 分钟' };
+    return { error: t('errors.invalidLockDelay') };
   }
 
   const retention = parseInteger(form.historyRetentionDays);
   if (retention === null || retention < 1 || retention > 365) {
-    return { error: '历史保留需为 1–365 天' };
+    return { error: t('errors.invalidRetention') };
   }
 
   const maxRecords = parseInteger(form.historyMaxRecords);
   if (maxRecords === null || maxRecords < 1 || maxRecords > LIMITS.maxHistory) {
-    return { error: `历史保留条数需为 1–${LIMITS.maxHistory} 条` };
+    return { error: t('errors.invalidMaxRecords', { max: LIMITS.maxHistory }) };
   }
 
   return {
