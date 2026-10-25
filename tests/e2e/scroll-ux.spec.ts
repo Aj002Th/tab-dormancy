@@ -62,7 +62,11 @@ test('sidebar stays pinned and the note sits at the bottom while the page scroll
 
 test('entering strategies does not scroll when the card and editor already fit', async ({ context, extensionId }) => {
   const page = await context.newPage();
-  await page.setViewportSize({ width: 1280, height: 720 });
+  // 1280x720 leaves only ~17px of slack below the editor on macOS. Linux font
+  // metrics make the stack ~27px taller, which legitimately triggers a small
+  // scroll to keep the 16px bottom gutter. Use a viewport with clear headroom
+  // so the assertion covers "no scroll when it fits", not exact font metrics.
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
 
   await expect(page.locator('.strategy-card.selected')).toBeVisible();
