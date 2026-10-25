@@ -36,5 +36,15 @@ describe('i18n', () => {
     expect(translate('en', 'popup.tabsToClean', { count: 1 })).toBe('tab can be cleaned');
     expect(translate('en', 'popup.tabsToClean', { count: 2 })).toBe('tabs can be cleaned');
     expect(translate('zh', 'popup.tabsToClean', { count: 2 })).toBe('个标签可清理');
+    expect(translate('en', 'tabs.confirm', { count: 1 })).toBe('Close 1 tab? It stays in history and can be restored.');
+    expect(translate('en', 'tabs.confirm', { count: 2 })).toBe(
+      'Close 2 tabs? They stay in history and can be restored.',
+    );
+    expect(translate('en', 'popup.confirmClean', { count: 1 })).toBe(
+      'Close 1 tab? You can restore it from the dashboard.',
+    );
+    expect(translate('en', 'popup.confirmClean', { count: 2 })).toBe(
+      'Close 2 tabs? You can restore them from the dashboard.',
+    );
   });
 });

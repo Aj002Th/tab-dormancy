@@ -13,8 +13,8 @@ import type { Repo } from '../platform/storage';
 import { runWithConcurrency } from '../shared/async';
 import { ALARM_LOCKED, LIMITS, SCHEMA_VERSION } from '../shared/constants';
 import { AppError } from '../shared/errors';
-import { getLocale, setLocale, t } from '../shared/i18n';
-import { resolveLocale } from '../shared/language';
+import { setLocale, t } from '../shared/i18n';
+import { browserLanguages, isLanguage, resolveLocale } from '../shared/language';
 import type { StrategyPreview } from '../shared/messages';
 import { isTheme } from '../shared/theme';
 import type {
@@ -51,10 +51,17 @@ export class TabDormancyService {
   constructor(protected readonly deps: ServiceDeps) {}
 
   private applyLocale(language: Language): void {
-    // In tests (and any non-extension context) there is no browser UI language;
-    // keep the current locale instead of shifting the "system" default to English.
-    const uiLanguage = typeof chrome !== 'undefined' && chrome.i18n ? chrome.i18n.getUILanguage() : getLocale();
-    setLocale(resolveLocale(language, [uiLanguage]));
+    if (language !== 'system') {
+      setLocale(language);
+      return;
+    }
+    // In an extension the service worker's navigator.languages is the same
+    // source the UI uses, so "system" resolves identically in both places.
+    // In Node/Vitest there is no chrome.i18n, and navigator defaults to en-US;
+    // keep the current locale instead of shifting it to English.
+    if (typeof chrome !== 'undefined' && chrome.i18n) {
+      setLocale(resolveLocale('system', browserLanguages()));
+    }
   }
 
   async bootstrap(): Promise<void> {
@@ -561,7 +568,7 @@ export class TabDormancyService {
   protected assertUsable(strategy: Strategy, caps: Capabilities): void {
     const missing = unsupportedFacts(strategy.expression, caps);
     if (missing.length > 0) {
-      throw new AppError('UNSUPPORTED_FACT', t('errors.unsupportedFacts', { facts: missing.join(listSeparator()) }));
+      throw new AppError('UNSUPPORTED_FACT', t('errors.unsupportedFacts', { facts: missing.join(t('listSeparator')) }));
     }
   }
 
@@ -571,7 +578,7 @@ export class TabDormancyService {
     const warnings: string[] = [];
     const missing = unsupportedFacts(active.expression, caps);
     if (missing.length > 0) {
-      warnings.push(t('warnings.unsupportedFactsPaused', { facts: missing.join(listSeparator()) }));
+      warnings.push(t('warnings.unsupportedFactsPaused', { facts: missing.join(t('listSeparator')) }));
     }
     if (!active.builtin && active.lastPreviewHash === null) {
       warnings.push(t('warnings.previewRequired'));
@@ -692,6 +699,9 @@ export class TabDormancyService {
     if (!isTheme(next.theme)) {
       throw new AppError('INVALID_SETTINGS', t('errors.invalidTheme'));
     }
+    if (!isLanguage(next.language)) {
+      throw new AppError('INVALID_SETTINGS', t('errors.invalidLanguage'));
+    }
     if (
       !Number.isInteger(next.historyMaxRecords) ||
       next.historyMaxRecords < 1 ||
@@ -735,10 +745,6 @@ export class TabDormancyService {
       await this.deps.browser.clearAlarm(ALARM_LOCKED);
     }
   }
-}
-
-function listSeparator(): string {
-  return getLocale() === 'zh' ? '、' : ', ';
 }
 
 function isNoSuchTabError(error: unknown): boolean {

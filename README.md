@@ -129,7 +129,7 @@ Click the gear button in the top right of the popup, or "Extension options" on t
 | Tabs | View the current strategy, manageable tabs, match status, fact values, and rule evaluation; filter by window when there are multiple windows, and start cleanup directly |
 | Closed history | Search, filter, bulk restore, delete, or clear history |
 | Strategies | View presets and custom strategies; click a card to view and edit rules, or enable, copy, or delete one |
-| Settings | Adjust appearance theme, idle cleanup, lock-screen cleanup, and history retention in groups; restore defaults or discard unsaved changes; a pinned bar at the bottom shows unsaved/saved status, leaving the page confirms unsaved changes, and a failed load can be retried directly |
+| Settings | Adjust interface language, appearance theme, idle cleanup, lock-screen cleanup, and history retention in groups; restore defaults or discard unsaved changes; a pinned bar at the bottom shows unsaved/saved status, leaving the page confirms unsaved changes, and a failed load can be retried directly |
 | Diagnostics | View the Chrome version and capability support to determine which rules can run; warnings such as paused strategies appear at the top of every page |
 
 ### Editing strategies

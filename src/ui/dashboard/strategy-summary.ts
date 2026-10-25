@@ -189,8 +189,12 @@ function buildTagGroups(
 }
 
 function conditionSummary(condition: Extract<Expr, { type: 'condition' }>, locale?: Locale): string {
-  const label = factLabel(condition.fact, locale);
-  return `${label} ${operatorLabel(condition.op, locale)} ${formatConditionValue(condition, locale)}`.trim();
+  const definition = FACT_BY_KEY.get(condition.fact);
+  const label = definition ? factLabel(condition.fact, locale) : condition.fact;
+  const operator = operatorLabel(condition.op, locale);
+  const value = formatConditionValue(condition, locale);
+  const separator = Array.isArray(condition.value) ? tr(locale, 'summary.listSeparator') : ' ';
+  return `${label} ${operator}${separator}${value}`.trim();
 }
 
 function formatConditionValue(condition: Extract<Expr, { type: 'condition' }>, locale?: Locale): string {

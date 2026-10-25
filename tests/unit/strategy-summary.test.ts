@@ -44,13 +44,13 @@ describe('strategy summary', () => {
   it('localizes preset strategies in English', () => {
     const [mild, standard, aggressive] = createPresetStrategies(0);
     expect(expressionSummary(defined(mild).expression, 'en')).toBe(
-      'Time since last visit greater than 7 days and Not (Pinned) and Not (Playing audio) and Not (Active) and Not (In a tab group)',
+      'Time since last visit is greater than 7 days and Not (Pinned) and Not (Playing audio) and Not (Active) and Not (In a tab group)',
     );
     expect(expressionSummary(defined(standard).expression, 'en')).toContain(
-      'Time since last visit greater than 3 days',
+      'Time since last visit is greater than 3 days',
     );
     expect(expressionSummary(defined(aggressive).expression, 'en')).toContain(
-      'Time since last visit greater than 1 day',
+      'Time since last visit is greater than 1 day',
     );
   });
 
@@ -71,11 +71,21 @@ describe('strategy summary', () => {
     expect(expressionSummary(condition('a', 'domain', 'inDomainList', ['a.com', 'b.com']), 'zh')).toBe(
       '域名 在域名列表中 a.com、b.com',
     );
-    expect(expressionSummary(condition('a', 'totalTabCount', 'gt', 30), 'en')).toBe('Total tabs greater than 30 tabs');
-    expect(expressionSummary(condition('a', 'windowTabCount', 'lte', 1), 'en')).toBe('Tabs in window at most 1 tab');
-    expect(expressionSummary(condition('a', 'domain', 'inDomainList', ['a.com', 'b.com']), 'en')).toBe(
-      'Domain is in domain list a.com, b.com',
+    expect(expressionSummary(condition('a', 'totalTabCount', 'gt', 30), 'en')).toBe(
+      'Total tab count is greater than 30',
     );
+    expect(expressionSummary(condition('a', 'windowTabCount', 'lte', 1), 'en')).toBe(
+      'Tab count in window is at most 1',
+    );
+    expect(expressionSummary(condition('a', 'domain', 'inDomainList', ['a.com', 'b.com']), 'en')).toBe(
+      'Domain is in the domain list: a.com, b.com',
+    );
+  });
+
+  it('falls back to the raw fact key for unknown facts', () => {
+    const unknown = condition('a', 'unknownFact' as FactKey, 'eq', 5);
+    expect(strategyCardSummary(unknown, 'zh').primary).toBe('unknownFact 等于 5');
+    expect(strategyCardSummary(unknown, 'en').primary).toBe('unknownFact equals 5');
   });
 });
 

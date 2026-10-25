@@ -144,7 +144,9 @@ export function HistoryPage() {
           <ul class="restore-failures">
             {failures.map((failure) => (
               <li key={failure.id}>
-                {failure.url}: {failure.reason}
+                {failure.url}
+                {t('history.failureSeparator')}
+                {failure.reason}
               </li>
             ))}
           </ul>

@@ -14,9 +14,13 @@ import { TabsPage } from './TabsPage';
 import { hasUnsavedSettings } from './unsaved';
 
 export function Dashboard() {
-  useLocale();
+  const locale = useLocale();
   const [route, setRoute] = useState<Route>(() => parseRoute(location.hash));
   const [warnings, setWarnings] = useState<string[]>([]);
+
+  useEffect(() => {
+    document.title = t('app.dashboardTitle');
+  }, [locale]);
 
   const NAV: Array<{ route: Route; label: string }> = [
     { route: 'tabs', label: t('nav.tabs') },

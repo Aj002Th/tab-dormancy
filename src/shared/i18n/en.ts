@@ -11,6 +11,7 @@ export const en: Record<MessageKey, Message> = {
   'app.notSet': 'Not set',
   'app.yes': 'Yes',
   'app.no': 'No',
+  'app.dashboardTitle': 'Tab Dormancy · Dashboard',
   'nav.tabs': 'Tabs',
   'nav.history': 'Closed history',
   'nav.strategies': 'Strategies',
@@ -78,9 +79,9 @@ export const en: Record<MessageKey, Message> = {
   // --- facts ---
   'facts.lastActiveMinutes.label': 'Time since last visit',
   'facts.lastActiveMinutes.description': 'Minutes since the tab was last visited; does not match when unavailable.',
-  'facts.totalTabCount.label': 'Total tabs',
+  'facts.totalTabCount.label': 'Total tab count',
   'facts.totalTabCount.description': 'Total manageable tabs across all normal windows.',
-  'facts.windowTabCount.label': 'Tabs in window',
+  'facts.windowTabCount.label': 'Tab count in window',
   'facts.windowTabCount.description': 'Manageable tabs in the same window.',
   'facts.pinned.label': 'Pinned',
   'facts.pinned.description': 'Whether the tab is pinned.',
@@ -111,10 +112,10 @@ export const en: Record<MessageKey, Message> = {
   'facts.groupTitle.label': 'Tab group name',
   'facts.groupTitle.description': "The name of the tab's group; empty when ungrouped.",
   // --- operators ---
-  'operators.gt': 'greater than',
-  'operators.gte': 'at least',
-  'operators.lt': 'less than',
-  'operators.lte': 'at most',
+  'operators.gt': 'is greater than',
+  'operators.gte': 'is at least',
+  'operators.lt': 'is less than',
+  'operators.lte': 'is at most',
   'operators.eq': 'equals',
   'operators.neq': 'does not equal',
   'operators.is': 'is',
@@ -123,7 +124,7 @@ export const en: Record<MessageKey, Message> = {
   'operators.startsWith': 'starts with',
   'operators.endsWith': 'ends with',
   'operators.matchesDomain': 'matches domain',
-  'operators.inDomainList': 'is in domain list',
+  'operators.inDomainList': 'is in the domain list',
   'operators.matchesGlob': 'matches pattern',
   // --- validation ---
   'validation.BAD_ID': 'Node is missing an ID',
@@ -177,7 +178,7 @@ export const en: Record<MessageKey, Message> = {
   'editor.deleteGroup': 'Delete group',
   'editor.addCondition': '+ Condition',
   'editor.addGroup': '+ Group',
-  'editor.unavailable': '(unavailable)',
+  'editor.unavailable': ' (unavailable)',
   'editor.unavailableNote': 'Unavailable in this browser',
   'editor.minutes': 'Minutes',
   'editor.hours': 'Hours',
@@ -202,7 +203,8 @@ export const en: Record<MessageKey, Message> = {
   'summary.durationDays': ({ count }) => `${count} ${Number(count) === 1 ? 'day' : 'days'}`,
   'summary.durationHours': ({ count }) => `${count} ${Number(count) === 1 ? 'hour' : 'hours'}`,
   'summary.durationMinutes': ({ count }) => `${count} ${Number(count) === 1 ? 'minute' : 'minutes'}`,
-  'summary.count': ({ count }) => `${count} ${Number(count) === 1 ? 'tab' : 'tabs'}`,
+  'summary.listSeparator': ': ',
+  'summary.count': ({ count }) => `${count}`,
   'summary.boolean.pinned': 'Pinned',
   'summary.boolean.audible': 'Playing',
   'summary.boolean.active': 'Active',
@@ -258,7 +260,7 @@ export const en: Record<MessageKey, Message> = {
   'diagnostics.allAvailable': 'All available',
   'diagnostics.unavailableCount': ({ count }) => `${count} ${Number(count) === 1 ? 'item' : 'items'} unavailable`,
   'diagnostics.version': 'Chrome {version}',
-  'diagnostics.versionUnknown': 'unknown version',
+  'diagnostics.versionUnknown': 'version unknown',
   'diagnostics.summaryAll': 'All capabilities used by your rules are available.',
   'diagnostics.summarySome': ({ count }) =>
     `${count} ${Number(count) === 1 ? 'capability is' : 'capabilities are'} unavailable, so related rules will not run.`,
@@ -283,11 +285,14 @@ export const en: Record<MessageKey, Message> = {
   'popup.lastCleanup': ({ time, count }) => `Last cleanup: ${time} · ${count} closed`,
   'popup.noCleanup': 'No cleanup yet',
   'popup.tabsToClean': ({ count }) => `${Number(count) === 1 ? 'tab' : 'tabs'} can be cleaned`,
-  'popup.activeStrategy': ({ name, total }) => `Active strategy “${name}” · ${total} manageable tabs.`,
+  'popup.activeStrategy': ({ name, total }) =>
+    `Active strategy “${name}” · ${total} manageable ${Number(total) === 1 ? 'tab' : 'tabs'}.`,
   'popup.nothingToClean': 'No tabs to clean',
   'popup.cleanCount': ({ count }) => `Clean up ${count} ${Number(count) === 1 ? 'tab' : 'tabs'}`,
   'popup.confirmClean': ({ count }) =>
-    `Close ${count} ${Number(count) === 1 ? 'tab' : 'tabs'}? You can restore them from the dashboard.`,
+    Number(count) === 1
+      ? `Close ${count} tab? You can restore it from the dashboard.`
+      : `Close ${count} tabs? You can restore them from the dashboard.`,
   'popup.confirmCleanup': 'Confirm cleanup',
   'popup.cleaning': 'Cleaning up…',
   'popup.closedCount': ({ count }) => `Closed ${count} ${Number(count) === 1 ? 'tab' : 'tabs'}`,
@@ -303,7 +308,9 @@ export const en: Record<MessageKey, Message> = {
   'tabs.cleanCount': ({ count }) => `Clean up ${count}`,
   'tabs.clean': 'Clean up',
   'tabs.confirm': ({ count }) =>
-    `Close ${count} ${Number(count) === 1 ? 'tab' : 'tabs'}? They stay in history and can be restored.`,
+    Number(count) === 1
+      ? `Close ${count} tab? It stays in history and can be restored.`
+      : `Close ${count} tabs? They stay in history and can be restored.`,
   'tabs.searchLabel': 'Search tabs',
   'tabs.searchPlaceholder': 'Search title, URL, or domain',
   'tabs.windowFilter': 'Filter by window',
@@ -327,12 +334,13 @@ export const en: Record<MessageKey, Message> = {
   // --- history ---
   'history.title': 'Closed history',
   'history.retention': ({ days, max }) =>
-    `Keeping records from the last ${days} days, up to ${max}. Oldest records are deleted first.`,
+    `Keeping records from the last ${days} ${Number(days) === 1 ? 'day' : 'days'}, up to ${max}. Oldest records are deleted first.`,
   'history.adjust': 'Adjust in settings',
   'history.retentionTail': 'Restoring does not remove records.',
   'history.loadingRetention': 'Loading retention policy…',
   'history.total': ({ count }) => `${count} ${Number(count) === 1 ? 'record' : 'records'}`,
   'history.restoreFailed': 'These tabs could not be restored:',
+  'history.failureSeparator': ': ',
   'history.triggerAll': 'All triggers',
   'history.triggerIdle': 'Idle',
   'history.triggerLocked': 'Locked',

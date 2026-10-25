@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { TabDormancyService } from '../../src/background/service';
 import { signatureOf } from '../../src/core/rules/signature';
 import { Repo } from '../../src/platform/storage';
+import { getLocale, setLocale } from '../../src/shared/i18n';
 import type { Expr } from '../../src/shared/types';
 import { FakeBrowser } from './fake-browser';
 
@@ -113,7 +114,18 @@ describe('TabDormancyService foundation', () => {
     await expect(service.updateSettings({ idleThresholdMinutes: 0 })).rejects.toThrow(
       'Idle threshold must be between 1 and 1440 minutes',
     );
+    await expect(service.updateSettings({ language: 'fr' as never })).rejects.toThrow('Invalid interface language');
     await service.updateSettings({ language: 'zh' });
+    await expect(service.updateSettings({ idleThresholdMinutes: 0 })).rejects.toThrow('空闲阈值需为 1–1440 分钟');
+    await expect(service.updateSettings({ language: 'fr' as never })).rejects.toThrow('界面语言无效');
+  });
+
+  it('keeps the current locale for system in the Node test environment', async () => {
+    setLocale('zh');
+    const { service } = setup();
+    await service.bootstrap();
+    await service.updateSettings({ language: 'system' });
+    expect(getLocale()).toBe('zh');
     await expect(service.updateSettings({ idleThresholdMinutes: 0 })).rejects.toThrow('空闲阈值需为 1–1440 分钟');
   });
 });

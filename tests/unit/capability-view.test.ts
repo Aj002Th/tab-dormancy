@@ -118,7 +118,7 @@ describe('capability view', () => {
     });
 
     it('keeps a readable version label when the browser version is unknown', () => {
-      expect(capabilityView({ ...full, chromeMajor: null }, 'en').versionLabel).toBe('Chrome unknown version');
+      expect(capabilityView({ ...full, chromeMajor: null }, 'en').versionLabel).toBe('Chrome version unknown');
     });
   });
 });
