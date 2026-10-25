@@ -105,4 +105,15 @@ describe('TabDormancyService foundation', () => {
     const state = await service.getState();
     expect(state.warnings.join('')).toContain('lastActiveMinutes');
   });
+
+  it('uses the saved language for background errors', async () => {
+    const { service } = setup();
+    await service.bootstrap();
+    await service.updateSettings({ language: 'en' });
+    await expect(service.updateSettings({ idleThresholdMinutes: 0 })).rejects.toThrow(
+      'Idle threshold must be between 1 and 1440 minutes',
+    );
+    await service.updateSettings({ language: 'zh' });
+    await expect(service.updateSettings({ idleThresholdMinutes: 0 })).rejects.toThrow('空闲阈值需为 1–1440 分钟');
+  });
 });

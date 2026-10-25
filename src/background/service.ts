@@ -13,6 +13,8 @@ import type { Repo } from '../platform/storage';
 import { runWithConcurrency } from '../shared/async';
 import { ALARM_LOCKED, LIMITS, SCHEMA_VERSION } from '../shared/constants';
 import { AppError } from '../shared/errors';
+import { getLocale, setLocale, t } from '../shared/i18n';
+import { resolveLocale } from '../shared/language';
 import type { StrategyPreview } from '../shared/messages';
 import { isTheme } from '../shared/theme';
 import type {
@@ -22,6 +24,7 @@ import type {
   ClosedTabRecord,
   HistoryQuery,
   HistoryQueryResult,
+  Language,
   RestoreOptions,
   RestoreResult,
   Settings,
@@ -47,6 +50,13 @@ export class TabDormancyService {
 
   constructor(protected readonly deps: ServiceDeps) {}
 
+  private applyLocale(language: Language): void {
+    // In tests (and any non-extension context) there is no browser UI language;
+    // keep the current locale instead of shifting the "system" default to English.
+    const uiLanguage = typeof chrome !== 'undefined' && chrome.i18n ? chrome.i18n.getUILanguage() : getLocale();
+    setLocale(resolveLocale(language, [uiLanguage]));
+  }
+
   async bootstrap(): Promise<void> {
     if (!this.bootstrapPromise) {
       this.bootstrapPromise = this.doBootstrap().catch((error) => {
@@ -64,6 +74,7 @@ export class TabDormancyService {
     if (!meta) await repo.setMeta({ schemaVersion: SCHEMA_VERSION, installedAt: now });
 
     let settings = await repo.getSettings();
+    this.applyLocale(settings.language);
     let strategies = await repo.getStrategies();
     if (strategies.length === 0) {
       strategies = createPresetStrategies(now);
@@ -71,7 +82,7 @@ export class TabDormancyService {
     }
     if (!strategies.some((strategy) => strategy.id === settings.activeStrategyId)) {
       const fallback = strategies.find((strategy) => strategy.id === 'preset:standard') ?? strategies[0];
-      if (!fallback) throw new AppError('INTERNAL', '缺少可用策略');
+      if (!fallback) throw new AppError('INTERNAL', t('errors.noUsableStrategy'));
       settings = { ...settings, activeStrategyId: fallback.id };
       await repo.setSettings(settings);
     }
@@ -130,7 +141,7 @@ export class TabDormancyService {
     if (!validation.valid) {
       throw new AppError(
         'INVALID_EXPRESSION',
-        validation.issues[0] ? validationMessage(validation.issues[0]) : 'Invalid expression',
+        validation.issues[0] ? validationMessage(validation.issues[0]) : t('errors.invalidRule'),
       );
     }
     this.assertUsable(strategy, caps);
@@ -172,13 +183,13 @@ export class TabDormancyService {
 
   async runCleanup(trigger: Trigger): Promise<CleanupResult> {
     await this.bootstrap();
-    if (this.running) throw new AppError('BUSY', '已有清理任务正在运行');
+    if (this.running) throw new AppError('BUSY', t('errors.busy'));
     this.running = true;
     const runId = this.deps.id();
     const startedAt = this.deps.now();
 
     try {
-      if (!(await this.acquireLock(runId))) throw new AppError('BUSY', '已有清理任务正在运行');
+      if (!(await this.acquireLock(runId))) throw new AppError('BUSY', t('errors.busy'));
       const { active, caps } = await this.activeStrategy();
       this.assertUsable(active, caps);
 
@@ -237,7 +248,7 @@ export class TabDormancyService {
         await this.deps.repo.setHistoryIndex(previousIndex).catch(() => undefined);
         await this.deps.repo.deleteHistoryRecords(records.map((record) => record.id)).catch(() => undefined);
         await this.deps.repo.clearCleanupRun().catch(() => undefined);
-        throw new AppError('STORAGE_FAILED', '无法写入关闭历史，已取消清理');
+        throw new AppError('STORAGE_FAILED', t('errors.storageFailedHistory'));
       }
 
       const recordByTab = new Map<number, ClosedTabRecord>();
@@ -433,7 +444,7 @@ export class TabDormancyService {
           failed.push({
             id: first.id,
             url: first.url,
-            reason: error instanceof Error ? error.message : '无法创建窗口',
+            reason: error instanceof Error ? error.message : t('errors.createWindowFailed'),
           });
           continue;
         }
@@ -445,7 +456,11 @@ export class TabDormancyService {
           const tab = await this.restoreOne(item, options, windowId);
           if (tab?.id !== undefined) restored.set(item.id, tab.id);
         } catch (error) {
-          failed.push({ id: item.id, url: item.url, reason: error instanceof Error ? error.message : '恢复失败' });
+          failed.push({
+            id: item.id,
+            url: item.url,
+            reason: error instanceof Error ? error.message : t('errors.restoreFailed'),
+          });
         }
       }
 
@@ -467,7 +482,7 @@ export class TabDormancyService {
           failed.push({
             id: tabGroup.records[0]?.id ?? tabGroup.key,
             url: tabGroup.records[0]?.url ?? '',
-            reason: error instanceof Error ? error.message : '无法重建标签组',
+            reason: error instanceof Error ? error.message : t('errors.rebuildGroupFailed'),
           });
         }
       }
@@ -546,7 +561,7 @@ export class TabDormancyService {
   protected assertUsable(strategy: Strategy, caps: Capabilities): void {
     const missing = unsupportedFacts(strategy.expression, caps);
     if (missing.length > 0) {
-      throw new AppError('UNSUPPORTED_FACT', `当前浏览器不支持策略中的事实：${missing.join('、')}`);
+      throw new AppError('UNSUPPORTED_FACT', t('errors.unsupportedFacts', { facts: missing.join(listSeparator()) }));
     }
   }
 
@@ -556,10 +571,10 @@ export class TabDormancyService {
     const warnings: string[] = [];
     const missing = unsupportedFacts(active.expression, caps);
     if (missing.length > 0) {
-      warnings.push(`当前浏览器不支持策略中的事实：${missing.join('、')}；自动清理已暂停。`);
+      warnings.push(t('warnings.unsupportedFactsPaused', { facts: missing.join(listSeparator()) }));
     }
     if (!active.builtin && active.lastPreviewHash === null) {
-      warnings.push('该策略尚未预览，自动清理不会执行。');
+      warnings.push(t('warnings.previewRequired'));
     }
     return {
       settings,
@@ -578,13 +593,13 @@ export class TabDormancyService {
     if (!validation.valid) {
       throw new AppError(
         'INVALID_EXPRESSION',
-        validation.issues[0] ? validationMessage(validation.issues[0]) : 'Invalid expression',
+        validation.issues[0] ? validationMessage(validation.issues[0]) : t('errors.invalidRule'),
       );
     }
 
     const strategies = await this.deps.repo.getStrategies();
     const existing = strategies.find((strategy) => strategy.id === input.id);
-    if (existing?.builtin) throw new AppError('FORBIDDEN', '内置策略不可修改');
+    if (existing?.builtin) throw new AppError('FORBIDDEN', t('errors.builtinImmutable'));
 
     const now = this.deps.now();
     const expected = await signatureOf(input.expression);
@@ -625,14 +640,14 @@ export class TabDormancyService {
     if (!validation.valid) {
       throw new AppError(
         'INVALID_EXPRESSION',
-        validation.issues[0] ? validationMessage(validation.issues[0]) : 'Invalid expression',
+        validation.issues[0] ? validationMessage(validation.issues[0]) : t('errors.invalidRule'),
       );
     }
     this.assertUsable(strategy, caps);
     if (!strategy.builtin) {
       const expected = await signatureOf(strategy.expression);
       if (strategy.lastPreviewHash !== expected) {
-        throw new AppError('PREVIEW_REQUIRED', '请先预览该策略，再启用');
+        throw new AppError('PREVIEW_REQUIRED', t('errors.PREVIEW_REQUIRED'));
       }
     }
     const settings = await this.deps.repo.getSettings();
@@ -643,10 +658,10 @@ export class TabDormancyService {
     await this.bootstrap();
     const strategies = await this.deps.repo.getStrategies();
     const strategy = requireStrategy(strategies, id);
-    if (strategy.builtin) throw new AppError('FORBIDDEN', '内置策略不可删除');
+    if (strategy.builtin) throw new AppError('FORBIDDEN', t('errors.builtinUndeletable'));
     const settings = await this.deps.repo.getSettings();
-    if (settings.activeStrategyId === id) throw new AppError('FORBIDDEN', '不能删除当前启用的策略');
-    if (strategies.length <= 1) throw new AppError('FORBIDDEN', '至少保留一个策略');
+    if (settings.activeStrategyId === id) throw new AppError('FORBIDDEN', t('errors.activeUndeletable'));
+    if (strategies.length <= 1) throw new AppError('FORBIDDEN', t('errors.keepOneStrategy'));
     await this.deps.repo.setStrategies(strategies.filter((item) => item.id !== id));
   }
 
@@ -659,32 +674,33 @@ export class TabDormancyService {
       next.idleThresholdMinutes < 1 ||
       next.idleThresholdMinutes > 1_440
     ) {
-      throw new AppError('INVALID_SETTINGS', '空闲阈值需为 1–1440 分钟');
+      throw new AppError('INVALID_SETTINGS', t('errors.invalidIdle'));
     }
     if (!Number.isInteger(next.lockDelayMinutes) || next.lockDelayMinutes < 0 || next.lockDelayMinutes > 1_440) {
-      throw new AppError('INVALID_SETTINGS', '锁屏延迟需为 0–1440 分钟');
+      throw new AppError('INVALID_SETTINGS', t('errors.invalidLockDelay'));
     }
     if (
       !Number.isInteger(next.historyRetentionDays) ||
       next.historyRetentionDays < 1 ||
       next.historyRetentionDays > 365
     ) {
-      throw new AppError('INVALID_SETTINGS', '历史保留需为 1–365 天');
+      throw new AppError('INVALID_SETTINGS', t('errors.invalidRetention'));
     }
     if (typeof next.lockCleanupEnabled !== 'boolean') {
-      throw new AppError('INVALID_SETTINGS', '锁屏清理设置无效');
+      throw new AppError('INVALID_SETTINGS', t('errors.invalidLockSettings'));
     }
     if (!isTheme(next.theme)) {
-      throw new AppError('INVALID_SETTINGS', '外观主题无效');
+      throw new AppError('INVALID_SETTINGS', t('errors.invalidTheme'));
     }
     if (
       !Number.isInteger(next.historyMaxRecords) ||
       next.historyMaxRecords < 1 ||
       next.historyMaxRecords > LIMITS.maxHistory
     ) {
-      throw new AppError('INVALID_SETTINGS', `历史保留条数需为 1–${LIMITS.maxHistory} 条`);
+      throw new AppError('INVALID_SETTINGS', t('errors.invalidMaxRecords', { max: LIMITS.maxHistory }));
     }
     await this.deps.repo.setSettings(next);
+    this.applyLocale(next.language);
     await this.deps.browser.setIdleDetectionInterval(next.idleThresholdMinutes * 60);
     if (!next.lockCleanupEnabled) await this.deps.browser.clearAlarm(ALARM_LOCKED);
     if (
@@ -719,6 +735,10 @@ export class TabDormancyService {
       await this.deps.browser.clearAlarm(ALARM_LOCKED);
     }
   }
+}
+
+function listSeparator(): string {
+  return getLocale() === 'zh' ? '、' : ', ';
 }
 
 function isNoSuchTabError(error: unknown): boolean {

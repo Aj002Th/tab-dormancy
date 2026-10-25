@@ -1,4 +1,5 @@
 import { AppError, type ErrorCode } from '../shared/errors';
+import { t } from '../shared/i18n';
 import type { Request, Response } from '../shared/messages';
 import type { TabDormancyService } from './service';
 
@@ -8,7 +9,7 @@ const fail = (error: ErrorCode, message: string): Response<never> => ({ ok: fals
 export async function handleRequest(message: unknown, service: TabDormancyService): Promise<Response<unknown>> {
   try {
     if (!message || typeof message !== 'object' || typeof (message as { type?: unknown }).type !== 'string') {
-      return fail('INVALID_EXPRESSION', '未知消息');
+      return fail('INVALID_EXPRESSION', t('errors.unknownMessage'));
     }
     const request = message as Request;
     switch (request.type) {
@@ -44,13 +45,13 @@ export async function handleRequest(message: unknown, service: TabDormancyServic
         return ok(await service.updateSettings(request.patch));
       case 'debug.simulate-idle':
         if (import.meta.env.MODE === 'development') return ok(await service.runCleanup('manual'));
-        return fail('NOT_FOUND', '仅开发模式可用');
+        return fail('NOT_FOUND', t('errors.devOnly'));
       default:
-        return fail('NOT_FOUND', '未知消息');
+        return fail('NOT_FOUND', t('errors.unknownMessage'));
     }
   } catch (error) {
     if (error instanceof AppError) return fail(error.code, error.message);
-    return fail('INTERNAL', error instanceof Error ? error.message : '内部错误');
+    return fail('INTERNAL', error instanceof Error ? error.message : t('errors.INTERNAL'));
   }
 }
 
