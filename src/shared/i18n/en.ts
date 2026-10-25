@@ -282,7 +282,7 @@ export const en: Record<MessageKey, Message> = {
   'popup.readingStrategy': 'Loading strategy',
   'popup.lastCleanup': ({ time, count }) => `Last cleanup: ${time} · ${count} closed`,
   'popup.noCleanup': 'No cleanup yet',
-  'popup.tabsToClean': 'tabs can be cleaned',
+  'popup.tabsToClean': ({ count }) => `${Number(count) === 1 ? 'tab' : 'tabs'} can be cleaned`,
   'popup.activeStrategy': ({ name, total }) => `Active strategy “${name}” · ${total} manageable tabs.`,
   'popup.nothingToClean': 'No tabs to clean',
   'popup.cleanCount': ({ count }) => `Clean up ${count} ${Number(count) === 1 ? 'tab' : 'tabs'}`,

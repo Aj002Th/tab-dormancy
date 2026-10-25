@@ -33,5 +33,8 @@ describe('i18n', () => {
     expect(translate('en', 'time.minutesAgo', { count: 1 })).toBe('1 minute ago');
     expect(translate('en', 'time.minutesAgo', { count: 5 })).toBe('5 minutes ago');
     expect(translate('zh', 'time.minutesAgo', { count: 5 })).toBe('5 分钟前');
+    expect(translate('en', 'popup.tabsToClean', { count: 1 })).toBe('tab can be cleaned');
+    expect(translate('en', 'popup.tabsToClean', { count: 2 })).toBe('tabs can be cleaned');
+    expect(translate('zh', 'popup.tabsToClean', { count: 2 })).toBe('个标签可清理');
   });
 });

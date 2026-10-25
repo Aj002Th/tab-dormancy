@@ -123,7 +123,7 @@ export function Popup() {
             <span class="popup-number" data-testid="popup-preview-count">
               {preview.matched}
             </span>
-            <span class="muted">{t('popup.tabsToClean')}</span>
+            <span class="muted">{t('popup.tabsToClean', { count: preview.matched })}</span>
           </section>
           <p class="muted">
             {t('popup.activeStrategy', {

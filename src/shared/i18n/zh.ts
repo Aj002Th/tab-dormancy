@@ -278,7 +278,7 @@ export const zh = {
   'popup.readingStrategy': '正在读取策略',
   'popup.lastCleanup': ({ time, count }: MessageParams) => `上次清理：${time}，关闭 ${count} 个`,
   'popup.noCleanup': '还没有清理记录',
-  'popup.tabsToClean': '个标签可清理',
+  'popup.tabsToClean': () => '个标签可清理',
   'popup.activeStrategy': ({ name, total }: MessageParams) => `当前策略「${name}」，共 ${total} 个可管理标签。`,
   'popup.nothingToClean': '没有可清理的标签',
   'popup.cleanCount': ({ count }: MessageParams) => `清理 ${count} 个标签`,
