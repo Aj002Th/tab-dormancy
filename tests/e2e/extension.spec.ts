@@ -108,6 +108,38 @@ test('idle/manual cleanup closes matching tabs and restores from history', async
     .toEqual(expect.arrayContaining([expect.stringContaining('/a')]));
 });
 
+test('popup switches the active strategy and lists matched tabs', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html`);
+  await seedUrlStrategy(dashboard);
+
+  const keep = await context.newPage();
+  await keep.goto('http://127.0.0.1:4173/keep');
+  const a = await context.newPage();
+  await a.goto('http://127.0.0.1:4173/a');
+  const b = await context.newPage();
+  await b.goto('http://127.0.0.1:4173/b');
+  await keep.bringToFront();
+
+  const popup = await context.newPage();
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  await expect(popup.getByTestId('popup-preview-count')).toHaveText('2');
+  await expect(popup.getByTestId('popup-sample')).toContainText('127.0.0.1');
+  await expect(popup.getByTestId('popup-view-all')).toHaveCount(0);
+
+  await popup.getByTestId('popup-strategy').selectOption({ label: '温和' });
+  await expect(popup.getByTestId('popup-strategy')).toHaveValue('preset:mild');
+  await expect(popup.getByTestId('popup-empty')).toBeVisible();
+  await expect(popup.getByTestId('cleanup-button')).toHaveCount(0);
+
+  const worker = defined(context.serviceWorkers()[0], 'service worker');
+  const active = await worker.evaluate(async () => {
+    const stored = await chrome.storage.local.get('settings');
+    return (stored.settings as { activeStrategyId: string }).activeStrategyId;
+  });
+  expect(active).toBe('preset:mild');
+});
+
 test('popup settings button has a comfortable target and accessible name', async ({ context, extensionId }) => {
   const popup = await context.newPage();
   await popup.goto(`chrome-extension://${extensionId}/popup.html`);

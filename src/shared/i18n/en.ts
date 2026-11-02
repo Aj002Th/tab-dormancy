@@ -287,6 +287,8 @@ export const en: Record<MessageKey, Message> = {
   'popup.tabsToClean': ({ count }) => `${Number(count) === 1 ? 'tab' : 'tabs'} can be cleaned`,
   'popup.activeStrategy': ({ name, total }) =>
     `Active strategy “${name}” · ${total} manageable ${Number(total) === 1 ? 'tab' : 'tabs'}.`,
+  'popup.managedTabs': ({ total }) => `${total} ${Number(total) === 1 ? 'tab' : 'tabs'}`,
+  'popup.strategyLabel': 'Active strategy',
   'popup.nothingToClean': 'No tabs to clean',
   'popup.cleanCount': ({ count }) => `Clean up ${count} ${Number(count) === 1 ? 'tab' : 'tabs'}`,
   'popup.confirmClean': ({ count }) =>
@@ -295,12 +297,15 @@ export const en: Record<MessageKey, Message> = {
       : `Close ${count} tabs? You can restore them from the dashboard.`,
   'popup.confirmCleanup': 'Confirm cleanup',
   'popup.cleaning': 'Cleaning up…',
+  'popup.switching': 'Switching strategy…',
   'popup.closedCount': ({ count }) => `Closed ${count} ${Number(count) === 1 ? 'tab' : 'tabs'}`,
   'popup.failed': ({ count }) => `${count} failed`,
   'popup.skipped': ({ count }) => `${count} skipped because the page changed`,
   'popup.undo': 'Undo',
   'popup.done': 'Done',
   'popup.previewError': 'Could not get a cleanup preview. Try again later.',
+  'popup.viewAll': 'View all in dashboard',
+  'popup.previewInDashboard': 'Preview in dashboard',
   // --- tabs ---
   'tabs.title': 'Tabs',
   'tabs.activeStrategy': 'Active strategy:',
