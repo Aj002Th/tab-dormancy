@@ -8,7 +8,7 @@ Tab Dormancy is a Chrome / Edge extension that does only one thing: tab cleanup.
 
 Before cleanup you can preview how many tabs will match; after cleanup you can view the closed history, undo the last operation, or restore in bulk by original window and tab group.
 
-It is currently distributed through GitHub Releases and is not yet listed on the Chrome Web Store or Edge Add-ons.
+It is listed on Microsoft Edge Add-ons and is also distributed through GitHub Releases. It is not listed on the Chrome Web Store.
 
 ## Why it exists
 
@@ -327,9 +327,23 @@ If the tag does not match the version in `package.json` or `manifest.json`, the 
 
 To rebuild an existing tag, manually run the `Release` workflow in GitHub Actions and enter the existing tag.
 
+### Microsoft Edge Add-ons
+
+After the GitHub Release is created, the same workflow submits the ZIP to the Microsoft Edge Add-ons store. A successful run means Partner Center accepted the submission. Microsoft still reviews it, which can take several business days, so this does not make the new version public immediately. The API updates the package only; listing text, screenshots, and the privacy policy stay as they are in Partner Center.
+
+Create credentials at Partner Center under **Microsoft Edge > Publish API**, using the API key experience, and add these repository secrets:
+
+| Secret | Value |
+|---|---|
+| `EDGE_PRODUCT_ID` | Product ID on the extension overview page |
+| `EDGE_CLIENT_ID` | Client ID on the Publish API page |
+| `EDGE_API_KEY` | API key on the Publish API page. It is shown only when created. |
+
+The optional repository variable `EDGE_PUBLISH_NOTES` replaces the default certification notes. If none of the three secrets are set, the workflow skips the store update and the GitHub Release still succeeds. If only some of them are set, the workflow fails. The package version must be higher than the version currently in the store, and there must be no other submission already in review.
+
 ## Current limitations
 
-- Not yet listed in official stores; GitHub Release installation requires developer mode and does not update automatically.
+- Listed on Microsoft Edge Add-ons. Package updates are submitted by the release workflow once the Edge API secrets are configured. Not listed on the Chrome Web Store. Installing from a GitHub Release still requires developer mode and does not update automatically.
 - Only supports Chromium browsers such as Chrome / Edge; Firefox / Safari are not supported.
 - Closes tabs rather than putting them into dormancy; restore relies mainly on URLs, and full page state is not guaranteed.
 - No cross-device sync, usage statistics, data export, or analytics dashboard.

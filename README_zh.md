@@ -8,7 +8,7 @@ Tab Dormancy 是一个只做标签页清理的 Chrome / Edge 扩展。它不按�
 
 清理前可以预览命中数量，清理后可以查看关闭历史、撤销上一次操作，或按原窗口和标签组批量恢复。
 
-当前通过 GitHub Releases 分发，尚未上架 Chrome Web Store 或 Edge Add-ons。
+已上架 Microsoft Edge Add-ons，同时也通过 GitHub Releases 分发。尚未上架 Chrome Web Store。
 
 ## 它解决什么问题
 
@@ -327,9 +327,23 @@ git push origin master --tags
 
 需要重新构建已有 tag 时，在 GitHub Actions 中手动运行 `Release` workflow，并填写已有 tag。
 
+### Microsoft Edge Add-ons
+
+GitHub Release 创建后，同一个 workflow 会把 ZIP 提交到 Microsoft Edge 扩展商店。workflow 成功只表示 Partner Center 已接受提交；微软仍会审核，可能需要几个工作日，并不会立刻对用户公开。这个 API 只更新扩展包，商店描述、截图和隐私政策仍保持 Partner Center 里的现有内容。
+
+在 Partner Center 的 **Microsoft Edge > Publish API** 中使用 API key 方式创建凭据，然后在仓库里添加这些 secret：
+
+| Secret | 内容 |
+|---|---|
+| `EDGE_PRODUCT_ID` | 扩展概览页上的 Product ID |
+| `EDGE_CLIENT_ID` | Publish API 页面上的 Client ID |
+| `EDGE_API_KEY` | Publish API 页面上的 API key，只在创建时显示一次 |
+
+可选的仓库变量 `EDGE_PUBLISH_NOTES` 会替换默认的审核说明。三个 secret 都没有设置时，workflow 会跳过商店更新，GitHub Release 仍然成功。只设置了其中部分时，workflow 会失败。上传的版本必须高于商店里的当前版本，并且不能有另一个提交正在审核。
+
 ## 当前限制
 
-- 尚未上架官方商店，GitHub Release 安装需要开发者模式，且不会自动更新。
+- 已上架 Microsoft Edge Add-ons。配置 Edge API secret 后，发布 workflow 会自动提交扩展包更新。尚未上架 Chrome Web Store。从 GitHub Release 安装仍需要开发者模式，且不会自动更新。
 - 只支持 Chrome / Edge 等 Chromium 浏览器，不支持 Firefox / Safari。
 - 关闭的是标签页，不是休眠；恢复主要依赖 URL，完整页面状态不保证。
 - 不做跨设备同步、使用统计、数据导出或分析看板。

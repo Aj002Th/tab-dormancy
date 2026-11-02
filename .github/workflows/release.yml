@@ -21,7 +21,7 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
@@ -61,3 +61,11 @@ jobs:
             release/SHA256SUMS
           fail_on_unmatched_files: true
           generate_release_notes: true
+
+      - name: Publish to Microsoft Edge Add-ons
+        env:
+          EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
+          EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
+          EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
+          EDGE_PUBLISH_NOTES: ${{ vars.EDGE_PUBLISH_NOTES }}
+        run: node scripts/publish-edge.mjs "release/tab-dormancy-${RELEASE_TAG#v}.zip"
