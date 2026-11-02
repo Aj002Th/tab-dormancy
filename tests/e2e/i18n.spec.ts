@@ -87,7 +87,8 @@ test('popup renders in the saved language', async ({ context, extensionId }) => 
   const popup = await context.newPage();
   await popup.goto(`chrome-extension://${extensionId}/popup.html`);
   await expect(popup.getByRole('button', { name: 'Open dashboard' })).toBeVisible();
-  await expect(popup.getByText('Active strategy')).toBeVisible();
+  await expect(popup.getByTestId('popup-strategy')).toHaveValue('preset:standard');
+  await expect(popup.getByTestId('popup-strategy').locator('option', { hasText: 'Standard' })).toHaveCount(1);
 });
 
 test('closed history row shows localized preset strategy name', async ({ context, extensionId }) => {

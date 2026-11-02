@@ -48,13 +48,13 @@ const result: CleanupResult = {
 
 describe('popupReducer', () => {
   it('moves from loading to ready', () => {
-    const state = popupReducer(initialPopupState(), { type: 'loaded', snapshot, preview });
+    const state = popupReducer(initialPopupState(), { type: 'loaded', snapshot, preview, generation: 0 });
     expect(state.phase).toBe('ready');
     expect(state.preview?.matched).toBe(3);
   });
 
   it('requires confirmation before running', () => {
-    const ready = popupReducer(initialPopupState(), { type: 'loaded', snapshot, preview });
+    const ready = popupReducer(initialPopupState(), { type: 'loaded', snapshot, preview, generation: 0 });
     const confirm = popupReducer(ready, { type: 'confirm' });
     expect(confirm.phase).toBe('confirm');
     const running = popupReducer(confirm, { type: 'run-start' });
@@ -65,10 +65,10 @@ describe('popupReducer', () => {
   });
 
   it('cancels confirmation and handles errors', () => {
-    const ready = popupReducer(initialPopupState(), { type: 'loaded', snapshot, preview });
+    const ready = popupReducer(initialPopupState(), { type: 'loaded', snapshot, preview, generation: 0 });
     const confirm = popupReducer(ready, { type: 'confirm' });
     expect(popupReducer(confirm, { type: 'cancel' }).phase).toBe('ready');
-    const error = popupReducer(ready, { type: 'error', message: '失败' });
+    const error = popupReducer(ready, { type: 'error', message: '失败', generation: 0 });
     expect(error.phase).toBe('error');
     expect(error.error).toBe('失败');
   });
@@ -79,6 +79,7 @@ describe('popupReducer', () => {
       snapshot,
       preview: null,
       error: '无法获取清理预览，请稍后重试。',
+      generation: 0,
     });
     expect(state.phase).toBe('ready');
     expect(state.snapshot).toBe(snapshot);
@@ -92,12 +93,50 @@ describe('popupReducer', () => {
       snapshot,
       preview: null,
       error: '无法获取清理预览，请稍后重试。',
+      generation: 0,
     });
     expect(withError.error).not.toBeNull();
 
-    const recovered = popupReducer(withError, { type: 'loaded', snapshot, preview });
+    const recovered = popupReducer(withError, { type: 'loaded', snapshot, preview, generation: 0 });
     expect(recovered.phase).toBe('ready');
     expect(recovered.preview).toBe(preview);
     expect(recovered.error).toBeNull();
+  });
+
+  it('keeps the current strategy visible while a switch is in flight', () => {
+    const ready = popupReducer(initialPopupState(), { type: 'loaded', snapshot, preview, generation: 0 });
+    const switching = popupReducer(ready, { type: 'switch-start', generation: 1 });
+    expect(switching.phase).toBe('switching');
+    expect(switching.snapshot?.activeStrategy.id).toBe('preset:standard');
+    expect(switching.preview?.matched).toBe(3);
+  });
+
+  it('keeps the previous strategy when activation fails', () => {
+    const ready = popupReducer(initialPopupState(), { type: 'loaded', snapshot, preview, generation: 0 });
+    const switching = popupReducer(ready, { type: 'switch-start', generation: 1 });
+    const failed = popupReducer(switching, {
+      type: 'switch-failed',
+      message: '请先预览该策略，再启用',
+      code: 'PREVIEW_REQUIRED',
+      generation: 1,
+    });
+    expect(failed.phase).toBe('ready');
+    expect(failed.snapshot?.activeStrategy.id).toBe('preset:standard');
+    expect(failed.preview).toBe(preview);
+    expect(failed.error).toBe('请先预览该策略，再启用');
+    expect(failed.switchErrorCode).toBe('PREVIEW_REQUIRED');
+  });
+
+  it('ignores a stale reload after the strategy switch has failed', () => {
+    const ready = popupReducer(initialPopupState(), { type: 'loaded', snapshot, preview, generation: 1 });
+    const switching = popupReducer(ready, { type: 'switch-start', generation: 2 });
+    const failed = popupReducer(switching, {
+      type: 'switch-failed',
+      message: '请先预览该策略，再启用',
+      code: 'PREVIEW_REQUIRED',
+      generation: 2,
+    });
+    const stale = popupReducer(failed, { type: 'loaded', snapshot, preview, generation: 1 });
+    expect(stale).toBe(failed);
   });
 });

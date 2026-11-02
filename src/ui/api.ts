@@ -25,3 +25,7 @@ export function messageOf(error: unknown): string {
 export function openDashboard(): void {
   void chrome.runtime.openOptionsPage();
 }
+
+export function openDashboardRoute(route: 'tabs' | 'strategies'): void {
+  void chrome.tabs.create({ url: chrome.runtime.getURL(`dashboard.html#/${route}`) });
+}
