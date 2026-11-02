@@ -86,8 +86,8 @@ describe('Edge Add-ons publish client', () => {
     expect(upload?.body).toEqual(new Uint8Array([1, 2, 3]));
 
     const publish = calls[3]?.init;
-    expect(publish?.body).toBe('version 0.3.0');
-    expect(new Headers(publish?.headers).get('Content-Type')).toBe('text/plain; charset=utf-8');
+    expect(publish?.body).toBe(JSON.stringify({ notes: 'version 0.3.0' }));
+    expect(new Headers(publish?.headers).get('Content-Type')).toBe('application/json');
   });
 
   it('stops when package validation fails and does not publish', async () => {

@@ -88,8 +88,8 @@ export async function publishEdgeUpdate({
 
   const publishId = await postOperation(fetchImpl, `${API_ROOT}/v1/products/${productId}/submissions`, {
     method: 'POST',
-    headers: { ...authHeaders(clientId, apiKey), 'Content-Type': 'text/plain; charset=utf-8' },
-    body: notes,
+    headers: { ...authHeaders(clientId, apiKey), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes }),
     redirect: 'manual',
   });
   return waitForStatus(
