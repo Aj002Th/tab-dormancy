@@ -1,6 +1,7 @@
 import type { Page, Worker } from '@playwright/test';
 import { defined } from '../helpers/assert-defined';
 import { expect, test } from './fixtures';
+import { chooseSelect } from './i18n-helpers';
 
 async function seedUrlStrategy(page: Page): Promise<void> {
   await page.evaluate(async () => {
@@ -127,8 +128,8 @@ test('popup switches the active strategy and lists matched tabs', async ({ conte
   await expect(popup.getByTestId('popup-sample')).toContainText('127.0.0.1');
   await expect(popup.getByTestId('popup-view-all')).toHaveCount(0);
 
-  await popup.getByTestId('popup-strategy').selectOption({ label: '温和' });
-  await expect(popup.getByTestId('popup-strategy')).toHaveValue('preset:mild');
+  await chooseSelect(popup.getByTestId('popup-strategy'), 'preset:mild');
+  await expect(popup.getByTestId('popup-strategy')).toHaveAttribute('data-value', 'preset:mild');
   await expect(popup.getByTestId('popup-empty')).toBeVisible();
   await expect(popup.getByTestId('cleanup-button')).toHaveCount(0);
 
@@ -394,7 +395,7 @@ test('strategy preview shows matching tab examples on hover', async ({ context, 
 
   await dashboard.getByTestId('new-strategy').click();
   const condition = dashboard.getByTestId('rule-editor').locator('.condition-row').first();
-  await condition.locator('select').nth(1).selectOption('gte');
+  await chooseSelect(condition.locator('[role="combobox"]').nth(1), 'gte');
   await condition.locator('input[type="number"]').fill('0');
 
   const previewCount = dashboard.getByTestId('rule-preview-count');
@@ -474,7 +475,7 @@ test('settings discards unsaved changes back to the saved values', async ({ cont
   await expect(discard).toBeDisabled();
 
   await idle.fill('20');
-  await theme.selectOption('dark');
+  await chooseSelect(theme, 'dark');
   await maxRecords.fill('100');
   await lockEnabled.uncheck();
   await expect(discard).toBeEnabled();
@@ -482,7 +483,7 @@ test('settings discards unsaved changes back to the saved values', async ({ cont
 
   await discard.click();
   await expect(idle).toHaveValue('15');
-  await expect(theme).toHaveValue('system');
+  await expect(theme).toHaveAttribute('data-value', 'system');
   await expect(maxRecords).toHaveValue('5000');
   await expect(lockEnabled).toBeChecked();
   await expect(status).toContainText('已放弃未保存的修改');
@@ -500,7 +501,7 @@ test('settings discards unsaved changes back to the saved values', async ({ cont
 
   await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
   await expect(idle).toHaveValue('15');
-  await expect(theme).toHaveValue('system');
+  await expect(theme).toHaveAttribute('data-value', 'system');
   await expect(maxRecords).toHaveValue('5000');
 });
 
@@ -675,15 +676,15 @@ test('settings theme applies to dashboard and popup', async ({ context, extensio
   const background = () =>
     dashboard.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
 
-  await expect(theme).toHaveValue('system');
+  await expect(theme).toHaveAttribute('data-value', 'system');
   await expect.poll(background).toBe('#111113');
 
-  await theme.selectOption('light');
+  await chooseSelect(theme, 'light');
   await dashboard.getByTestId('settings-save').click();
   await expect(dashboard.getByText('设置已保存')).toBeVisible();
   await expect.poll(background).toBe('#fafafa');
 
-  await theme.selectOption('dark');
+  await chooseSelect(theme, 'dark');
   await dashboard.getByTestId('settings-save').click();
   await expect(dashboard.getByText('设置已保存')).toBeVisible();
   await expect.poll(background).toBe('#111113');
@@ -696,7 +697,7 @@ test('settings theme applies to dashboard and popup', async ({ context, extensio
     '#111113',
   );
 
-  await theme.selectOption('system');
+  await chooseSelect(theme, 'system');
   await dashboard.getByTestId('settings-save').click();
   await expect(dashboard.getByText('设置已保存')).toBeVisible();
   await expect.poll(background).toBe('#111113');

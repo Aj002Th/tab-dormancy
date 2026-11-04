@@ -1,5 +1,5 @@
 import { expect, test } from './fixtures';
-import { switchLanguage } from './i18n-helpers';
+import { chooseSelect, switchLanguage } from './i18n-helpers';
 
 test('language switches after saving and survives reload', async ({ context, extensionId }) => {
   const page = await context.newPage();
@@ -20,10 +20,10 @@ test('language switches after saving and survives reload', async ({ context, ext
 test('discarding a language change keeps the previous language', async ({ context, extensionId }) => {
   const page = await context.newPage();
   await page.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
-  await page.getByTestId('settings-language').selectOption('en');
+  await chooseSelect(page.getByTestId('settings-language'), 'en');
   await expect(page.getByRole('link', { name: '标签页', exact: true })).toBeVisible();
   await page.getByTestId('settings-discard').click();
-  await expect(page.getByTestId('settings-language')).toHaveValue('system');
+  await expect(page.getByTestId('settings-language')).toHaveAttribute('data-value', 'system');
   await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN');
 });
 
@@ -87,8 +87,10 @@ test('popup renders in the saved language', async ({ context, extensionId }) => 
   const popup = await context.newPage();
   await popup.goto(`chrome-extension://${extensionId}/popup.html`);
   await expect(popup.getByRole('button', { name: 'Open dashboard' })).toBeVisible();
-  await expect(popup.getByTestId('popup-strategy')).toHaveValue('preset:standard');
-  await expect(popup.getByTestId('popup-strategy').locator('option', { hasText: 'Standard' })).toHaveCount(1);
+  const strategy = popup.getByTestId('popup-strategy');
+  await expect(strategy).toHaveAttribute('data-value', 'preset:standard');
+  await strategy.click();
+  await expect(popup.getByRole('option', { name: 'Standard', exact: true })).toHaveCount(1);
 });
 
 test('closed history row shows localized preset strategy name', async ({ context, extensionId }) => {

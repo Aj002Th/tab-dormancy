@@ -12,6 +12,7 @@ import type {
 import { messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
+import { Select } from '../components/Select';
 import { Spinner } from '../components/Spinner';
 import { useLocale } from '../i18n';
 import { toggleSelection } from './history-selection';
@@ -165,43 +166,43 @@ export function HistoryPage() {
             setPage(1);
           }}
         />
-        <select
-          class="input"
+        <Select
           value={trigger}
-          onChange={(event) => {
-            setTrigger((event.currentTarget as HTMLSelectElement).value as Trigger | 'all');
+          options={[
+            { value: 'all', label: t('history.triggerAll') },
+            { value: 'idle', label: t('history.triggerIdle') },
+            { value: 'locked', label: t('history.triggerLocked') },
+            { value: 'manual', label: t('history.triggerManual') },
+          ]}
+          onChange={(value) => {
+            setTrigger(value as Trigger | 'all');
             setPage(1);
           }}
-        >
-          <option value="all">{t('history.triggerAll')}</option>
-          <option value="idle">{t('history.triggerIdle')}</option>
-          <option value="locked">{t('history.triggerLocked')}</option>
-          <option value="manual">{t('history.triggerManual')}</option>
-        </select>
-        <select
-          class="input"
+        />
+        <Select
           value={restored}
-          onChange={(event) => {
-            setRestored((event.currentTarget as HTMLSelectElement).value as 'all' | 'yes' | 'no');
+          options={[
+            { value: 'all', label: t('history.statusAll') },
+            { value: 'no', label: t('history.statusNotRestored') },
+            { value: 'yes', label: t('history.statusRestored') },
+          ]}
+          onChange={(value) => {
+            setRestored(value as 'all' | 'yes' | 'no');
             setPage(1);
           }}
-        >
-          <option value="all">{t('history.statusAll')}</option>
-          <option value="no">{t('history.statusNotRestored')}</option>
-          <option value="yes">{t('history.statusRestored')}</option>
-        </select>
+        />
       </div>
 
       <div class="history-actions">
-        <select
-          class="input"
-          value={mode}
+        <Select
           data-testid="history-restore-mode"
-          onChange={(event) => setMode((event.currentTarget as HTMLSelectElement).value as RestoreOptions['mode'])}
-        >
-          <option value="current-window">{t('history.restoreCurrent')}</option>
-          <option value="original-window-groups">{t('history.restoreOriginal')}</option>
-        </select>
+          value={mode}
+          options={[
+            { value: 'current-window', label: t('history.restoreCurrent') },
+            { value: 'original-window-groups', label: t('history.restoreOriginal') },
+          ]}
+          onChange={(value) => setMode(value as RestoreOptions['mode'])}
+        />
         <span class="grow" />
         <Button disabled={selected.size === 0} onClick={() => void restore()} data-testid="history-restore">
           {t('history.restoreSelected')}

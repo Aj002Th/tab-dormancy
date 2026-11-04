@@ -5,6 +5,7 @@ import type { Language, Settings, StateSnapshot, Theme } from '../../shared/type
 import { messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
+import { Select } from '../components/Select';
 import { applyLanguage, useLocale } from '../i18n';
 import { applyTheme } from '../theme';
 import { isSettingsDirty, parseSettingsForm, type SettingsForm, toSettingsForm } from './settings-form';
@@ -189,36 +190,36 @@ export function SettingsPage() {
             <h3>{t('settings.appearance')}</h3>
             <p class="muted small">{t('settings.appearanceHelp')}</p>
           </div>
-          <label class="settings-field">
+          <label class="settings-field" for="settings-theme">
             <span>{t('settings.theme')}</span>
-            <select
-              class="input"
+            <Select
+              id="settings-theme"
+              data-testid="settings-theme"
               value={form.theme}
               disabled={saving}
-              data-testid="settings-theme"
-              onChange={(event) => updateForm({ theme: (event.currentTarget as HTMLSelectElement).value as Theme })}
-            >
-              <option value="system">{t('settings.themeSystem')}</option>
-              <option value="light">{t('settings.themeLight')}</option>
-              <option value="dark">{t('settings.themeDark')}</option>
-            </select>
+              options={[
+                { value: 'system', label: t('settings.themeSystem') },
+                { value: 'light', label: t('settings.themeLight') },
+                { value: 'dark', label: t('settings.themeDark') },
+              ]}
+              onChange={(value) => updateForm({ theme: value as Theme })}
+            />
             <span class="settings-help">{t('settings.themeHelp')}</span>
           </label>
-          <label class="settings-field">
+          <label class="settings-field" for="settings-language">
             <span>{t('language.label')}</span>
-            <select
-              class="input"
+            <Select
+              id="settings-language"
+              data-testid="settings-language"
               value={form.language}
               disabled={saving}
-              data-testid="settings-language"
-              onChange={(event) =>
-                updateForm({ language: (event.currentTarget as HTMLSelectElement).value as Language })
-              }
-            >
-              <option value="system">{t('language.follow')}</option>
-              <option value="zh">{t('language.zh')}</option>
-              <option value="en">{t('language.en')}</option>
-            </select>
+              options={[
+                { value: 'system', label: t('language.follow') },
+                { value: 'zh', label: t('language.zh') },
+                { value: 'en', label: t('language.en') },
+              ]}
+              onChange={(value) => updateForm({ language: value as Language })}
+            />
             <span class="settings-help">{t('language.help')}</span>
           </label>
         </section>

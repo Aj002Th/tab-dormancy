@@ -5,6 +5,7 @@ import type { CleanupPreview, CleanupResult, Locale, StateSnapshot } from '../..
 import { ApiError, messageOf, openDashboard, openDashboardRoute, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
+import { Select } from '../components/Select';
 import { Spinner } from '../components/Spinner';
 import { strategyDisplayName } from '../dashboard/strategy-name';
 import { strategyCardSummary } from '../dashboard/strategy-summary';
@@ -289,21 +290,20 @@ function StrategySelect({
   onChange: (id: string) => void;
 }) {
   return (
-    <label class="popup-strategy">
+    <label class="popup-strategy" for="popup-strategy">
       <span class="sr-only">{t('popup.strategyLabel')}</span>
-      <select
-        class="input"
+      <Select
+        id="popup-strategy"
         data-testid="popup-strategy"
+        aria-label={t('popup.strategyLabel')}
         disabled={disabled}
         value={snapshot.activeStrategy.id}
-        onChange={(event) => onChange((event.currentTarget as HTMLSelectElement).value)}
-      >
-        {snapshot.strategies.map((strategy) => (
-          <option key={strategy.id} value={strategy.id}>
-            {strategyDisplayName(strategy, locale)}
-          </option>
-        ))}
-      </select>
+        options={snapshot.strategies.map((strategy) => ({
+          value: strategy.id,
+          label: strategyDisplayName(strategy, locale),
+        }))}
+        onChange={onChange}
+      />
     </label>
   );
 }

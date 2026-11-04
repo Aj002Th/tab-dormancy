@@ -5,6 +5,7 @@ import type { CleanupPreview, CleanupResult, Locale, TabListItem, TraceNode } fr
 import { messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
+import { Select } from '../components/Select';
 import { Spinner } from '../components/Spinner';
 import { useLocale } from '../i18n';
 import { strategyDisplayName } from './strategy-name';
@@ -138,23 +139,16 @@ export function TabsPage() {
           onInput={(event) => setQuery((event.currentTarget as HTMLInputElement).value)}
         />
         {showWindowLabels && (
-          <select
-            class="input"
+          <Select
             aria-label={t('tabs.windowFilter')}
             data-testid="tabs-window-filter"
-            value={effectiveWindowId}
-            onChange={(event) => {
-              const value = (event.currentTarget as HTMLSelectElement).value;
-              setWindowId(value === 'all' ? 'all' : Number(value));
-            }}
-          >
-            <option value="all">{t('tabs.allWindows')}</option>
-            {labels.map((window) => (
-              <option key={window.id} value={window.id}>
-                {window.label}
-              </option>
-            ))}
-          </select>
+            value={String(effectiveWindowId)}
+            options={[
+              { value: 'all', label: t('tabs.allWindows') },
+              ...labels.map((window) => ({ value: String(window.id), label: window.label })),
+            ]}
+            onChange={(value) => setWindowId(value === 'all' ? 'all' : Number(value))}
+          />
         )}
         <span class="muted" data-testid="tabs-count">
           {visible.length} / {items.length}

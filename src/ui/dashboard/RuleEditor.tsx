@@ -2,6 +2,7 @@ import { useState } from 'preact/hooks';
 import { FACT_BY_KEY, isFactAvailable } from '../../core/rules/registry';
 import { factLabel, translate } from '../../shared/i18n';
 import type { Capabilities, Expr, FactKey, Locale, Operator } from '../../shared/types';
+import { Select } from '../components/Select';
 import { useLocale } from '../i18n';
 import {
   addChild,
@@ -106,16 +107,17 @@ function GroupCard({
   return (
     <div class={`group-card depth-${Math.min(depth, 4)}`}>
       <div class="group-head">
-        <select
-          class="input compact"
+        <Select
+          compact
           value={node.type}
           disabled={disabled}
-          onChange={toggleType}
           aria-label={translate(locale, 'editor.groupType')}
-        >
-          <option value="all">{translate(locale, 'editor.matchAll')}</option>
-          <option value="any">{translate(locale, 'editor.matchAny')}</option>
-        </select>
+          options={[
+            { value: 'all', label: translate(locale, 'editor.matchAll') },
+            { value: 'any', label: translate(locale, 'editor.matchAny') },
+          ]}
+          onChange={toggleType}
+        />
         <label class="checkbox">
           <input
             type="checkbox"
@@ -232,34 +234,31 @@ function ConditionRow({
         {translate(locale, 'editor.negate')}
       </label>
 
-      <select
-        class="input compact fact-select"
+      <Select
+        compact
+        class="fact-select"
         value={node.fact}
         disabled={disabled}
-        onChange={(event) => changeFact((event.currentTarget as HTMLSelectElement).value as FactKey)}
-      >
-        {[...FACT_BY_KEY.values()].map((item) => (
-          <option key={item.key} value={item.key} disabled={!isFactAvailable(item, capabilities)}>
-            {factLabel(item.key, locale)}
-            {!isFactAvailable(item, capabilities) ? translate(locale, 'editor.unavailable') : ''}
-          </option>
-        ))}
-      </select>
+        options={[...FACT_BY_KEY.values()].map((item) => ({
+          value: item.key,
+          label: `${factLabel(item.key, locale)}${isFactAvailable(item, capabilities) ? '' : translate(locale, 'editor.unavailable')}`,
+          disabled: !isFactAvailable(item, capabilities),
+        }))}
+        onChange={(value) => changeFact(value as FactKey)}
+      />
 
       {!isBoolean && (
         <>
-          <select
-            class="input compact"
+          <Select
+            compact
             value={node.op}
             disabled={disabled || unavailable}
-            onChange={(event) => changeOperator((event.currentTarget as HTMLSelectElement).value as Operator)}
-          >
-            {definition.operators.map((operator) => (
-              <option key={operator} value={operator}>
-                {operatorLabel(operator, locale)}
-              </option>
-            ))}
-          </select>
+            options={definition.operators.map((operator) => ({
+              value: operator,
+              label: operatorLabel(operator, locale),
+            }))}
+            onChange={(value) => changeOperator(value as Operator)}
+          />
 
           {definition.type === 'number' ? (
             <span class="value-row">
@@ -272,16 +271,17 @@ function ConditionRow({
                 disabled={disabled}
                 onInput={(event) => update({ value: Number((event.currentTarget as HTMLInputElement).value) * factor })}
               />
-              <select
-                class="input compact"
+              <Select
+                compact
                 value={unit}
                 disabled={disabled}
-                onChange={(event) => setUnit((event.currentTarget as HTMLSelectElement).value as typeof unit)}
-              >
-                <option value="minutes">{translate(locale, 'editor.minutes')}</option>
-                <option value="hours">{translate(locale, 'editor.hours')}</option>
-                <option value="days">{translate(locale, 'editor.days')}</option>
-              </select>
+                options={[
+                  { value: 'minutes', label: translate(locale, 'editor.minutes') },
+                  { value: 'hours', label: translate(locale, 'editor.hours') },
+                  { value: 'days', label: translate(locale, 'editor.days') },
+                ]}
+                onChange={(value) => setUnit(value as typeof unit)}
+              />
             </span>
           ) : node.op === 'inDomainList' ? (
             <textarea
