@@ -6,6 +6,7 @@ import {
   parseSettingsForm,
   type SettingsForm,
   toSettingsForm,
+  validateSettingsForm,
 } from '../../src/ui/dashboard/settings-form';
 
 beforeAll(() => {
@@ -109,6 +110,32 @@ describe('settings form', () => {
     } finally {
       setLocale('zh');
     }
+  });
+
+  it('returns errors for every invalid field at once', () => {
+    const result = validateSettingsForm(
+      form({
+        idleThresholdMinutes: '',
+        lockDelayMinutes: '-1',
+        historyRetentionDays: '0',
+        historyMaxRecords: '5001',
+      }),
+    );
+
+    expect(result.patch).toBeNull();
+    expect(Object.keys(result.errors)).toEqual([
+      'idleThresholdMinutes',
+      'lockDelayMinutes',
+      'historyRetentionDays',
+      'historyMaxRecords',
+    ]);
+  });
+
+  it('returns a patch and no errors for a valid form', () => {
+    const result = validateSettingsForm(form({ idleThresholdMinutes: '30' }));
+
+    expect(result.errors).toEqual({});
+    expect(result.patch?.idleThresholdMinutes).toBe(30);
   });
 
   it('detects changes to every editable setting', () => {

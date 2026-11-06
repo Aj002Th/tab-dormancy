@@ -1,9 +1,18 @@
-let dirty = false;
+let settingsDirty = false;
+let strategiesDirty = false;
 
 export function setSettingsDirty(value: boolean): void {
-  dirty = value;
+  settingsDirty = value;
 }
 
-export function hasUnsavedSettings(): boolean {
-  return dirty;
+export function setStrategiesDirty(value: boolean): void {
+  strategiesDirty = value;
+}
+
+export function hasUnsavedChanges(): boolean {
+  return settingsDirty || strategiesDirty;
+}
+
+export function hasUnsavedStrategies(): boolean {
+  return strategiesDirty;
 }

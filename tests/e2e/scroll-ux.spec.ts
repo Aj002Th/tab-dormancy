@@ -37,6 +37,15 @@ async function expectFullyVisible(page: import('@playwright/test').Page): Promis
     .toBe(true);
 }
 
+async function expectEditorFullyVisible(page: import('@playwright/test').Page): Promise<void> {
+  await expect
+    .poll(async () => {
+      const { editor, viewport } = await geometry(page);
+      return editor !== null && editor.top >= 0 && editor.bottom <= viewport + 1;
+    })
+    .toBe(true);
+}
+
 test('sidebar stays pinned and the note sits at the bottom while the page scrolls', async ({
   context,
   extensionId,
@@ -81,7 +90,7 @@ test('entering strategies reveals the whole editor in a stacked layout', async (
   await page.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
 
   await expect(page.locator('.strategy-card.selected')).toBeVisible();
-  await expectFullyVisible(page);
+  await expectEditorFullyVisible(page);
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 });
 

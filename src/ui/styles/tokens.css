@@ -1,51 +1,116 @@
 :root {
   color-scheme: light;
+
+  /* surfaces */
   --bg: #fafafa;
   --surface: #ffffff;
   --surface-2: #f4f4f5;
   --border: #e4e4e7;
+  --border-control: #7a8a91;
+
+  /* text */
   --text: #18181b;
-  --muted: #71717a;
-  --accent: #3d63dd;
-  --accent-strong: #2f4fb8;
+  --muted: #6b6b73;
+
+  /* one accent */
+  --accent: #0f6b73;
+  --accent-strong: #0b565c;
+  --on-accent: #ffffff;
+  --accent-soft: #ecf6f6;
+
+  /* semantic */
   --danger: #c2413a;
+  --on-danger: #ffffff;
   --success: #267a4b;
   --warning: #b45309;
+  --danger-soft: color-mix(in srgb, var(--danger) 8%, var(--surface));
+  --success-soft: color-mix(in srgb, var(--success) 8%, var(--surface));
+  --warning-soft: color-mix(in srgb, var(--warning) 8%, var(--surface));
+
+  /* shape */
+  --radius-sm: 6px;
   --radius: 10px;
-  --shadow: 0 1px 2px rgb(0 0 0 / 5%);
-  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+  --shadow: 0 1px 2px rgb(0 0 0 / 6%);
+  --shadow-overlay: 0 16px 40px rgb(0 0 0 / 16%);
+
+  /* spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* type: local if installed; no remote font request */
+  --font: "Plus Jakarta Sans", "Avenir Next", "Segoe UI Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font);
+
+  /* motion */
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --focus-ring: var(--accent);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
+
   --bg: #111113;
   --surface: #18181b;
   --surface-2: #202024;
   --border: #2d2d33;
+  --border-control: #6c7c82;
+
   --text: #f4f4f5;
   --muted: #a1a1aa;
-  --accent: #8aa4ff;
-  --accent-strong: #a9bcff;
+
+  --accent: #7fd1d6;
+  --accent-strong: #a6e3e7;
+  --on-accent: #0d1416;
+  --accent-soft: #17363a;
+
   --danger: #f08b84;
+  --on-danger: #0d1416;
   --success: #79d3a2;
   --warning: #fbbf24;
+  --danger-soft: color-mix(in srgb, var(--danger) 8%, var(--surface));
+  --success-soft: color-mix(in srgb, var(--success) 8%, var(--surface));
+  --warning-soft: color-mix(in srgb, var(--warning) 8%, var(--surface));
+
   --shadow: none;
+  --shadow-overlay: 0 16px 40px rgb(0 0 0 / 55%);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
+
     --bg: #111113;
     --surface: #18181b;
     --surface-2: #202024;
     --border: #2d2d33;
+    --border-control: #6c7c82;
+
     --text: #f4f4f5;
     --muted: #a1a1aa;
-    --accent: #8aa4ff;
-    --accent-strong: #a9bcff;
+
+    --accent: #7fd1d6;
+    --accent-strong: #a6e3e7;
+    --on-accent: #0d1416;
+    --accent-soft: #17363a;
+
     --danger: #f08b84;
+    --on-danger: #0d1416;
     --success: #79d3a2;
     --warning: #fbbf24;
+    --danger-soft: color-mix(in srgb, var(--danger) 8%, var(--surface));
+    --success-soft: color-mix(in srgb, var(--success) 8%, var(--surface));
+    --warning-soft: color-mix(in srgb, var(--warning) 8%, var(--surface));
+
     --shadow: none;
+    --shadow-overlay: 0 16px 40px rgb(0 0 0 / 55%);
   }
 }

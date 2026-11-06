@@ -1,5 +1,12 @@
 docs/superpowers/
+docs/design-system/
 .opencode/
+# Local agent skills and instructions — never commit or push
+.agents/
+.claude/skills/
+skills-lock.json
+AGENTS.md
+agent.md
 node_modules/
 dist/
 release/

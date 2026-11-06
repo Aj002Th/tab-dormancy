@@ -26,33 +26,52 @@ export function toSettingsForm(settings: Settings): SettingsForm {
   };
 }
 
-export function parseSettingsForm(form: SettingsForm): { patch: SettingsPatch } | { error: string } {
+export type SettingsErrors = Partial<Record<keyof SettingsForm, string>>;
+
+export type SettingsValidation = {
+  patch: SettingsPatch | null;
+  errors: SettingsErrors;
+};
+
+export function validateSettingsForm(form: SettingsForm): SettingsValidation {
+  const errors: SettingsErrors = {};
+
   if (!isLanguage(form.language)) {
-    return { error: t('errors.invalidLanguage') };
+    errors.language = t('errors.invalidLanguage');
   }
 
   if (!isTheme(form.theme)) {
-    return { error: t('errors.invalidTheme') };
+    errors.theme = t('errors.invalidTheme');
   }
 
   const idle = parseInteger(form.idleThresholdMinutes);
   if (idle === null || idle < 1 || idle > 1_440) {
-    return { error: t('errors.invalidIdle') };
+    errors.idleThresholdMinutes = t('errors.invalidIdle');
   }
 
   const lockDelay = parseInteger(form.lockDelayMinutes);
   if (lockDelay === null || lockDelay < 0 || lockDelay > 1_440) {
-    return { error: t('errors.invalidLockDelay') };
+    errors.lockDelayMinutes = t('errors.invalidLockDelay');
   }
 
   const retention = parseInteger(form.historyRetentionDays);
   if (retention === null || retention < 1 || retention > 365) {
-    return { error: t('errors.invalidRetention') };
+    errors.historyRetentionDays = t('errors.invalidRetention');
   }
 
   const maxRecords = parseInteger(form.historyMaxRecords);
   if (maxRecords === null || maxRecords < 1 || maxRecords > LIMITS.maxHistory) {
-    return { error: t('errors.invalidMaxRecords', { max: LIMITS.maxHistory }) };
+    errors.historyMaxRecords = t('errors.invalidMaxRecords', { max: LIMITS.maxHistory });
+  }
+
+  if (
+    Object.keys(errors).length > 0 ||
+    idle === null ||
+    lockDelay === null ||
+    retention === null ||
+    maxRecords === null
+  ) {
+    return { patch: null, errors };
   }
 
   return {
@@ -65,7 +84,17 @@ export function parseSettingsForm(form: SettingsForm): { patch: SettingsPatch } 
       theme: form.theme,
       language: form.language,
     },
+    errors,
   };
+}
+
+export function parseSettingsForm(form: SettingsForm): { patch: SettingsPatch } | { error: string } {
+  const result = validateSettingsForm(form);
+  if (!result.patch) {
+    const first = Object.values(result.errors).find((message): message is string => Boolean(message));
+    return { error: first ?? t('errors.INVALID_SETTINGS') };
+  }
+  return { patch: result.patch };
 }
 
 export function isSettingsDirty(form: SettingsForm, saved: Settings): boolean {

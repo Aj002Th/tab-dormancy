@@ -8,6 +8,7 @@ type ButtonProps = {
   'data-testid'?: string;
   'aria-label'?: string;
   title?: string;
+  id?: string;
   class?: string;
 };
 
@@ -20,6 +21,7 @@ export function Button({
   'data-testid': testId,
   'aria-label': ariaLabel,
   title,
+  id,
 }: ButtonProps) {
   return (
     <button
@@ -30,6 +32,7 @@ export function Button({
       data-testid={testId}
       aria-label={ariaLabel}
       title={title}
+      id={id}
     >
       {children}
     </button>

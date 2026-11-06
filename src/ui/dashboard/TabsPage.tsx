@@ -22,6 +22,8 @@ export function TabsPage() {
   const [query, setQuery] = useState('');
   const [windowId, setWindowId] = useState<number | 'all'>('all');
   const [confirming, setConfirming] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const requestId = useRef(0);
 
   async function load() {
@@ -53,7 +55,7 @@ export function TabsPage() {
       timer = setTimeout(() => {
         timer = undefined;
         void load();
-      }, 150);
+      }, 300);
     };
 
     chrome.tabs.onActivated.addListener(schedule);
@@ -72,13 +74,27 @@ export function TabsPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!confirming) return;
+    requestAnimationFrame(() => document.getElementById('tabs-confirm-cleanup')?.focus());
+  }, [confirming]);
+
   async function runCleanup() {
-    setConfirming(false);
+    setCleaning(true);
+    setError(null);
+    setNotice(null);
     try {
-      await send<CleanupResult>({ type: 'cleanup.run', source: 'dashboard' });
+      const result = await send<CleanupResult>({ type: 'cleanup.run', source: 'dashboard' });
       await load();
+      const parts = [t('popup.closedCount', { count: result.closed })];
+      if (result.failed > 0) parts.push(t('popup.failed', { count: result.failed }));
+      if (result.skipped > 0) parts.push(t('popup.skipped', { count: result.skipped }));
+      setNotice(parts.join('; '));
     } catch (error) {
       setError(messageOf(error));
+    } finally {
+      setCleaning(false);
+      setConfirming(false);
     }
   }
 
@@ -86,6 +102,7 @@ export function TabsPage() {
   const showWindowLabels = labels.length > 1;
   const effectiveWindowId = windowSelectionAvailable(windowId, labels) ? windowId : 'all';
   const visible = filterTabs(items, query, effectiveWindowId);
+  const hasFilters = query.trim() !== '' || effectiveWindowId !== 'all';
   const strategyName = preview
     ? strategyDisplayName({ id: preview.strategyId, name: preview.strategyName }, locale)
     : loading
@@ -97,60 +114,98 @@ export function TabsPage() {
       <header class="page-head">
         <div>
           <h2>{t('tabs.title')}</h2>
-          <p class="muted">
-            {t('tabs.activeStrategy')}
-            {locale === 'en' ? ' ' : ''}
-            <strong data-testid="tabs-strategy">{strategyName}</strong>
-            {' · '}
-            {t('tabs.description')}
+          <p class="muted tabs-subtitle">
+            <span>
+              {t('tabs.activeStrategy')}
+              {locale === 'en' ? ' ' : ''}
+              <strong data-testid="tabs-strategy">{strategyName}</strong>
+            </span>
+            <span class="tabs-description">{t('tabs.description')}</span>
           </p>
         </div>
         <Button
           variant="primary"
-          onClick={() => setConfirming(true)}
-          disabled={(preview?.matched ?? 0) === 0}
+          onClick={() => {
+            setNotice(null);
+            setConfirming(true);
+          }}
+          disabled={cleaning || (preview?.matched ?? 0) === 0}
           data-testid="dashboard-cleanup"
         >
-          {preview ? t('tabs.cleanCount', { count: preview.matched }) : t('tabs.clean')}
+          {cleaning
+            ? t('popup.cleaning')
+            : preview
+              ? t('tabs.cleanCount', { count: preview.matched })
+              : t('tabs.clean')}
         </Button>
       </header>
 
       {error && <Banner tone="error">{error}</Banner>}
+      {notice && (
+        <output class="tabs-notice" aria-live="polite">
+          {notice}
+        </output>
+      )}
       {loading && <Spinner />}
       {confirming && preview && (
-        <div class="confirm-bar">
-          <span>{t('tabs.confirm', { count: preview.matched })}</span>
-          <div class="row">
-            <Button variant="danger" onClick={() => void runCleanup()} data-testid="dashboard-confirm-cleanup">
-              {t('common.confirm')}
-            </Button>
-            <Button onClick={() => setConfirming(false)}>{t('common.cancel')}</Button>
-          </div>
+        <div
+          class="confirm-bar"
+          role="alert"
+          onKeyDown={(event) => {
+            if (!cleaning && event.key === 'Escape') setConfirming(false);
+          }}
+        >
+          {cleaning ? (
+            <Spinner label={t('popup.cleaning')} />
+          ) : (
+            <>
+              <span>{t('tabs.confirm', { count: preview.matched })}</span>
+              <div class="row">
+                <Button
+                  id="tabs-confirm-cleanup"
+                  variant="danger"
+                  onClick={() => void runCleanup()}
+                  data-testid="dashboard-confirm-cleanup"
+                >
+                  {t('common.confirm')}
+                </Button>
+                <Button onClick={() => setConfirming(false)}>{t('common.cancel')}</Button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
       <div class="toolbar">
-        <input
-          class="input"
-          type="search"
-          aria-label={t('tabs.searchLabel')}
-          placeholder={t('tabs.searchPlaceholder')}
-          value={query}
-          onInput={(event) => setQuery((event.currentTarget as HTMLInputElement).value)}
-        />
-        {showWindowLabels && (
-          <Select
-            aria-label={t('tabs.windowFilter')}
-            data-testid="tabs-window-filter"
-            value={String(effectiveWindowId)}
-            options={[
-              { value: 'all', label: t('tabs.allWindows') },
-              ...labels.map((window) => ({ value: String(window.id), label: window.label })),
-            ]}
-            onChange={(value) => setWindowId(value === 'all' ? 'all' : Number(value))}
+        <label class="tabs-search-field" for="tabs-search">
+          <span class="tabs-field-label">{t('tabs.searchLabel')}</span>
+          <input
+            id="tabs-search"
+            class="input"
+            type="search"
+            aria-label={t('tabs.searchLabel')}
+            placeholder={t('tabs.searchPlaceholder')}
+            value={query}
+            onInput={(event) => setQuery((event.currentTarget as HTMLInputElement).value)}
           />
+        </label>
+        {showWindowLabels && (
+          <label class="tabs-window-field" for="tabs-window-filter">
+            <span class="tabs-field-label">{t('tabs.windowFilter')}</span>
+            <Select
+              id="tabs-window-filter"
+              aria-label={t('tabs.windowFilter')}
+              data-testid="tabs-window-filter"
+              value={String(effectiveWindowId)}
+              options={[
+                { value: 'all', label: t('tabs.allWindows') },
+                ...labels.map((window) => ({ value: String(window.id), label: window.label })),
+              ]}
+              onChange={(value) => setWindowId(value === 'all' ? 'all' : Number(value))}
+            />
+          </label>
         )}
-        <span class="muted" data-testid="tabs-count">
+        <span class="muted tabs-count" data-testid="tabs-count">
           {visible.length} / {items.length}
         </span>
       </div>
@@ -206,7 +261,22 @@ export function TabsPage() {
             </div>
           </details>
         ))}
-        {!loading && visible.length === 0 && <p class="muted empty">{t('tabs.empty')}</p>}
+        {!loading && visible.length === 0 && (
+          <div class="tabs-empty empty">
+            <p class="muted">{t('tabs.empty')}</p>
+            {hasFilters && (
+              <Button
+                onClick={() => {
+                  setQuery('');
+                  setWindowId('all');
+                }}
+                data-testid="tabs-clear-filters"
+              >
+                {t('tabs.clearFilters')}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </section>
   );

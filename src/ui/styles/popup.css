@@ -2,30 +2,31 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 14px;
+  gap: var(--space-3);
   width: 360px;
   min-height: 260px;
-  padding: 16px;
-  background: var(--surface);
+  padding: var(--space-4);
+  background: var(--bg);
 }
 
 .popup-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .popup h1 {
   margin: 0;
-  font-size: 22px;
+  font-family: var(--font-display);
+  font-size: 20px;
   font-weight: 650;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .popup-subtitle {
-  margin: 2px 0 0;
+  margin: var(--space-1) 0 0;
   font-size: 12px;
 }
 
@@ -33,42 +34,48 @@
   display: grid;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
 }
 
-.popup-strategy {
-  display: block;
+.popup-strategy-field {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-2);
 }
 
-.popup-strategy .input {
-  width: calc(100% - 8px);
-  margin: 4px;
-  padding: 8px 10px 4px;
-  border: 0;
+.popup-field-label {
+  padding-left: 14px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.popup-strategy-field .input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 36px 10px 14px;
+  border: 1px solid var(--border-control);
   border-radius: 8px;
-  background-color: transparent;
-  background-position: right 12px center;
+  background-color: var(--surface);
   color: var(--text);
-  font: inherit;
-  font-size: 15px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 500;
 }
 
-.popup-strategy .input:focus-visible {
-  outline-offset: -2px;
-}
-
-.popup-strategy .input:disabled {
-  opacity: 0.6;
+.popup-strategy-field .input:disabled {
+  opacity: 0.65;
 }
 
 .popup-meta {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2);
   margin: 0;
-  padding: 2px 14px 12px;
+  padding: 0 var(--space-3) var(--space-3);
   overflow: hidden;
+  color: var(--muted);
   font-size: 12px;
   line-height: 1.4;
   white-space: nowrap;
@@ -80,10 +87,14 @@
   text-overflow: ellipsis;
 }
 
+.popup-managed {
+  flex: none;
+}
+
 .popup-body {
   display: grid;
-  gap: 12px;
-  padding: 14px;
+  gap: var(--space-3);
+  padding: var(--space-3);
   border-top: 1px solid var(--border);
   background: var(--surface-2);
 }
@@ -91,13 +102,32 @@
 .popup-status {
   display: grid;
   justify-items: center;
-  gap: 4px;
+  gap: 2px;
   margin: 0;
+  text-align: center;
+}
+
+.popup-number {
+  font-size: 40px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.popup-empty .popup-number {
+  color: var(--muted);
+  font-size: 32px;
+}
+
+.popup-count-label {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .popup-sample {
   display: grid;
-  gap: 0;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -107,18 +137,24 @@
   display: grid;
   gap: 1px;
   min-width: 0;
-  padding: 6px 0;
+  padding: var(--space-2) 0;
+}
+
+.popup-sample li + li {
+  border-top: 1px solid var(--border);
 }
 
 .popup-sample-title,
 .popup-sample-domain {
   overflow: hidden;
-  white-space: nowrap;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .popup-sample-title {
+  color: var(--text);
   font-size: 13px;
+  font-weight: 500;
 }
 
 .popup-sample-domain {
@@ -126,92 +162,91 @@
 }
 
 .popup-view-all {
-  justify-self: center;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
   color: var(--accent);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
+  transition:
+    background var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
 }
 
 .popup-view-all:hover {
-  color: var(--accent-strong);
-}
-
-.popup-empty {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.popup-count {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.popup-number {
-  font-size: 40px;
-  font-weight: 650;
-  line-height: 1;
-  letter-spacing: -0.04em;
-}
-
-.popup-empty .popup-number {
-  color: var(--text);
-  font-size: 40px;
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .popup-footnote {
   margin: 0;
-  padding-top: 2px;
+  padding-top: var(--space-2);
   border-top: 1px solid var(--border);
+  color: var(--muted);
   font-size: 12px;
+  line-height: 1.5;
 }
 
 .confirm-box,
 .done-box {
   display: grid;
-  gap: 12px;
-}
-
-.done-box {
-  padding: 12px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  gap: var(--space-3);
 }
 
 .confirm-box p,
 .done-box p {
   margin: 0;
+  line-height: 1.5;
+}
+
+.done-box {
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--success) 30%, var(--border));
+  border-radius: var(--radius-lg);
+  background: var(--success-soft);
 }
 
 .done-box h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
+  line-height: 1.25;
 }
 
 .row {
   display: flex;
-  gap: 8px;
   flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 14px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 8px 12px;
-  white-space: nowrap;
   background: var(--surface);
   color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
   transition:
-    background 120ms ease,
-    border-color 120ms ease;
+    background var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
 }
 
-.btn:hover:not(:disabled) {
+.btn:hover:not(:disabled),
+.btn:active:not(:disabled) {
   background: var(--surface-2);
 }
 
@@ -221,19 +256,26 @@
 }
 
 .btn-primary {
-  background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
-.btn-primary:hover:not(:disabled) {
+.btn-primary:hover:not(:disabled),
+.btn-primary:active:not(:disabled) {
+  border-color: var(--accent-strong);
   background: var(--accent-strong);
 }
 
 .btn-danger {
-  background: var(--danger);
   border-color: var(--danger);
-  color: #fff;
+  background: var(--danger);
+  color: var(--on-danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--danger) 88%, var(--text));
+  background: color-mix(in srgb, var(--danger) 88%, var(--text));
 }
 
 .btn-secondary {
@@ -246,6 +288,7 @@
 
 .popup-actions > .btn {
   flex: 1;
+  min-width: 0;
 }
 
 .icon-button {
@@ -253,45 +296,53 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   padding: 0;
-  border-radius: 9px;
-  font-size: 18px;
-  line-height: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
 }
 
 .icon-button:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.icon-button svg {
+  display: block;
 }
 
 .banner {
-  padding: 8px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface-2);
-  border: 1px solid var(--border);
   font-size: 12px;
-}
-
-.banner .btn {
-  margin-top: 8px;
+  line-height: 1.5;
 }
 
 .banner-error {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+  background: var(--danger-soft);
   color: var(--danger);
-  border-color: var(--danger);
+}
+
+.banner .btn {
+  margin-top: var(--space-2);
 }
 
 .spinner {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px 0;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
 }
 
 .spinner-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--accent);
   animation: pulse 900ms ease-in-out infinite alternate;
@@ -302,6 +353,7 @@
     opacity: 0.35;
     transform: scale(0.8);
   }
+
   to {
     opacity: 1;
     transform: scale(1);

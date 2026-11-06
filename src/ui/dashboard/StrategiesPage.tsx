@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { cloneStrategy, createCustomStrategy } from '../../core/rules/presets';
 import { canonicalExpr } from '../../core/rules/signature';
-import { validateExpr, validationMessage } from '../../core/rules/validate';
+import { validateStrategy, validationMessage } from '../../core/rules/validate';
 import { type MessageKey, type MessageParams, translate } from '../../shared/i18n';
 import type { StrategyPreview } from '../../shared/messages';
 import type { StateSnapshot, Strategy } from '../../shared/types';
@@ -13,6 +13,7 @@ import { newCondition, newGroup } from './expr-edit';
 import { RuleEditor } from './RuleEditor';
 import { strategyDisplayName } from './strategy-name';
 import { type StrategyCardTagGroup, strategyCardSummary } from './strategy-summary';
+import { setStrategiesDirty } from './unsaved';
 
 const newId = () => crypto.randomUUID();
 
@@ -46,6 +47,7 @@ function initialScrollTop(editor: HTMLElement | null, card: HTMLElement): number
   const viewport = window.innerHeight;
   const scrollY = window.scrollY;
   const maxScroll = Math.max(0, document.documentElement.scrollHeight - viewport);
+
   const editorRange = editor ? visibleRange(editor, viewport, scrollY) : null;
   const cardRange = visibleRange(card, viewport, scrollY);
   const both =
@@ -63,6 +65,19 @@ function initialScrollTop(editor: HTMLElement | null, card: HTMLElement): number
     const rect = (editor ?? card).getBoundingClientRect();
     target = scrollY + rect.top - SCROLL_GUTTER;
   }
+
+  // If the editor itself fits in the viewport but the preferred 16px gutter
+  // pushes it past the bottom, fall back to centering it with a tighter margin.
+  if (editor) {
+    const rect = editor.getBoundingClientRect();
+    const top = rect.top - (target - scrollY);
+    const bottom = top + rect.height;
+    if (rect.height <= viewport && (top < 0 || bottom > viewport)) {
+      const margin = Math.max(0, Math.floor((viewport - rect.height) / 2));
+      target = scrollY + rect.top - margin;
+    }
+  }
+
   return Math.min(maxScroll, Math.max(0, target));
 }
 
@@ -79,12 +94,17 @@ export function StrategiesPage() {
   const [editing, setEditing] = useState<Strategy | null>(null);
   const [preview, setPreview] = useState<StrategyPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Strategy | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const selectedCardRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const scrollOnNextSelection = useRef(false);
   const initialScrollPending = useRef(true);
+  const draftStart = useRef<{ name: string; expression: string } | null>(null);
   const [editorOffset, setEditorOffset] = useState(0);
 
   async function load() {
@@ -129,49 +149,70 @@ export function StrategiesPage() {
   }, [editing]);
 
   const startNew = () => {
+    if (!confirmDiscard()) return;
     const expression = newGroup('all', newId(), newCondition(newId()));
+    const next = createCustomStrategy(tr('strategies.newName'), expression, Date.now(), '');
+    draftStart.current = { name: next.name.trim(), expression: canonicalExpr(next.expression) };
     scrollOnNextSelection.current = true;
-    setEditing(createCustomStrategy(tr('strategies.newName'), expression, Date.now(), ''));
+    setEditing(next);
     setPreview(null);
+    setPreviewOpen(false);
     setError(null);
+    setNotice(null);
   };
 
   const duplicate = (strategy: Strategy) => {
+    if (!confirmDiscard()) return;
     scrollOnNextSelection.current = true;
     const name = tr('strategies.copyName', { name: strategyDisplayName(strategy, locale) });
-    setEditing(cloneStrategy(strategy, Date.now(), '', name));
+    const next = cloneStrategy(strategy, Date.now(), '', name);
+    draftStart.current = { name: next.name.trim(), expression: canonicalExpr(next.expression) };
+    setEditing(next);
     setPreview(null);
+    setPreviewOpen(false);
     setError(null);
+    setNotice(null);
   };
 
   const selectStrategy = (strategy: Strategy) => {
     if (editing?.id === strategy.id) return;
+    if (!confirmDiscard()) return;
+    draftStart.current = null;
     scrollOnNextSelection.current = true;
     setEditing(strategy);
     setPreview(null);
+    setPreviewOpen(false);
     setError(null);
+    setNotice(null);
   };
 
   const cancelDraft = () => {
+    draftStart.current = null;
     scrollOnNextSelection.current = true;
     setEditing(state?.activeStrategy ?? null);
     setPreview(null);
+    setPreviewOpen(false);
     setError(null);
+    setNotice(null);
   };
 
   const save = async () => {
     if (!editing) return;
     setSaving(true);
     setError(null);
+    setNotice(null);
     try {
       const saved = await send<Strategy>({
         type: 'strategy.save',
         strategy: editing,
         previewSignature: preview?.signature,
       });
+      draftStart.current = null;
       setEditing(saved);
       setPreview(null);
+      setPreviewOpen(false);
       await load();
+      setNotice(tr('strategies.saved'));
     } catch (error) {
       setError(messageOf(error));
     } finally {
@@ -180,12 +221,18 @@ export function StrategiesPage() {
   };
 
   const activate = async (id: string) => {
+    if (activatingId) return;
     setError(null);
+    setNotice(null);
+    setActivatingId(id);
     try {
       await send({ type: 'strategy.activate', id });
       await load();
+      setNotice(tr('strategies.activated'));
     } catch (error) {
       setError(messageOf(error));
+    } finally {
+      setActivatingId(null);
     }
   };
 
@@ -193,6 +240,7 @@ export function StrategiesPage() {
     if (!editing) return;
     setSaving(true);
     setError(null);
+    setNotice(null);
     try {
       const saved = await send<Strategy>({
         type: 'strategy.save',
@@ -200,9 +248,12 @@ export function StrategiesPage() {
         previewSignature: preview?.signature,
       });
       await send({ type: 'strategy.activate', id: saved.id });
+      draftStart.current = null;
       setEditing(saved);
       setPreview(null);
+      setPreviewOpen(false);
       await load();
+      setNotice(tr('strategies.activated'));
     } catch (error) {
       setError(messageOf(error));
     } finally {
@@ -211,26 +262,67 @@ export function StrategiesPage() {
   };
 
   const remove = async (id: string) => {
+    setDeleteTarget(null);
     setError(null);
+    setNotice(null);
     try {
       await send({ type: 'strategy.delete', id });
       await load();
+      setNotice(tr('strategies.deleted'));
     } catch (error) {
       setError(messageOf(error));
     }
   };
 
-  const validation = editing && state ? validateExpr(editing.expression, state.capabilities) : null;
+  const validation = editing && state ? validateStrategy(editing, state.capabilities) : null;
   const strategies = state?.strategies ?? [];
   const visibleStrategies = editing && !editing.id ? [...strategies, editing] : strategies;
   const persistedEditing = editing ? strategies.find((strategy) => strategy.id === editing.id) : undefined;
-  const activeUnchanged =
+  const unchanged =
     editing !== null &&
-    state !== null &&
     persistedEditing !== undefined &&
-    editing.id === state.activeStrategy.id &&
+    !editing.builtin &&
     editing.name.trim() === persistedEditing.name &&
     canonicalExpr(editing.expression) === canonicalExpr(persistedEditing.expression);
+  const activeUnchanged = unchanged && state !== null && editing?.id === state.activeStrategy.id;
+  const draftChanged =
+    editing !== null &&
+    !editing.id &&
+    draftStart.current !== null &&
+    (editing.name.trim() !== draftStart.current.name ||
+      canonicalExpr(editing.expression) !== draftStart.current.expression);
+  const dirty = editing !== null && !editing.builtin && (editing.id ? !unchanged : draftChanged);
+  const nameIssue = validation?.issues.find((issue) => issue.code === 'BAD_NAME');
+  const ruleIssue = validation?.issues.find((issue) => issue.code !== 'BAD_NAME');
+
+  function confirmDiscard(): boolean {
+    if (!dirty) return true;
+    return window.confirm(tr('strategies.discardConfirm'));
+  }
+
+  useEffect(() => {
+    setStrategiesDirty(dirty);
+    return () => setStrategiesDirty(false);
+  }, [dirty]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [dirty]);
+
+  useEffect(() => {
+    if (!deleteTarget) return;
+    requestAnimationFrame(() => document.getElementById('strategy-delete-confirm')?.focus());
+  }, [deleteTarget]);
+
+  useEffect(() => {
+    setPreviewOpen(false);
+  }, [preview?.signature]);
 
   useLayoutEffect(() => {
     const list = listRef.current;
@@ -291,6 +383,35 @@ export function StrategiesPage() {
 
       {error && <Banner tone="error">{error}</Banner>}
 
+      {deleteTarget && (
+        <div
+          class="strategy-confirm"
+          role="alert"
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setDeleteTarget(null);
+          }}
+        >
+          <p>
+            {tr('strategies.deleteConfirm', {
+              name: strategyDisplayName(deleteTarget, locale),
+            })}
+          </p>
+          <div class="row">
+            <Button
+              id="strategy-delete-confirm"
+              variant="danger"
+              onClick={() => void remove(deleteTarget.id)}
+              data-testid="strategy-delete-confirm"
+            >
+              {tr('strategies.delete')}
+            </Button>
+            <Button onClick={() => setDeleteTarget(null)} data-testid="strategy-delete-cancel">
+              {tr('common.cancel')}
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div class="strategy-layout">
         <div class="strategy-list" ref={listRef}>
           {visibleStrategies.map((strategy) => {
@@ -342,11 +463,15 @@ export function StrategiesPage() {
                     <div class="row strategy-card-actions">
                       <Button
                         class={active ? 'btn-active' : ''}
-                        disabled={active}
+                        disabled={active || activatingId !== null}
                         onClick={active ? undefined : () => void activate(strategy.id)}
                         data-testid={`strategy-activate-${strategy.id}`}
                       >
-                        {active ? tr('strategies.active') : tr('strategies.enable')}
+                        {active
+                          ? tr('strategies.active')
+                          : activatingId === strategy.id
+                            ? tr('strategies.enabling')
+                            : tr('strategies.enable')}
                       </Button>
                       <Button onClick={() => duplicate(strategy)} data-testid={`strategy-duplicate-${strategy.id}`}>
                         {tr('strategies.copy')}
@@ -354,7 +479,7 @@ export function StrategiesPage() {
                       {!strategy.builtin && !active && (
                         <Button
                           variant="danger"
-                          onClick={() => void remove(strategy.id)}
+                          onClick={() => setDeleteTarget(strategy)}
                           data-testid={`strategy-delete-${strategy.id}`}
                         >
                           {tr('strategies.delete')}
@@ -371,16 +496,28 @@ export function StrategiesPage() {
         {editing && state ? (
           <div class="editor-panel" ref={editorRef} style={{ marginTop: `${editorOffset}px` }}>
             <div class="editor-head">
-              <input
-                class="input"
-                value={strategyDisplayName(editing, locale)}
-                disabled={editing.builtin}
-                onInput={(event) => {
-                  setError(null);
-                  setEditing({ ...editing, name: (event.currentTarget as HTMLInputElement).value });
-                }}
-                aria-label={tr('strategies.name')}
-              />
+              <label class="strategy-name-field" for="strategy-name">
+                <span class="strategy-name-label">{tr('strategies.name')}</span>
+                <input
+                  id="strategy-name"
+                  class="input"
+                  value={strategyDisplayName(editing, locale)}
+                  disabled={editing.builtin}
+                  aria-invalid={nameIssue ? 'true' : undefined}
+                  aria-describedby={nameIssue ? 'strategy-name-error' : undefined}
+                  onInput={(event) => {
+                    setError(null);
+                    setNotice(null);
+                    setEditing({ ...editing, name: (event.currentTarget as HTMLInputElement).value });
+                  }}
+                />
+                {nameIssue && (
+                  <span class="field-error" id="strategy-name-error" role="alert">
+                    {validationMessage(nameIssue, locale)}
+                  </span>
+                )}
+              </label>
+              {dirty && <span class="strategy-unsaved">{tr('strategies.unsaved')}</span>}
               <span class="grow" />
               {editing.builtin && <span class="badge">{tr('strategies.readOnly')}</span>}
             </div>
@@ -389,27 +526,43 @@ export function StrategiesPage() {
               expression={editing.expression}
               capabilities={state.capabilities}
               disabled={editing.builtin}
+              issues={validation?.issues ?? []}
               onChange={(expression) => {
                 setError(null);
+                setNotice(null);
                 setEditing({ ...editing, expression });
                 setPreview(null);
+                setPreviewOpen(false);
               }}
             />
 
             <div class="editor-foot">
-              {validation && !validation.valid && validation.issues[0] && (
-                <Banner tone="error">{validationMessage(validation.issues[0])}</Banner>
+              {ruleIssue && <Banner tone="error">{validationMessage(ruleIssue, locale)}</Banner>}
+              {notice && (
+                <output class="strategy-notice" aria-live="polite">
+                  {notice}
+                </output>
               )}
               {preview && (
                 <div class="preview-status" data-testid="rule-preview-count">
-                  <button type="button" class="preview-trigger" aria-describedby="strategy-preview-sample">
+                  <button
+                    type="button"
+                    class="preview-trigger"
+                    aria-expanded={previewOpen}
+                    aria-controls="strategy-preview-sample"
+                    aria-describedby={previewOpen ? 'strategy-preview-sample' : undefined}
+                    onClick={() => setPreviewOpen((open) => !open)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Escape') setPreviewOpen(false);
+                    }}
+                  >
                     {tr('strategies.preview', {
                       count: preview.matched,
                       total: preview.totalManagedTabs,
                     })}
                   </button>
                   <div
-                    class="preview-sample"
+                    class={`preview-sample${previewOpen ? ' open' : ''}`}
                     id="strategy-preview-sample"
                     role="tooltip"
                     data-testid="rule-preview-sample"
@@ -439,7 +592,7 @@ export function StrategiesPage() {
                 <div class="row">
                   <Button
                     variant="primary"
-                    disabled={saving || activeUnchanged || !validation?.valid}
+                    disabled={saving || unchanged || !validation?.valid}
                     onClick={() => void save()}
                     data-testid="save-strategy"
                   >

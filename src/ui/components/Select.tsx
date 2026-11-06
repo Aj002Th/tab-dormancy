@@ -2,6 +2,8 @@ import { h, render } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { initialHighlight, menuPlacement, nextEnabled, type SelectOption } from './select-state';
 
+const OPTION_HEIGHT = 44;
+
 type SelectProps = {
   options: SelectOption[];
   value: string;
@@ -10,6 +12,9 @@ type SelectProps = {
   compact?: boolean;
   id?: string;
   'aria-label'?: string;
+  'aria-labelledby'?: string;
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean | 'true' | 'false';
   'data-testid'?: string;
   class?: string;
 };
@@ -20,6 +25,7 @@ export function Select(props: SelectProps) {
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement | null>(null);
   const highlight = useRef(-1);
+  const listId = useRef(`select-${Math.random().toString(36).slice(2)}`);
   const [open, setOpen] = useState(false);
   const selected = props.options.find((option) => option.value === props.value);
 
@@ -45,7 +51,7 @@ export function Select(props: SelectProps) {
     const placement = menuPlacement(
       { top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width },
       { width: window.innerWidth, height: window.innerHeight },
-      Math.min(props.options.length, 4) * 36,
+      Math.min(props.options.length, 4) * OPTION_HEIGHT,
     );
     host.style.top = `${placement.top}px`;
     host.style.left = `${placement.left}px`;
@@ -54,6 +60,7 @@ export function Select(props: SelectProps) {
     host.style.maxWidth = `${Math.max(placement.width, window.innerWidth - placement.left - 32)}px`;
     host.className = 'select-menu';
     host.role = 'listbox';
+    host.id = listId.current;
     host.style.maxHeight = `${placement.maxHeight}px`;
     render(
       props.options.map((option, index) =>
@@ -62,6 +69,7 @@ export function Select(props: SelectProps) {
           {
             type: 'button',
             role: 'option',
+            id: `${listId.current}-option-${index}`,
             class: `select-option${index === highlight.current ? ' highlighted' : ''}`,
             'data-value': option.value,
             disabled: option.disabled,
@@ -118,13 +126,24 @@ export function Select(props: SelectProps) {
       }
       return;
     }
-    if (event.key === 'Escape') {
+    if (event.key === 'Tab') {
+      closeMenu();
+    } else if (event.key === 'Escape') {
       event.preventDefault();
       closeMenu();
     } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       highlight.current = nextEnabled(props.options, highlight.current, event.key === 'ArrowDown' ? 1 : -1);
       paintMenu();
+    } else if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault();
+      const enabled = props.options
+        .map((option, index) => ({ option, index }))
+        .filter(({ option }) => !option.disabled);
+      if (enabled.length > 0) {
+        highlight.current = enabled[event.key === 'Home' ? 0 : enabled.length - 1]?.index ?? highlight.current;
+        paintMenu();
+      }
     } else if (event.key === 'Enter') {
       event.preventDefault();
       choose(highlight.current);
@@ -153,15 +172,24 @@ export function Select(props: SelectProps) {
       class={`input select-trigger${props.compact ? ' compact' : ''}${props.class ? ` ${props.class}` : ''}`}
       role="combobox"
       aria-expanded={open}
+      aria-haspopup="listbox"
+      aria-controls={open ? listId.current : undefined}
+      aria-activedescendant={
+        open && highlight.current >= 0 ? `${listId.current}-option-${highlight.current}` : undefined
+      }
       aria-label={props['aria-label']}
+      aria-labelledby={props['aria-labelledby']}
+      aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
       id={props.id}
       data-testid={props['data-testid']}
       data-value={props.value}
       disabled={props.disabled}
+      title={selected?.label ?? ''}
       onClick={() => (menu.current ? closeMenu() : openMenu())}
       onKeyDown={onKeyDown}
     >
-      <span>{selected?.label ?? ''}</span>
+      <span class="select-trigger-label">{selected?.label ?? ''}</span>
     </button>
   );
 }

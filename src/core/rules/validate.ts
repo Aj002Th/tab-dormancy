@@ -96,7 +96,7 @@ export function validateExpr(expr: Expr, caps?: Capabilities): ValidationResult 
             params: { fact: factLabel(node.fact) },
           });
         }
-        validateValue(node.value, node.op, definition, issues);
+        validateValue(node.value, node.op, definition, issues, node.id);
         break;
       }
     }
@@ -111,34 +111,40 @@ export function validateExpr(expr: Expr, caps?: Capabilities): ValidationResult 
   return { valid: issues.length === 0, issues, nodeCount, depth };
 }
 
-function validateValue(value: unknown, op: Operator, definition: FactDefinition, issues: ValidationIssue[]): void {
+function validateValue(
+  value: unknown,
+  op: Operator,
+  definition: FactDefinition,
+  issues: ValidationIssue[],
+  nodeId: string,
+): void {
   if (definition.type === 'number') {
     if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > LIMITS.maxNumber) {
-      issues.push({ code: 'BAD_VALUE_NUMBER', params: { max: LIMITS.maxNumber } });
+      issues.push({ nodeId, code: 'BAD_VALUE_NUMBER', params: { max: LIMITS.maxNumber } });
     }
     return;
   }
 
   if (definition.type === 'boolean') {
-    if (typeof value !== 'boolean') issues.push({ code: 'BAD_VALUE_BOOLEAN' });
+    if (typeof value !== 'boolean') issues.push({ nodeId, code: 'BAD_VALUE_BOOLEAN' });
     return;
   }
 
   if (op === 'inDomainList') {
     if (!Array.isArray(value) || value.length === 0 || value.length > LIMITS.maxDomainList) {
-      issues.push({ code: 'BAD_VALUE_DOMAIN_LIST', params: { max: LIMITS.maxDomainList } });
+      issues.push({ nodeId, code: 'BAD_VALUE_DOMAIN_LIST', params: { max: LIMITS.maxDomainList } });
       return;
     }
     if (
       value.some((item) => typeof item !== 'string' || item.length > LIMITS.maxStringLength || !normalizeDomain(item))
     ) {
-      issues.push({ code: 'BAD_VALUE_DOMAIN_INVALID' });
+      issues.push({ nodeId, code: 'BAD_VALUE_DOMAIN_INVALID' });
     }
     return;
   }
 
   if (typeof value !== 'string' || value.length > LIMITS.maxStringLength) {
-    issues.push({ code: 'BAD_VALUE_TEXT', params: { max: LIMITS.maxStringLength } });
+    issues.push({ nodeId, code: 'BAD_VALUE_TEXT', params: { max: LIMITS.maxStringLength } });
   }
 }
 

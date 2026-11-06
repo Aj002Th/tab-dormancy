@@ -1,6 +1,16 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
-  "files": { "includes": ["**", "!**/dist", "!**/node_modules", "!**/test-results", "!**/playwright-report"] },
+  "files": {
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/node_modules",
+      "!**/test-results",
+      "!**/playwright-report",
+      "!**/.agents/**",
+      "!**/design-system/**"
+    ]
+  },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },
   "javascript": { "formatter": { "quoteStyle": "single" } },
   "linter": { "enabled": true, "rules": { "recommended": true } },

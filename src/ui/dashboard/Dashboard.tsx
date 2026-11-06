@@ -11,7 +11,7 @@ import { parseRoute, type Route, routeHref } from './routes';
 import { SettingsPage } from './SettingsPage';
 import { StrategiesPage } from './StrategiesPage';
 import { TabsPage } from './TabsPage';
-import { hasUnsavedSettings } from './unsaved';
+import { hasUnsavedChanges, hasUnsavedStrategies } from './unsaved';
 
 export function Dashboard() {
   const locale = useLocale();
@@ -34,6 +34,10 @@ export function Dashboard() {
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
+
+  useEffect(() => {
+    document.getElementById('main-content')?.focus({ preventScroll: true });
+  }, [route]);
 
   useEffect(() => {
     let alive = true;
@@ -64,7 +68,8 @@ export function Dashboard() {
 
   function navigate(event: MouseEvent, next: Route) {
     if (next === route) return;
-    if (hasUnsavedSettings() && !window.confirm(t('nav.leaveConfirm'))) {
+    const message = hasUnsavedStrategies() ? t('strategies.leaveConfirm') : t('nav.leaveConfirm');
+    if (hasUnsavedChanges() && !window.confirm(message)) {
       event.preventDefault();
       return;
     }
@@ -73,6 +78,17 @@ export function Dashboard() {
 
   return (
     <div class="dashboard-shell">
+      {/* biome-ignore lint/a11y/useValidAnchor: skip link targets the main content region */}
+      <a
+        class="skip-link"
+        href="#main-content"
+        onClick={(event) => {
+          event.preventDefault();
+          document.getElementById('main-content')?.focus();
+        }}
+      >
+        {t('nav.skipToContent')}
+      </a>
       <aside class="sidebar">
         <h1 class="brand">Tab Dormancy</h1>
         <nav class="nav">
@@ -98,7 +114,7 @@ export function Dashboard() {
         </nav>
         <p class="sidebar-note muted">{t('nav.note')}</p>
       </aside>
-      <main class="content">
+      <main id="main-content" class="content" tabIndex={-1}>
         {warnings.map((warning) => (
           <Banner key={warning}>{warning}</Banner>
         ))}

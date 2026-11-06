@@ -708,7 +708,6 @@ test('settings theme applies to dashboard and popup', async ({ context, extensio
 
 test('settings restore defaults fills the form for review before saving', async ({ context, extensionId }) => {
   const dashboard = await context.newPage();
-  dashboard.on('dialog', (dialog) => void dialog.accept());
   await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
 
   const idle = dashboard.getByTestId('settings-idle');
@@ -726,6 +725,7 @@ test('settings restore defaults fills the form for review before saving', async 
 
   await idle.fill('25');
   await restore.click();
+  await dashboard.getByTestId('settings-confirm-action').click();
   await expect(idle).toHaveValue('15');
   await expect(maxRecords).toHaveValue('5000');
   await expect(dashboard.getByTestId('settings-lock-enabled')).toBeChecked();
@@ -745,7 +745,6 @@ test('settings clear history replaces stale banners', async ({ context, extensio
   await seedHistory(worker, 'settings-clear');
 
   const dashboard = await context.newPage();
-  dashboard.on('dialog', (dialog) => void dialog.accept());
   await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
 
   const idle = dashboard.getByTestId('settings-idle');
@@ -754,6 +753,7 @@ test('settings clear history replaces stale banners', async ({ context, extensio
   await expect(dashboard.getByTestId('settings-status')).toContainText('空闲阈值需为 1–1440 分钟');
 
   await dashboard.getByTestId('settings-clear-history').click();
+  await dashboard.getByTestId('settings-confirm-action').click();
   await expect(dashboard.getByTestId('settings-status')).toContainText('关闭历史已清空');
   await expect(dashboard.getByTestId('settings-status')).not.toContainText('空闲阈值');
 
@@ -767,7 +767,6 @@ test('history search, delete and clear work', async ({ context, extensionId }) =
   await seedHistory(worker, 'seed-r1');
 
   const dashboard = await context.newPage();
-  dashboard.on('dialog', (dialog) => void dialog.accept());
   await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/history`);
   await expect(dashboard.getByTestId('history-total')).toContainText('1');
   await expect(dashboard.getByTestId('history-retention')).toContainText('最近 30 天');
@@ -781,11 +780,13 @@ test('history search, delete and clear work', async ({ context, extensionId }) =
 
   await dashboard.getByTestId('history-select-seed-r1').check();
   await dashboard.getByTestId('history-delete').click();
+  await dashboard.getByTestId('history-confirm-action').click();
   await expect(dashboard.getByTestId('history-total')).toContainText('0');
 
   await seedHistory(worker, 'seed-r2');
   await dashboard.reload();
   await expect(dashboard.getByTestId('history-total')).toContainText('1');
   await dashboard.getByTestId('history-clear').click();
+  await dashboard.getByTestId('history-confirm-action').click();
   await expect(dashboard.getByTestId('history-total')).toContainText('0');
 });

@@ -37,8 +37,14 @@ describe('validateExpr', () => {
   it('rejects unknown facts, bad operators and bad values', () => {
     expect(validateExpr(condition('a', 'nope', 'is', true)).issues[0]?.code).toBe('UNKNOWN_FACT');
     expect(validateExpr(condition('a', 'pinned', 'gt', 1)).issues[0]?.code).toBe('BAD_OPERATOR');
-    expect(validateExpr(condition('a', 'lastActiveMinutes', 'gt', '60')).issues[0]?.code).toBe('BAD_VALUE_NUMBER');
-    expect(validateExpr(condition('a', 'domain', 'inDomainList', [])).issues[0]?.code).toBe('BAD_VALUE_DOMAIN_LIST');
+    expect(validateExpr(condition('a', 'lastActiveMinutes', 'gt', '60')).issues[0]).toMatchObject({
+      nodeId: 'a',
+      code: 'BAD_VALUE_NUMBER',
+    });
+    expect(validateExpr(condition('a', 'domain', 'inDomainList', [])).issues[0]).toMatchObject({
+      nodeId: 'a',
+      code: 'BAD_VALUE_DOMAIN_LIST',
+    });
   });
 
   it('disables facts that the browser cannot provide', () => {

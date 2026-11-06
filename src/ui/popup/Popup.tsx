@@ -118,7 +118,20 @@ export function Popup() {
           aria-label={t('popup.openDashboard')}
           title={t('popup.openDashboard')}
         >
-          ⚙
+          <svg
+            aria-hidden="true"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+          </svg>
         </Button>
       </header>
 
@@ -140,7 +153,7 @@ export function Popup() {
           {snapshot.warnings.map((warning) => (
             <Banner key={warning}>{warning}</Banner>
           ))}
-          <Banner tone="error">{state.error}</Banner>
+          {state.error && <Banner tone="error">{state.error}</Banner>}
           <div class="row popup-actions">
             <Button onClick={() => void load(nextRequest())}>{t('app.retry')}</Button>
             {state.switchErrorCode === 'PREVIEW_REQUIRED' && (
@@ -182,20 +195,23 @@ export function Popup() {
                     {summary}
                   </span>
                 )}
-                {summary && <span aria-hidden="true">·</span>}
-                <span>{t('popup.managedTabs', { total: preview.totalManagedTabs })}</span>
+                <span class="popup-managed">{t('popup.managedTabs', { total: preview.totalManagedTabs })}</span>
               </p>
             )}
 
             <div class="popup-body">
-              <p class={`popup-status${preview.matched === 0 ? ' popup-empty' : ''}`}>
+              <output
+                class={`popup-status${preview.matched === 0 ? ' popup-empty' : ''}`}
+                aria-live="polite"
+                aria-atomic="true"
+              >
                 <span class="popup-number" data-testid="popup-preview-count">
                   {preview.matched}
                 </span>
-                {preview.matched === 0 && state.phase !== 'switching' && (
-                  <span data-testid="popup-empty">{t('popup.nothingToClean')}</span>
-                )}
-              </p>
+                <span class="popup-count-label" data-testid={preview.matched === 0 ? 'popup-empty' : undefined}>
+                  {preview.matched === 0 ? t('popup.nothingToClean') : t('popup.tabsToClean')}
+                </span>
+              </output>
               {sample && sample.items.length > 0 && (
                 <ul class="popup-sample" data-testid="popup-sample">
                   {sample.items.map((item) => (
@@ -290,12 +306,14 @@ function StrategySelect({
   onChange: (id: string) => void;
 }) {
   return (
-    <label class="popup-strategy" for="popup-strategy">
-      <span class="sr-only">{t('popup.strategyLabel')}</span>
+    <div class="popup-strategy-field">
+      <span class="popup-field-label" id="popup-strategy-label">
+        {t('popup.strategyLabel')}
+      </span>
       <Select
         id="popup-strategy"
         data-testid="popup-strategy"
-        aria-label={t('popup.strategyLabel')}
+        aria-labelledby="popup-strategy-label"
         disabled={disabled}
         value={snapshot.activeStrategy.id}
         options={snapshot.strategies.map((strategy) => ({
@@ -304,6 +322,6 @@ function StrategySelect({
         }))}
         onChange={onChange}
       />
-    </label>
+    </div>
   );
 }
