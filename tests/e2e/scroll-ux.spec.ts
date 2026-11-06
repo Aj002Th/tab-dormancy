@@ -64,7 +64,9 @@ test('sidebar stays pinned and the note sits at the bottom while the page scroll
   expect(note).not.toBeNull();
   if (!sidebar || !note) return;
 
-  expect(sidebar.y).toBeCloseTo(0, 1);
+  // Sticky `top: 0` can land a fraction of a pixel off on Linux. A real
+  // unpin would move the sidebar by much more than 1px.
+  expect(Math.abs(sidebar.y)).toBeLessThan(1);
   expect(await page.locator('.nav-link').first().isVisible()).toBe(true);
   expect(note.y + note.height).toBeGreaterThan(sidebar.y + sidebar.height - 40);
 });
