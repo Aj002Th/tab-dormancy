@@ -27,6 +27,12 @@ export function Popup() {
     return request.current;
   }
 
+  async function reload() {
+    const generation = nextRequest();
+    dispatch({ type: 'reload', generation });
+    await load(generation);
+  }
+
   async function load(generation = request.current) {
     let snapshot: StateSnapshot;
     try {
@@ -66,8 +72,7 @@ export function Popup() {
     if (ids.length === 0) return;
     try {
       await send({ type: 'history.restore', ids, options: { mode: 'current-window', complete: true } });
-      dispatch({ type: 'reset' });
-      await load(nextRequest());
+      await reload();
     } catch (error) {
       dispatch({ type: 'error', message: messageOf(error), generation: request.current });
     }
@@ -139,7 +144,7 @@ export function Popup() {
       {state.phase === 'error' && (
         <>
           <Banner tone="error">{state.error}</Banner>
-          <Button class="popup-action" onClick={() => void load(nextRequest())}>
+          <Button class="popup-action" onClick={() => void reload()}>
             {t('app.retry')}
           </Button>
         </>
@@ -155,7 +160,7 @@ export function Popup() {
           ))}
           {state.error && <Banner tone="error">{state.error}</Banner>}
           <div class="row popup-actions">
-            <Button onClick={() => void load(nextRequest())}>{t('app.retry')}</Button>
+            <Button onClick={() => void reload()}>{t('app.retry')}</Button>
             {state.switchErrorCode === 'PREVIEW_REQUIRED' && (
               <Button onClick={() => openDashboardRoute('strategies')} data-testid="preview-in-dashboard">
                 {t('popup.previewInDashboard')}
@@ -278,13 +283,7 @@ export function Popup() {
                 {t('popup.undo')}
               </Button>
             )}
-            <Button
-              variant="primary"
-              onClick={() => {
-                dispatch({ type: 'reset' });
-                void load(nextRequest());
-              }}
-            >
+            <Button variant="primary" onClick={() => void reload()}>
               {t('popup.done')}
             </Button>
           </div>

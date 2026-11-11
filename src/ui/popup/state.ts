@@ -21,7 +21,7 @@ export type PopupAction =
   | { type: 'switch-failed'; message: string; code?: string; generation: number }
   | { type: 'run-start' }
   | { type: 'run-done'; result: CleanupResult }
-  | { type: 'reset' };
+  | { type: 'reload'; generation: number };
 
 export function initialPopupState(): PopupState {
   return {
@@ -66,8 +66,15 @@ export function popupReducer(state: PopupState, action: PopupAction): PopupState
       return { ...state, phase: 'running', error: null };
     case 'run-done':
       return { ...state, phase: 'done', result: action.result };
-    case 'reset':
-      return { ...state, phase: 'ready', result: null, error: null };
+    case 'reload':
+      return {
+        ...state,
+        phase: 'loading',
+        generation: action.generation,
+        result: null,
+        error: null,
+        switchErrorCode: null,
+      };
     default:
       return state;
   }
