@@ -127,6 +127,17 @@ describe('popupReducer', () => {
     expect(failed.switchErrorCode).toBe('PREVIEW_REQUIRED');
   });
 
+  it('accepts a refresh started after cleanup finishes', () => {
+    const ready = popupReducer(initialPopupState(), { type: 'loaded', snapshot, preview, generation: 0 });
+    const done = popupReducer(popupReducer(ready, { type: 'run-start' }), { type: 'run-done', result });
+    const refreshing = popupReducer(done, { type: 'reload', generation: 1 });
+    const updated = { ...preview, matched: 0 };
+    const next = popupReducer(refreshing, { type: 'loaded', snapshot, preview: updated, generation: 1 });
+    expect(next.phase).toBe('ready');
+    expect(next.preview?.matched).toBe(0);
+    expect(next.result).toBeNull();
+  });
+
   it('ignores a stale reload after the strategy switch has failed', () => {
     const ready = popupReducer(initialPopupState(), { type: 'loaded', snapshot, preview, generation: 1 });
     const switching = popupReducer(ready, { type: 'switch-start', generation: 2 });
