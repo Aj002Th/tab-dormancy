@@ -51,6 +51,13 @@ export class Repo {
     await this.local.set({ [STORAGE_KEYS.settings]: settings });
   }
 
+  async setConfig(settings: Settings, strategies: Strategy[]): Promise<void> {
+    await this.local.set({
+      [STORAGE_KEYS.settings]: settings,
+      [STORAGE_KEYS.strategies]: strategies,
+    });
+  }
+
   async getStrategies(): Promise<Strategy[]> {
     const value = (await this.local.get(STORAGE_KEYS.strategies))[STORAGE_KEYS.strategies];
     if (Array.isArray(value) && value.every(isStrategy)) return value;

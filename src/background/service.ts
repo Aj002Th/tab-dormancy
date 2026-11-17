@@ -1,5 +1,6 @@
 import { detectCapabilities } from '../core/capabilities';
 import { planCleanup, revalidatePlannedTab } from '../core/cleaner';
+import { type ConfigIssue, createConfigBundle, parseConfigBundle } from '../core/config';
 import { buildFacts, managedTabs } from '../core/facts';
 import { buildClosedRecords, markRestored, planRestore, toSummary } from '../core/history';
 import { selectExpired } from '../core/retention';
@@ -22,6 +23,8 @@ import type {
   CleanupPreview,
   CleanupResult,
   ClosedTabRecord,
+  ConfigBundle,
+  ConfigImportResult,
   HistoryQuery,
   HistoryQueryResult,
   Language,
@@ -703,6 +706,58 @@ export class TabDormancyService {
     await this.deps.repo.setStrategies(strategies.filter((item) => item.id !== id));
   }
 
+  async exportConfig(): Promise<ConfigBundle> {
+    await this.bootstrap();
+    const settings = await this.deps.repo.getSettings();
+    const strategies = await this.deps.repo.getStrategies();
+    return createConfigBundle(settings, strategies, this.deps.now());
+  }
+
+  async importConfig(value: unknown): Promise<ConfigImportResult> {
+    await this.bootstrap();
+    const parsed = parseConfigBundle(value);
+    if (!parsed.ok) throw new AppError('INVALID_CONFIG', configErrorMessage(parsed.issue));
+
+    const existing = await this.deps.repo.getStrategies();
+    const builtins = existing.filter((strategy) => strategy.builtin);
+    const idMap = new Map<string, string>();
+    const imported: Strategy[] = [];
+
+    for (const source of parsed.bundle.strategies) {
+      const id = this.deps.id();
+      if (!idMap.has(source.id)) idMap.set(source.id, id);
+      const signature = await signatureOf(source.expression);
+      const previewed = source.lastPreviewHash === signature;
+      imported.push({
+        ...source,
+        id,
+        name: source.name.trim(),
+        createdAt: source.createdAt,
+        updatedAt: this.deps.now(),
+        lastPreviewHash: previewed ? signature : null,
+        lastPreviewAt: previewed ? (source.lastPreviewAt ?? this.deps.now()) : null,
+      });
+    }
+
+    const strategies = [...builtins, ...imported];
+    const requested = parsed.bundle.settings.activeStrategyId;
+    const mapped = idMap.get(requested);
+    const activeStrategyId =
+      (mapped && strategies.some((strategy) => strategy.id === mapped) ? mapped : null) ??
+      (strategies.some((strategy) => strategy.id === requested) ? requested : null) ??
+      strategies.find((strategy) => strategy.id === 'preset:standard')?.id ??
+      strategies[0]?.id;
+    if (!activeStrategyId) throw new AppError('INTERNAL', t('errors.noUsableStrategy'));
+
+    const nextSettings: Settings = { ...parsed.bundle.settings, activeStrategyId };
+    await this.deps.repo.setConfig(nextSettings, strategies);
+    this.applyLocale(nextSettings.language);
+    await this.deps.browser.setIdleDetectionInterval(nextSettings.idleThresholdMinutes * 60);
+    if (!nextSettings.lockCleanupEnabled) await this.deps.browser.clearAlarm(ALARM_LOCKED);
+    await this.pruneHistory();
+    return { imported: imported.length, activeStrategyId };
+  }
+
   async updateSettings(patch: SettingsPatch): Promise<Settings> {
     await this.bootstrap();
     const current = await this.deps.repo.getSettings();
@@ -784,4 +839,19 @@ export class TabDormancyService {
 function isNoSuchTabError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return /No tab with id|Invalid tab ID|No tab with/i.test(message);
+}
+
+function configErrorMessage(issue: ConfigIssue): string {
+  switch (issue) {
+    case 'UNSUPPORTED_VERSION':
+      return t('errors.configVersion');
+    case 'BAD_SETTINGS':
+      return t('errors.configSettings');
+    case 'BAD_STRATEGY':
+      return t('errors.configStrategy');
+    case 'TOO_MANY_STRATEGIES':
+      return t('errors.configTooMany');
+    default:
+      return t('errors.configBadFormat');
+  }
 }

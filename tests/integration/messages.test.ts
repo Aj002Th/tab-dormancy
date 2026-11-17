@@ -59,6 +59,29 @@ describe('message router', () => {
     expect(response.ok).toBe(false);
   });
 
+  it('routes configuration export and import', async () => {
+    const exported = {
+      app: 'tab-dormancy',
+      schemaVersion: 1,
+      exportedAt: 1,
+      settings: snapshot.settings,
+      strategies: [],
+    };
+    const service = stub({
+      exportConfig: vi.fn().mockResolvedValue(exported),
+      importConfig: vi.fn().mockResolvedValue({ imported: 2, activeStrategyId: 'preset:standard' }),
+    } as Partial<TabDormancyService>);
+
+    await expect(handleRequest({ type: 'config.export' }, service)).resolves.toEqual({
+      ok: true,
+      data: exported,
+    });
+    await expect(handleRequest({ type: 'config.import', bundle: exported }, service)).resolves.toEqual({
+      ok: true,
+      data: { imported: 2, activeStrategyId: 'preset:standard' },
+    });
+  });
+
   it('returns true for async sendResponse handling', async () => {
     const sendResponse = vi.fn();
     const handler = createMessageHandler(stub());

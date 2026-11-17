@@ -2,6 +2,8 @@ import type { ErrorCode } from './errors';
 import type {
   CleanupPreview,
   CleanupResult,
+  ConfigBundle,
+  ConfigImportResult,
   HistoryQuery,
   HistoryQueryResult,
   RestoreOptions,
@@ -29,6 +31,8 @@ export type Request =
   | { type: 'strategy.activate'; id: string }
   | { type: 'strategy.delete'; id: string }
   | { type: 'settings.update'; patch: SettingsPatch }
+  | { type: 'config.export' }
+  | { type: 'config.import'; bundle: unknown }
   | { type: 'debug.simulate-idle' };
 
 export type Response<T> = { ok: true; data: T } | { ok: false; error: ErrorCode; message: string };
@@ -47,5 +51,7 @@ export type ResponseMap = {
   'strategy.activate': null;
   'strategy.delete': null;
   'settings.update': Settings;
+  'config.export': ConfigBundle;
+  'config.import': ConfigImportResult;
   'debug.simulate-idle': CleanupResult;
 };

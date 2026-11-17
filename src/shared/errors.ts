@@ -1,6 +1,7 @@
 export type ErrorCode =
   | 'INVALID_EXPRESSION'
   | 'INVALID_SETTINGS'
+  | 'INVALID_CONFIG'
   | 'UNSUPPORTED_FACT'
   | 'BUSY'
   | 'STORAGE_FAILED'

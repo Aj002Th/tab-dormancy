@@ -41,6 +41,7 @@ export const LIMITS = {
   maxDomainList: 50,
   maxNumber: 525_600,
   maxHistory: 5_000,
+  maxStrategies: 200,
   historyPageSize: 50,
   cleanupConcurrency: 4,
   lockStaleMs: 120_000,

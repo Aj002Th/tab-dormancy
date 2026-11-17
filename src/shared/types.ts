@@ -73,6 +73,19 @@ export type Settings = {
 
 export type SettingsPatch = Partial<Omit<Settings, 'activeStrategyId'>>;
 
+export type ConfigBundle = {
+  app: 'tab-dormancy';
+  schemaVersion: number;
+  exportedAt: number;
+  settings: Settings;
+  strategies: Strategy[];
+};
+
+export type ConfigImportResult = {
+  imported: number;
+  activeStrategyId: string;
+};
+
 export type TabFacts = {
   tabId: number;
   windowId: number;

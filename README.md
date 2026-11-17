@@ -93,6 +93,12 @@ Beyond the rules themselves, the extension enforces a set of protections that ca
 - Does not request host permissions.
 - Settings, strategies, and history are stored in local `chrome.storage.local`, and temporary session IDs are stored in `chrome.storage.session`; cloud sync is not used.
 
+### Backup and migration
+
+- Export settings and custom strategies as one JSON file, then import it in another browser or profile.
+- Importing replaces the current custom strategies and settings; built-in presets are kept, and closed history is not included.
+- Import and export are manual and stay local. Automatic cloud sync is not performed.
+
 ## Installation
 
 The extension is currently distributed through GitHub Releases:
@@ -129,7 +135,7 @@ Click the gear button in the top right of the popup, or "Extension options" on t
 | Tabs | View the current strategy, manageable tabs, match status, fact values, and rule evaluation; filter by window when there are multiple windows, and start cleanup directly |
 | Closed history | Search, filter, bulk restore, delete, or clear history |
 | Strategies | View presets and custom strategies; click a card to view and edit rules, or enable, copy, or delete one |
-| Settings | Adjust interface language, appearance theme, idle cleanup, lock-screen cleanup, cleanup scope, and history retention in groups; restore defaults or discard unsaved changes; a pinned bar at the bottom shows unsaved/saved status, leaving the page confirms unsaved changes, and a failed load can be retried directly |
+| Settings | Adjust interface language, appearance theme, idle cleanup, lock-screen cleanup, cleanup scope, and history retention in groups; import or export settings and custom strategies; restore defaults or discard unsaved changes; a pinned bar at the bottom shows unsaved/saved status, leaving the page confirms unsaved changes, and a failed load can be retried directly |
 | Diagnostics | View the Chrome version and capability support to determine which rules can run; warnings such as paused strategies appear at the top of every page |
 
 ### Editing strategies
