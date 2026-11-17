@@ -110,7 +110,7 @@ export function Popup() {
     : t('popup.noCleanup');
 
   return (
-    <main class="popup">
+    <main class={`popup popup-${state.phase}`}>
       <header class="popup-head">
         <div>
           <h1>Tab Dormancy</h1>
