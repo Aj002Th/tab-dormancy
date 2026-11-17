@@ -17,6 +17,18 @@ describe('url helpers', () => {
     expect(isManageableUrl('about:blank')).toBe(false);
   });
 
+  it('manages selected internal pages only when enabled', () => {
+    expect(isManageableUrl('chrome://newtab/', true)).toBe(true);
+    expect(isManageableUrl('chrome://settings/profiles', true)).toBe(true);
+    expect(isManageableUrl('edge://downloads/', true)).toBe(true);
+    expect(isManageableUrl('chrome://file-manager/', true)).toBe(true);
+    expect(isManageableUrl('chrome-search://local-ntp/local-ntp.html', true)).toBe(true);
+    expect(isManageableUrl('chrome://extensions', true)).toBe(false);
+    expect(isManageableUrl('chrome://flags', true)).toBe(false);
+    expect(isManageableUrl('edge://extensions', true)).toBe(false);
+    expect(isManageableUrl('chrome://settings', false)).toBe(false);
+  });
+
   it('matches a domain and its subdomains but not lookalikes', () => {
     expect(domainMatches('mail.google.com', 'google.com')).toBe(true);
     expect(domainMatches('google.com', 'google.com')).toBe(true);

@@ -169,6 +169,7 @@ function normalizeSettings(value: unknown): Settings | null {
     activeStrategyId: settings.activeStrategyId,
     theme: themeOf(settings.theme),
     language: languageOf(settings.language),
+    cleanInternalPages: settings.cleanInternalPages === true,
   };
 }
 
@@ -183,7 +184,8 @@ function isSettings(value: unknown): value is Settings {
     typeof settings.historyMaxRecords === 'number' &&
     typeof settings.activeStrategyId === 'string' &&
     isTheme(settings.theme) &&
-    isLanguage(settings.language)
+    isLanguage(settings.language) &&
+    typeof settings.cleanInternalPages === 'boolean'
   );
 }
 

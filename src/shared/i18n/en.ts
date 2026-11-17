@@ -252,6 +252,11 @@ export const en: Record<MessageKey, Message> = {
   'settings.lockEnabledHelp': 'When off, locking will not trigger cleanup.',
   'settings.lockDelay': 'Delay after locking (minutes)',
   'settings.lockDelayHelp': 'Set to 0 to run immediately after locking.',
+  'settings.scope': 'Cleanup scope',
+  'settings.scopeHelp': 'Choose which kinds of pages cleanup is allowed to close.',
+  'settings.cleanInternalPages': 'Also close browser-internal pages',
+  'settings.cleanInternalPagesHelp':
+    'Includes new tab, settings, downloads and file manager pages. Regular web pages and local file pages are always in scope. Off by default.',
   'settings.history': 'Closed history',
   'settings.historyHelp': 'Records closed tabs. Restoring does not remove records.',
   'settings.retentionDays': 'Retention (days)',

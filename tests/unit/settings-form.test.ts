@@ -22,6 +22,7 @@ const saved: Settings = {
   activeStrategyId: 'preset:standard',
   theme: 'system',
   language: 'system',
+  cleanInternalPages: false,
 };
 
 function form(patch: Partial<SettingsForm> = {}): SettingsForm {
@@ -38,6 +39,7 @@ describe('settings form', () => {
       historyMaxRecords: '5000',
       theme: 'system',
       language: 'system',
+      cleanInternalPages: false,
     });
   });
 
@@ -51,6 +53,7 @@ describe('settings form', () => {
         historyMaxRecords: '120',
         theme: 'dark',
         language: 'system',
+        cleanInternalPages: true,
       }),
     ).toEqual({
       patch: {
@@ -61,6 +64,7 @@ describe('settings form', () => {
         historyMaxRecords: 120,
         theme: 'dark',
         language: 'system',
+        cleanInternalPages: true,
       },
     });
   });
@@ -147,6 +151,7 @@ describe('settings form', () => {
     expect(isSettingsDirty(form({ historyMaxRecords: '120' }), saved)).toBe(true);
     expect(isSettingsDirty(form({ theme: 'dark' }), saved)).toBe(true);
     expect(isSettingsDirty(form({ language: 'en' }), saved)).toBe(true);
+    expect(isSettingsDirty(form({ cleanInternalPages: true }), saved)).toBe(true);
   });
 
   it('ignores the active strategy when comparing settings', () => {

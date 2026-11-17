@@ -28,6 +28,7 @@ const FIELD_IDS: Record<keyof SettingsForm, string> = {
   historyMaxRecords: 'settings-max-records',
   theme: 'settings-theme',
   language: 'settings-language',
+  cleanInternalPages: 'settings-internal-pages',
 };
 
 function fieldId(field: keyof SettingsForm): string {
@@ -413,6 +414,31 @@ export function SettingsPage() {
                   {fieldErrors.lockDelayMinutes}
                 </span>
               )}
+            </label>
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <div class="settings-section-head">
+            <h3>{t('settings.scope')}</h3>
+            <p class="muted small">{t('settings.scopeHelp')}</p>
+          </div>
+          <div class="settings-section-body">
+            <label class="settings-toggle">
+              <input
+                id="settings-internal-pages"
+                type="checkbox"
+                checked={form.cleanInternalPages}
+                disabled={saving}
+                data-testid="settings-internal-pages"
+                onChange={(event) =>
+                  updateForm({ cleanInternalPages: (event.currentTarget as HTMLInputElement).checked })
+                }
+              />
+              <span class="settings-toggle-text">
+                <strong>{t('settings.cleanInternalPages')}</strong>
+                <span class="muted small">{t('settings.cleanInternalPagesHelp')}</span>
+              </span>
             </label>
           </div>
         </section>

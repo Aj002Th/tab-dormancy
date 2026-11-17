@@ -71,6 +71,24 @@ describe('cleanup pipeline', () => {
     expect(await browser.getTab(defined(old.id, 'old tab id'))).not.toBeNull();
   });
 
+  it('closes internal pages only when the setting allows it', async () => {
+    const { browser, repo, service } = setup();
+    await service.bootstrap();
+    browser.addTab({ url: 'https://example.com/recent', lastAccessed: now - 10 * minute });
+    const internal = browser.addTab({ url: 'chrome://settings/profiles', lastAccessed: now - 5_000 * minute });
+    const internalId = defined(internal.id, 'internal tab id');
+
+    let result = await service.runCleanup('manual');
+    expect(result.closed).toBe(0);
+    expect(await browser.getTab(internalId)).not.toBeNull();
+
+    await service.updateSettings({ cleanInternalPages: true });
+    result = await service.runCleanup('manual');
+    expect(result.closed).toBe(1);
+    expect(await browser.getTab(internalId)).toBeNull();
+    expect((await repo.getHistoryIndex())[0]?.url).toBe('chrome://settings/profiles');
+  });
+
   it('reports a removal failure and still closes other tabs', async () => {
     const { browser, service } = setup();
     await service.bootstrap();

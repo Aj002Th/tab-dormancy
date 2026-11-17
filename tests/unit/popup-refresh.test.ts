@@ -15,6 +15,7 @@ const snapshot = {
     activeStrategyId: 'preset:standard',
     theme: 'system',
     language: 'zh',
+    cleanInternalPages: false,
   },
   strategies: [
     {

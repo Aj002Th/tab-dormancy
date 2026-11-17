@@ -67,8 +67,8 @@ Rules are not a fixed set of switches but an expression tree:
 
 Beyond the rules themselves, the extension enforces a set of protections that cannot be bypassed:
 
-- Only handles `http:`, `https:`, and `file:` pages.
-- Skips incognito windows and internal pages such as `chrome://`, `edge://`, `devtools://`, and extension pages.
+- Always handles `http:`, `https:`, and `file:` pages. When "Clean browser-internal pages" is enabled in Settings, it also closes safe built-in pages such as new tab, settings, downloads, and the file manager.
+- Skips incognito windows, `devtools://`, extension pages, and internal pages outside that safe list.
 - Keeps at least one tab per window, preferring the active tab, then the most recently accessed tab.
 - Re-reads the tab before closing and confirms that `id`, `windowId`, and URL are unchanged; if anything changed, it skips the tab.
 - Writes the close snapshot to history first; if the write fails, it cancels this cleanup and closes no tabs.
@@ -129,7 +129,7 @@ Click the gear button in the top right of the popup, or "Extension options" on t
 | Tabs | View the current strategy, manageable tabs, match status, fact values, and rule evaluation; filter by window when there are multiple windows, and start cleanup directly |
 | Closed history | Search, filter, bulk restore, delete, or clear history |
 | Strategies | View presets and custom strategies; click a card to view and edit rules, or enable, copy, or delete one |
-| Settings | Adjust interface language, appearance theme, idle cleanup, lock-screen cleanup, and history retention in groups; restore defaults or discard unsaved changes; a pinned bar at the bottom shows unsaved/saved status, leaving the page confirms unsaved changes, and a failed load can be retried directly |
+| Settings | Adjust interface language, appearance theme, idle cleanup, lock-screen cleanup, cleanup scope, and history retention in groups; restore defaults or discard unsaved changes; a pinned bar at the bottom shows unsaved/saved status, leaving the page confirms unsaved changes, and a failed load can be retried directly |
 | Diagnostics | View the Chrome version and capability support to determine which rules can run; warnings such as paused strategies appear at the top of every page |
 
 ### Editing strategies
@@ -177,7 +177,7 @@ The examples below illustrate rule meaning; configure them with the visual edito
 
 `lastActiveMinutes` relies on the browser's `lastAccessed` field; `frozen` requires Chrome 132+; `grouped`, `groupCollapsed`, and `groupTitle` rely on tab group capabilities. Facts that the current browser does not support are disabled in the editor.
 
-"Manageable tabs" means tabs whose scheme is `http:`, `https:`, or `file:` in normal, non-incognito windows. Incognito windows and browser-internal pages are not counted and will not be closed.
+"Manageable tabs" means tabs in normal, non-incognito windows whose scheme is `http:`, `https:`, or `file:`, plus — when "Clean browser-internal pages" is enabled in Settings — safe built-in pages such as new tab, settings, downloads, and the file manager. Incognito windows, other browser-internal pages, and extension pages are not counted and will not be closed.
 
 ### Operators
 

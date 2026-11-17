@@ -30,6 +30,7 @@ export const DEFAULT_SETTINGS: Settings = {
   activeStrategyId: 'preset:standard',
   theme: DEFAULT_THEME,
   language: DEFAULT_LANGUAGE,
+  cleanInternalPages: false,
 };
 
 export const LIMITS = {

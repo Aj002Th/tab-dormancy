@@ -10,6 +10,7 @@ export type CleanerInput = {
   strategy: Strategy;
   capabilities: Capabilities;
   now: number;
+  includeInternalPages?: boolean;
 };
 
 export function planCleanup(input: CleanerInput): CleanupPlan {

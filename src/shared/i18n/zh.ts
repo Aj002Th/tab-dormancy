@@ -249,6 +249,11 @@ export const zh = {
   'settings.lockEnabledHelp': '关闭后，锁屏不会触发清理。',
   'settings.lockDelay': '锁屏后延迟（分钟）',
   'settings.lockDelayHelp': '设为 0 表示锁屏后立即执行。',
+  'settings.scope': '清理范围',
+  'settings.scopeHelp': '选择清理允许关闭哪些类型的页面。',
+  'settings.cleanInternalPages': '同时清理浏览器内置页面',
+  'settings.cleanInternalPagesHelp':
+    '包括新标签页、设置页、下载页和文件管理器。普通网页和本地文件页始终在清理范围内。默认关闭。',
   'settings.history': '关闭历史',
   'settings.historyHelp': '记录被关闭的标签，恢复不会删除记录。',
   'settings.retentionDays': '保留天数',

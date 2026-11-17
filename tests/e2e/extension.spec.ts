@@ -3,21 +3,13 @@ import { defined } from '../helpers/assert-defined';
 import { expect, test } from './fixtures';
 import { chooseSelect } from './i18n-helpers';
 
-async function seedUrlStrategy(page: Page): Promise<void> {
-  await page.evaluate(async () => {
-    const expression = {
-      type: 'any',
-      id: 'e2e-root',
-      children: [
-        { type: 'condition', id: 'e2e-a', fact: 'url', op: 'matchesGlob', value: '*://127.0.0.1:4173/a*' },
-        { type: 'condition', id: 'e2e-b', fact: 'url', op: 'matchesGlob', value: '*://127.0.0.1:4173/b*' },
-      ],
-    };
+async function seedStrategy(page: Page, expression: unknown): Promise<void> {
+  await page.evaluate(async (expr) => {
     const strategy = {
       id: 'e2e',
       name: 'E2E URL',
       builtin: false,
-      expression,
+      expression: expr,
       createdAt: 0,
       updatedAt: 0,
       lastPreviewHash: null,
@@ -33,6 +25,17 @@ async function seedUrlStrategy(page: Page): Promise<void> {
     if (!saved.ok) throw new Error(saved.message);
     const activated = await chrome.runtime.sendMessage({ type: 'strategy.activate', id: saved.data.id });
     if (!activated.ok) throw new Error(activated.message);
+  }, expression);
+}
+
+async function seedUrlStrategy(page: Page): Promise<void> {
+  await seedStrategy(page, {
+    type: 'any',
+    id: 'e2e-root',
+    children: [
+      { type: 'condition', id: 'e2e-a', fact: 'url', op: 'matchesGlob', value: '*://127.0.0.1:4173/a*' },
+      { type: 'condition', id: 'e2e-b', fact: 'url', op: 'matchesGlob', value: '*://127.0.0.1:4173/b*' },
+    ],
   });
 }
 
@@ -107,6 +110,53 @@ test('idle/manual cleanup closes matching tabs and restores from history', async
   await expect
     .poll(async () => worker.evaluate(async () => (await chrome.tabs.query({})).map((tab) => tab.url)))
     .toEqual(expect.arrayContaining([expect.stringContaining('/a')]));
+});
+
+test('closes safe browser-internal pages only when enabled', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html`);
+  await seedStrategy(dashboard, {
+    type: 'any',
+    id: 'e2e-ntp-root',
+    children: [
+      { type: 'condition', id: 'e2e-ntp', fact: 'url', op: 'matchesGlob', value: '*://newtab*' },
+      { type: 'condition', id: 'e2e-ntp-local', fact: 'url', op: 'matchesGlob', value: '*://local-ntp/*' },
+    ],
+  });
+
+  const ntp = await context.newPage();
+  await ntp.goto('chrome://newtab/');
+
+  const popup = await context.newPage();
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  await expect(popup.getByTestId('popup-preview-count')).toHaveText('0');
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await dashboard.getByTestId('settings-internal-pages').check();
+  await dashboard.getByTestId('settings-save').click();
+  await expect(dashboard.getByTestId('settings-status')).toContainText('设置已保存');
+
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  const worker = defined(context.serviceWorkers()[0], 'service worker');
+  await expect
+    .poll(async () =>
+      worker.evaluate(async () => {
+        const stored = await chrome.storage.local.get('settings');
+        return (stored.settings as { cleanInternalPages?: boolean } | undefined)?.cleanInternalPages === true;
+      }),
+    )
+    .toBe(true);
+  await expect(popup.getByTestId('popup-preview-count')).toHaveText('1');
+  await popup.getByTestId('cleanup-button').click();
+  await popup.getByTestId('confirm-cleanup').click();
+  await expect(popup.getByTestId('undo-button')).toBeVisible();
+
+  await expect
+    .poll(async () => {
+      const urls = await worker.evaluate(async () => (await chrome.tabs.query({})).map((tab) => tab.url));
+      return urls.some((url) => url?.includes('newtab'));
+    })
+    .toBe(false);
 });
 
 test('popup switches the active strategy and lists matched tabs', async ({ context, extensionId }) => {

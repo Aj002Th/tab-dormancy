@@ -68,6 +68,7 @@ export type Settings = {
   activeStrategyId: string;
   theme: Theme;
   language: Language;
+  cleanInternalPages: boolean;
 };
 
 export type SettingsPatch = Partial<Omit<Settings, 'activeStrategyId'>>;

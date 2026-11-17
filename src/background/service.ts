@@ -122,14 +122,22 @@ export class TabDormancyService {
 
   async previewCleanup(): Promise<CleanupPreview> {
     await this.bootstrap();
-    const { active, caps } = await this.activeStrategy();
+    const { active, caps, settings } = await this.activeStrategy();
     this.assertUsable(active, caps);
     const [tabs, windows, groups] = await Promise.all([
       this.deps.browser.queryTabs(),
       this.deps.browser.getWindows(),
       this.deps.browser.getTabGroups(),
     ]);
-    const plan = planCleanup({ tabs, windows, groups, strategy: active, capabilities: caps, now: this.deps.now() });
+    const plan = planCleanup({
+      tabs,
+      windows,
+      groups,
+      strategy: active,
+      capabilities: caps,
+      now: this.deps.now(),
+      includeInternalPages: settings.cleanInternalPages,
+    });
     return {
       matched: plan.matched.length,
       sample: plan.matched
@@ -152,12 +160,21 @@ export class TabDormancyService {
       );
     }
     this.assertUsable(strategy, caps);
+    const settings = await this.deps.repo.getSettings();
     const [tabs, windows, groups] = await Promise.all([
       this.deps.browser.queryTabs(),
       this.deps.browser.getWindows(),
       this.deps.browser.getTabGroups(),
     ]);
-    const plan = planCleanup({ tabs, windows, groups, strategy, capabilities: caps, now: this.deps.now() });
+    const plan = planCleanup({
+      tabs,
+      windows,
+      groups,
+      strategy,
+      capabilities: caps,
+      now: this.deps.now(),
+      includeInternalPages: settings.cleanInternalPages,
+    });
     return {
       matched: plan.matched.length,
       sample: plan.matched
@@ -172,15 +189,21 @@ export class TabDormancyService {
 
   async listTabs(): Promise<TabListItem[]> {
     await this.bootstrap();
-    const { active, caps } = await this.activeStrategy();
+    const { active, caps, settings } = await this.activeStrategy();
     const [tabs, windows, groups] = await Promise.all([
       this.deps.browser.queryTabs(),
       this.deps.browser.getWindows(),
       this.deps.browser.getTabGroups(),
     ]);
-    const facts = buildFacts({ tabs, windows, groups, now: this.deps.now() });
+    const facts = buildFacts({
+      tabs,
+      windows,
+      groups,
+      now: this.deps.now(),
+      includeInternalPages: settings.cleanInternalPages,
+    });
     const disabled = unsupportedFacts(active.expression, caps).length > 0;
-    return managedTabs({ tabs, windows }).flatMap((tab) => {
+    return managedTabs({ tabs, windows, includeInternalPages: settings.cleanInternalPages }).flatMap((tab) => {
       const fact = facts.get(tab.id as number);
       if (!fact) return [];
       const evaluation = disabled ? { matched: false, trace: [] } : evaluateStrategy(active, fact, caps);
@@ -197,7 +220,7 @@ export class TabDormancyService {
 
     try {
       if (!(await this.acquireLock(runId))) throw new AppError('BUSY', t('errors.busy'));
-      const { active, caps } = await this.activeStrategy();
+      const { active, caps, settings } = await this.activeStrategy();
       this.assertUsable(active, caps);
 
       const [tabs, windows, groups] = await Promise.all([
@@ -205,7 +228,15 @@ export class TabDormancyService {
         this.deps.browser.getWindows(),
         this.deps.browser.getTabGroups(),
       ]);
-      const plan = planCleanup({ tabs, windows, groups, strategy: active, capabilities: caps, now: this.deps.now() });
+      const plan = planCleanup({
+        tabs,
+        windows,
+        groups,
+        strategy: active,
+        capabilities: caps,
+        now: this.deps.now(),
+        includeInternalPages: settings.cleanInternalPages,
+      });
 
       if (plan.matched.length === 0) {
         const result: CleanupResult = {
@@ -695,6 +726,9 @@ export class TabDormancyService {
     }
     if (typeof next.lockCleanupEnabled !== 'boolean') {
       throw new AppError('INVALID_SETTINGS', t('errors.invalidLockSettings'));
+    }
+    if (typeof next.cleanInternalPages !== 'boolean') {
+      throw new AppError('INVALID_SETTINGS', t('errors.INVALID_SETTINGS'));
     }
     if (!isTheme(next.theme)) {
       throw new AppError('INVALID_SETTINGS', t('errors.invalidTheme'));

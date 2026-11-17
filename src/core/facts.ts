@@ -7,9 +7,10 @@ export type FactsInput = {
   windows: chrome.windows.Window[];
   groups: chrome.tabGroups.TabGroup[];
   now: number;
+  includeInternalPages?: boolean;
 };
 
-export function managedTabs(input: Pick<FactsInput, 'tabs' | 'windows'>): chrome.tabs.Tab[] {
+export function managedTabs(input: Pick<FactsInput, 'tabs' | 'windows' | 'includeInternalPages'>): chrome.tabs.Tab[] {
   const normalWindows = new Set(
     input.windows
       .filter((window) => window.type === 'normal' && !window.incognito && typeof window.id === 'number')
@@ -20,7 +21,7 @@ export function managedTabs(input: Pick<FactsInput, 'tabs' | 'windows'>): chrome
     if (typeof tab.id !== 'number' || typeof tab.windowId !== 'number') return false;
     if (!normalWindows.has(tab.windowId)) return false;
     const url = tab.url ?? tab.pendingUrl ?? '';
-    return isManageableUrl(url);
+    return isManageableUrl(url, input.includeInternalPages === true);
   });
 }
 
