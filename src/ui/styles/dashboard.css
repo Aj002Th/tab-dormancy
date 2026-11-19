@@ -564,7 +564,7 @@
 }
 
 .editor-panel {
-  padding: var(--space-3);
+  padding: var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
@@ -769,13 +769,13 @@
 
 .rule-editor {
   display: grid;
-  gap: var(--space-2);
-  margin: var(--space-2) 0;
+  gap: var(--space-4);
+  margin: var(--space-3) 0;
 }
 
 .group-card {
   display: grid;
-  gap: var(--space-2);
+  gap: 0;
   min-inline-size: 0;
   margin: 0;
   padding: 0;
@@ -787,20 +787,24 @@
 .group-card.depth-2,
 .group-card.depth-3,
 .group-card.depth-4 {
-  margin-left: var(--space-2);
-  padding-left: var(--space-3);
-  border-left: 1px solid var(--border);
+  margin-left: var(--space-3);
+  padding-left: var(--space-4);
+  border-left: 2px solid color-mix(in srgb, var(--accent) 30%, var(--border));
 }
 
 .group-head {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-2) var(--space-4);
   flex-wrap: wrap;
+  min-height: 44px;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
 }
 
 .group-children {
   display: grid;
+  gap: 0;
   container-type: inline-size;
 }
 
@@ -809,7 +813,7 @@
   align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
-  margin-top: var(--space-1);
+  padding-top: var(--space-3);
 }
 
 .group-error {
@@ -818,13 +822,15 @@
 
 .condition-row {
   display: grid;
-  grid-template-areas: "neg fact op value delete";
-  grid-template-columns: 72px minmax(0, 1fr) minmax(0, 1fr) minmax(150px, 1.3fr) auto;
-  align-items: end;
-  gap: var(--space-2) var(--space-4);
+  grid-template-areas:
+    "neg fact delete"
+    ". params .";
+  grid-template-columns: 72px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: var(--space-4) var(--space-3);
   min-inline-size: 0;
   margin: 0;
-  padding: var(--space-1) 0;
+  padding: var(--space-3) 0;
   border: 0;
   border-bottom: 1px solid var(--border);
   background: transparent;
@@ -832,7 +838,6 @@
 
 .condition-row.boolean {
   grid-template-areas: "neg fact delete";
-  grid-template-columns: 72px minmax(0, 1fr) auto;
 }
 
 .condition-negate {
@@ -843,12 +848,13 @@
   grid-area: fact;
 }
 
-.condition-operator {
-  grid-area: op;
-}
-
-.condition-value {
-  grid-area: value;
+.condition-params {
+  display: grid;
+  grid-area: params;
+  grid-template-columns: minmax(160px, 0.7fr) minmax(200px, 1.3fr);
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
 }
 
 .condition-delete {
@@ -864,18 +870,26 @@
 }
 
 .condition-field {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   min-width: 0;
 }
 
 .condition-field .input,
 .condition-field .select-trigger {
   width: 100%;
+  min-width: 0;
+}
+
+.condition-fact .select-trigger,
+.condition-operator .select-trigger,
+.condition-value .input {
+  flex: 1;
 }
 
 .condition-label {
-  padding-left: 12px;
+  flex: none;
   color: var(--muted);
   font-size: 12px;
   font-weight: 500;
@@ -889,6 +903,7 @@
 
 .value-row {
   display: grid;
+  flex: 1;
   grid-template-columns: minmax(0, 1fr) 76px;
   align-items: center;
   gap: var(--space-2);
@@ -904,9 +919,30 @@
 }
 
 .condition-delete {
-  min-inline-size: 44px;
-  align-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
   justify-self: end;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  transition:
+    color var(--motion-fast) var(--ease-out),
+    background var(--motion-fast) var(--ease-out);
+}
+
+.condition-delete:hover:not(:disabled) {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.condition-delete svg {
+  display: block;
 }
 
 .condition-error,
@@ -919,17 +955,24 @@
   font-size: 12px;
 }
 
-@container (max-width: 540px) {
+@container (max-width: 480px) {
   .condition-row:not(.boolean) {
     grid-template-areas:
-      "neg fact fact fact"
-      ". op value delete";
-    grid-template-columns: 72px minmax(0, 1fr) minmax(0, 1fr) auto;
+      "neg delete"
+      "fact fact"
+      "params params";
+    grid-template-columns: 72px auto;
   }
 
   .condition-row.boolean {
-    grid-template-areas: "neg fact delete";
-    grid-template-columns: 72px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "neg delete"
+      "fact fact";
+    grid-template-columns: 72px auto;
+  }
+
+  .condition-params {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -1001,6 +1044,11 @@
 .text-button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.group-head .text-button {
+  min-height: 44px;
+  padding: 0 var(--space-2);
 }
 
 .unavailable-note {

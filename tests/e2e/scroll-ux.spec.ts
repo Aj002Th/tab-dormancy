@@ -46,6 +46,15 @@ async function expectEditorFullyVisible(page: import('@playwright/test').Page): 
     .toBe(true);
 }
 
+async function expectEditorTopVisible(page: import('@playwright/test').Page): Promise<void> {
+  await expect
+    .poll(async () => {
+      const { editor, viewport } = await geometry(page);
+      return editor !== null && editor.top >= 0 && editor.top < viewport;
+    })
+    .toBe(true);
+}
+
 test('sidebar stays pinned and the note sits at the bottom while the page scrolls', async ({
   context,
   extensionId,
@@ -73,11 +82,9 @@ test('sidebar stays pinned and the note sits at the bottom while the page scroll
 
 test('entering strategies does not scroll when the card and editor already fit', async ({ context, extensionId }) => {
   const page = await context.newPage();
-  // 1280x720 leaves only ~17px of slack below the editor on macOS. Linux font
-  // metrics make the stack ~27px taller, which legitimately triggers a small
-  // scroll to keep the 16px bottom gutter. Use a viewport with clear headroom
-  // so the assertion covers "no scroll when it fits", not exact font metrics.
-  await page.setViewportSize({ width: 1280, height: 900 });
+  // The standard preset's 5-condition editor is ~683px tall. 1000px leaves
+  // enough headroom for the page header, the selected card, and the editor.
+  await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
 
   await expect(page.locator('.strategy-card.selected')).toBeVisible();
@@ -93,15 +100,15 @@ test('entering strategies reveals the whole editor in a stacked layout', async (
 
   await expect(page.locator('.strategy-card.selected')).toBeVisible();
   await expectEditorFullyVisible(page);
-  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 });
 
-test('entering strategies reveals the whole editor in a short window', async ({ context, extensionId }) => {
+test('entering strategies reveals the top of a tall editor in a short window', async ({ context, extensionId }) => {
   const page = await context.newPage();
   await page.setViewportSize({ width: 1280, height: 600 });
   await page.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
 
   await expect(page.locator('.strategy-card.selected')).toBeVisible();
-  await expectFullyVisible(page);
-  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await expectEditorTopVisible(page);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 });
