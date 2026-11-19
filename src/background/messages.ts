@@ -43,6 +43,10 @@ export async function handleRequest(message: unknown, service: TabDormancyServic
         return ok(null);
       case 'settings.update':
         return ok(await service.updateSettings(request.patch));
+      case 'config.export':
+        return ok(await service.exportConfig());
+      case 'config.import':
+        return ok(await service.importConfig(request.bundle));
       case 'debug.simulate-idle':
         if (import.meta.env.MODE === 'development') return ok(await service.runCleanup('manual'));
         return fail('NOT_FOUND', t('errors.devOnly'));

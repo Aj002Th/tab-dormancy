@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import type { Page, Worker } from '@playwright/test';
 import { defined } from '../helpers/assert-defined';
 import { expect, test } from './fixtures';
@@ -852,4 +853,56 @@ test('history search, delete and clear work', async ({ context, extensionId }) =
   await dashboard.getByTestId('history-clear').click();
   await dashboard.getByTestId('history-confirm-action').click();
   await expect(dashboard.getByTestId('history-total')).toContainText('0');
+});
+
+test('settings exports and imports configuration', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await dashboard.locator('.settings-sections').waitFor();
+
+  const downloadPromise = dashboard.waitForEvent('download');
+  await dashboard.getByTestId('settings-export').click();
+  const download = await downloadPromise;
+  const path = await download.path();
+  expect(path).not.toBeNull();
+  const exported = JSON.parse(await readFile(path as string, 'utf8')) as {
+    app: string;
+    settings: Record<string, unknown>;
+  };
+  expect(exported.app).toBe('tab-dormancy');
+
+  const bundle = {
+    ...exported,
+    settings: { ...exported.settings, idleThresholdMinutes: 42, activeStrategyId: 'e2e-imported' },
+    strategies: [
+      {
+        id: 'e2e-imported',
+        name: 'Imported E2E',
+        builtin: false,
+        expression: {
+          type: 'condition',
+          id: 'imported-node',
+          fact: 'lastActiveMinutes',
+          op: 'gt',
+          value: 60,
+        },
+        createdAt: 0,
+        updatedAt: 0,
+        lastPreviewHash: null,
+        lastPreviewAt: null,
+      },
+    ],
+  };
+  await dashboard.getByTestId('settings-import-file').setInputFiles({
+    name: 'config.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(bundle)),
+  });
+  await expect(dashboard.getByTestId('settings-import-confirm')).toBeVisible();
+  await dashboard.getByTestId('settings-import-confirm').click();
+  await expect(dashboard.getByTestId('settings-status')).toContainText('已导入 1 个策略');
+  await expect(dashboard.getByTestId('settings-idle')).toHaveValue('42');
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+  await expect(dashboard.getByText('Imported E2E')).toBeVisible();
 });

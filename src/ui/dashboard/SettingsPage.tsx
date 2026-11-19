@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { parseConfigBundle } from '../../core/config';
 import { DEFAULT_SETTINGS, LIMITS } from '../../shared/constants';
 import { t } from '../../shared/i18n';
-import type { Language, Settings, StateSnapshot, Theme } from '../../shared/types';
+import type { ConfigBundle, ConfigImportResult, Language, Settings, StateSnapshot, Theme } from '../../shared/types';
 import { messageOf, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
@@ -81,6 +82,9 @@ export function SettingsPage() {
   const [notice, setNotice] = useState<{ text: string; tone: 'saved' | 'info' } | null>(null);
   const [fieldErrors, setFieldErrors] = useState<SettingsErrors>({});
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [ioBusy, setIoBusy] = useState<'export' | 'import' | null>(null);
+  const [pendingImport, setPendingImport] = useState<{ bundle: ConfigBundle; fileName: string } | null>(null);
+  const fileInput = useRef<HTMLInputElement | null>(null);
 
   const dirty = form !== null && saved !== null && isSettingsDirty(form, saved);
   const atDefaults = form !== null && !isSettingsDirty(form, DEFAULT_SETTINGS);
@@ -231,6 +235,70 @@ export function SettingsPage() {
     } catch (error) {
       setError(messageOf(error));
       setNotice(null);
+    }
+  }
+
+  async function exportConfig() {
+    if (saving || ioBusy || dirty) return;
+    setIoBusy('export');
+    setError(null);
+    setNotice(null);
+    try {
+      const bundle = await send<ConfigBundle>({ type: 'config.export' });
+      const blob = new Blob([`${JSON.stringify(bundle, null, 2)}\n`], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `tab-dormancy-config-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+      showNotice(t('settings.exported'), 'info');
+    } catch (error) {
+      setError(messageOf(error));
+    } finally {
+      setIoBusy(null);
+    }
+  }
+
+  async function selectImport(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    setError(null);
+    setNotice(null);
+    setPendingImport(null);
+    try {
+      const parsed = parseConfigBundle(JSON.parse(await file.text()));
+      if (!parsed.ok) {
+        setError(t('settings.importInvalid'));
+        return;
+      }
+      setPendingImport({ bundle: parsed.bundle, fileName: file.name });
+    } catch (error) {
+      setError(error instanceof SyntaxError ? t('settings.importInvalid') : messageOf(error));
+    }
+  }
+
+  async function confirmImport() {
+    if (!pendingImport || ioBusy) return;
+    setIoBusy('import');
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await send<ConfigImportResult>({
+        type: 'config.import',
+        bundle: pendingImport.bundle,
+      });
+      setPendingImport(null);
+      await load();
+      showNotice(t('settings.imported', { count: result.imported }));
+    } catch (error) {
+      setError(messageOf(error));
+    } finally {
+      setIoBusy(null);
     }
   }
 
@@ -525,6 +593,65 @@ export function SettingsPage() {
                 {t('settings.clearHistory')}
               </Button>
             </div>
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <div class="settings-section-head">
+            <h3>{t('settings.configuration')}</h3>
+            <p class="muted small">{t('settings.configurationHelp')}</p>
+          </div>
+          <div class="settings-section-body">
+            <p class="settings-help">{t('settings.configurationBody')}</p>
+            <div class="row">
+              <Button
+                onClick={() => void exportConfig()}
+                disabled={saving || ioBusy !== null || dirty}
+                data-testid="settings-export"
+              >
+                {ioBusy === 'export' ? t('settings.exporting') : t('settings.export')}
+              </Button>
+              <Button
+                onClick={() => fileInput.current?.click()}
+                disabled={saving || ioBusy !== null || dirty}
+                data-testid="settings-import"
+              >
+                {ioBusy === 'import' ? t('settings.importing') : t('settings.import')}
+              </Button>
+              <input
+                ref={fileInput}
+                type="file"
+                accept="application/json,.json"
+                class="sr-only"
+                tabIndex={-1}
+                onChange={(event) => void selectImport(event)}
+                data-testid="settings-import-file"
+              />
+            </div>
+            {dirty && <p class="settings-help">{t('settings.importSaveFirst')}</p>}
+            {pendingImport && (
+              <div class="settings-confirm" role="alert">
+                <p>
+                  {t('settings.importConfirm', {
+                    file: pendingImport.fileName,
+                    count: pendingImport.bundle.strategies.length,
+                  })}
+                </p>
+                <div class="row">
+                  <Button
+                    variant="primary"
+                    onClick={() => void confirmImport()}
+                    disabled={ioBusy !== null}
+                    data-testid="settings-import-confirm"
+                  >
+                    {t('settings.import')}
+                  </Button>
+                  <Button onClick={() => setPendingImport(null)} data-testid="settings-import-cancel">
+                    {t('common.cancel')}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </section>
       </div>
