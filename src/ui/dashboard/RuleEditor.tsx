@@ -297,7 +297,7 @@ function ConditionRow({
       </label>
 
       {!isBoolean && (
-        <>
+        <div class="condition-params">
           <label class="condition-field condition-operator" for={`rule-${node.id}-operator`}>
             <span class="condition-label">{translate(locale, 'editor.operator')}</span>
             <Select
@@ -390,7 +390,7 @@ function ConditionRow({
               />
             </label>
           )}
-        </>
+        </div>
       )}
 
       {unavailable && <span class="unavailable-note">{translate(locale, 'editor.unavailableNote')}</span>}
@@ -402,11 +402,28 @@ function ConditionRow({
       {depth > 0 && (
         <button
           type="button"
-          class="text-button danger condition-delete"
+          class="condition-delete"
           disabled={disabled}
+          aria-label={translate(locale, 'editor.delete')}
+          title={translate(locale, 'editor.delete')}
           onClick={() => onChange(removeNode(root, node.id))}
         >
-          {translate(locale, 'editor.delete')}
+          <svg
+            aria-hidden="true"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M4 7h16" />
+            <path d="M9 7V5h6v2" />
+            <path d="M6 7l1 13h10l1-13" />
+            <path d="M10 11v5M14 11v5" />
+          </svg>
         </button>
       )}
     </fieldset>
