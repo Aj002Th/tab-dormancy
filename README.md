@@ -355,3 +355,7 @@ The optional repository variable `EDGE_PUBLISH_NOTES` replaces the default certi
 - No cross-device sync, usage statistics, data export, or analytics dashboard.
 - Does not handle incognito windows.
 - Closed history is retained for 30 days and up to 5,000 entries by default; both can be adjusted in settings.
+
+## License
+
+[MIT](LICENSE) © 2026 Aj002Th

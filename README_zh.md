@@ -355,3 +355,7 @@ GitHub Release 创建后，同一个 workflow 会把 ZIP 提交到 Microsoft Edg
 - 不做跨设备同步、使用统计、数据导出或分析看板。
 - 不处理无痕窗口。
 - 关闭历史默认保留 30 天、最多 5000 条，均可在设置中调整。
+
+## 许可证
+
+[MIT](LICENSE) © 2026 Aj002Th
