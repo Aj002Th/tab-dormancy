@@ -4,9 +4,16 @@
   align-items: stretch;
   gap: var(--space-3);
   width: 360px;
-  min-height: 260px;
   padding: var(--space-4);
   background: var(--bg);
+}
+
+/* Keep the popup from jumping between short-lived phases; the finished and
+   error states size themselves to their content. */
+.popup-loading,
+.popup-running,
+.popup-switching {
+  min-height: 260px;
 }
 
 .popup-head {

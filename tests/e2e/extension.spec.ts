@@ -87,6 +87,19 @@ test('idle/manual cleanup closes matching tabs and restores from history', async
   await popup.getByTestId('confirm-cleanup').click();
   await expect(popup.getByTestId('undo-button')).toBeVisible();
 
+  // After cleanup finishes the popup should hug its content: only the 16px
+  // bottom padding may remain below the result box.
+  await expect
+    .poll(() =>
+      popup.evaluate(() => {
+        const root = document.querySelector('.popup');
+        const last = root?.lastElementChild;
+        if (!root || !last) return Number.POSITIVE_INFINITY;
+        return Math.round(root.getBoundingClientRect().bottom - last.getBoundingClientRect().bottom);
+      }),
+    )
+    .toBeLessThanOrEqual(17);
+
   const worker = defined(context.serviceWorkers()[0], 'service worker');
   const urls = await worker.evaluate(async () => (await chrome.tabs.query({})).map((tab) => tab.url));
   expect(urls.some((url) => url?.includes('/a'))).toBe(false);
