@@ -75,6 +75,7 @@ describe('Repo', () => {
       historyMaxRecords: DEFAULT_SETTINGS.historyMaxRecords,
       theme: 'system',
       language: 'system',
+      cleanInternalPages: false,
     };
     expect(await store.getSettings()).toEqual(migrated);
     expect((await local.get(STORAGE_KEYS.settings))[STORAGE_KEYS.settings]).toEqual(migrated);

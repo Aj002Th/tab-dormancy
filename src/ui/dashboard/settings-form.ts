@@ -12,6 +12,7 @@ export type SettingsForm = {
   historyMaxRecords: string;
   theme: Theme;
   language: Language;
+  cleanInternalPages: boolean;
 };
 
 export function toSettingsForm(settings: Settings): SettingsForm {
@@ -23,6 +24,7 @@ export function toSettingsForm(settings: Settings): SettingsForm {
     historyMaxRecords: String(settings.historyMaxRecords),
     theme: settings.theme,
     language: settings.language,
+    cleanInternalPages: settings.cleanInternalPages,
   };
 }
 
@@ -83,6 +85,7 @@ export function validateSettingsForm(form: SettingsForm): SettingsValidation {
       historyMaxRecords: maxRecords,
       theme: form.theme,
       language: form.language,
+      cleanInternalPages: form.cleanInternalPages,
     },
     errors,
   };
@@ -106,7 +109,8 @@ export function isSettingsDirty(form: SettingsForm, saved: Settings): boolean {
     form.historyRetentionDays !== savedForm.historyRetentionDays ||
     form.historyMaxRecords !== savedForm.historyMaxRecords ||
     form.theme !== savedForm.theme ||
-    form.language !== savedForm.language
+    form.language !== savedForm.language ||
+    form.cleanInternalPages !== savedForm.cleanInternalPages
   );
 }
 

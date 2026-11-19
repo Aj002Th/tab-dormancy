@@ -59,4 +59,16 @@ describe('buildFacts', () => {
     expect(managedTabs({ tabs, windows }).map((item) => item.id)).toEqual([]);
     expect(buildFacts({ tabs, windows, groups: [], now }).size).toBe(0);
   });
+
+  it('includes only safe internal pages when enabled', () => {
+    const tabs = [
+      tab({ id: 1, url: 'chrome://settings/profiles' }),
+      tab({ id: 2, url: 'chrome://extensions' }),
+      tab({ id: 3, url: 'file:///tmp/report.html' }),
+      tab({ id: 4, url: 'https://example.com/a' }),
+    ];
+    const windows = [window({})];
+    expect(managedTabs({ tabs, windows, includeInternalPages: true }).map((item) => item.id)).toEqual([1, 3, 4]);
+    expect(buildFacts({ tabs, windows, groups: [], now, includeInternalPages: true }).size).toBe(3);
+  });
 });

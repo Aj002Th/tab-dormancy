@@ -14,6 +14,7 @@ const snapshot: StateSnapshot = {
     activeStrategyId: 'preset:standard',
     theme: 'system',
     language: 'system',
+    cleanInternalPages: false,
   },
   strategies: [],
   activeStrategy: {} as StateSnapshot['activeStrategy'],
