@@ -366,3 +366,10 @@
     transform: scale(1);
   }
 }
+
+.popup-version {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}

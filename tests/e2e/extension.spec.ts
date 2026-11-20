@@ -906,3 +906,10 @@ test('settings exports and imports configuration', async ({ context, extensionId
   await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
   await expect(dashboard.getByText('Imported E2E')).toBeVisible();
 });
+
+test('popup shows the installed version', async ({ context, extensionId }) => {
+  const manifest = JSON.parse(await readFile('dist/manifest.json', 'utf8')) as { version: string };
+  const popup = await context.newPage();
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  await expect(popup.getByTestId('popup-version')).toHaveText(manifest.version);
+});

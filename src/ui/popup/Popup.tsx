@@ -113,7 +113,12 @@ export function Popup() {
     <main class={`popup popup-${state.phase}`}>
       <header class="popup-head">
         <div>
-          <h1>Tab Dormancy</h1>
+          <h1>
+            Tab Dormancy
+            <span class="popup-version" data-testid="popup-version">
+              {chrome.runtime.getManifest().version}
+            </span>
+          </h1>
           {!snapshot && <p class="muted popup-subtitle">{t('popup.readingStrategy')}</p>}
         </div>
         <Button
