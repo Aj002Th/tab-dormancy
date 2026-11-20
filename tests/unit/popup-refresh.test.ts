@@ -69,6 +69,7 @@ let matched = 5;
 function installChrome(): void {
   vi.stubGlobal('chrome', {
     runtime: {
+      getManifest: () => ({ version: '0.0.0-test' }),
       sendMessage: vi.fn(async (request: { type: string }) => {
         if (request.type === 'state.get') return { ok: true, data: snapshot };
         if (request.type === 'cleanup.preview') return { ok: true, data: { ...preview, matched } };
