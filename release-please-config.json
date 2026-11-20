@@ -7,9 +7,7 @@
     ".": {
       "release-type": "node",
       "include-component-in-tag": false,
-      "extra-files": [
-        { "type": "json", "path": "public/manifest.json", "jsonpath": "$.version" }
-      ]
+      "extra-files": [{ "type": "json", "path": "public/manifest.json", "jsonpath": "$.version" }]
     }
   }
 }
