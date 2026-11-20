@@ -117,7 +117,7 @@ export function DiagnosticsPage() {
                   : t('diagnostics.unavailableCount', { count: support.unavailable.length })}
               </output>
             </div>
-            <p class="muted small support-product">{`Tab Dormancy ${chrome.runtime.getManifest().version}`}</p>
+            <p class="muted support-product">{`Tab Dormancy v${chrome.runtime.getManifest().version}`}</p>
           </div>
 
           <div class="support-overview">

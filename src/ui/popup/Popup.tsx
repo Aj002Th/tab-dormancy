@@ -114,9 +114,9 @@ export function Popup() {
       <header class="popup-head">
         <div>
           <h1>
-            Tab Dormancy
+            Tab Dormancy{' '}
             <span class="popup-version" data-testid="popup-version">
-              {chrome.runtime.getManifest().version}
+              v{chrome.runtime.getManifest().version}
             </span>
           </h1>
           {!snapshot && <p class="muted popup-subtitle">{t('popup.readingStrategy')}</p>}
