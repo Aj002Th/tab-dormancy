@@ -18,6 +18,7 @@ export const zh = {
   'nav.diagnostics': '诊断',
   'nav.skipToContent': '跳到主要内容',
   'nav.note': '只在空闲时关闭标签页，不采集使用数据。',
+  'nav.github': '打开 GitHub 仓库',
   'nav.leaveConfirm': '有未保存的设置，离开后修改将丢失。确定离开吗？',
   'common.save': '保存',
   'common.saving': '保存中…',

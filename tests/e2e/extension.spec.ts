@@ -913,3 +913,13 @@ test('popup shows the installed version', async ({ context, extensionId }) => {
   await popup.goto(`chrome-extension://${extensionId}/popup.html`);
   await expect(popup.getByTestId('popup-version')).toHaveText(manifest.version);
 });
+
+test('dashboard sidebar shows the version and repository link', async ({ context, extensionId }) => {
+  const manifest = JSON.parse(await readFile('dist/manifest.json', 'utf8')) as { version: string };
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/dashboard.html`);
+  await expect(page.getByTestId('sidebar-version')).toHaveText(`v${manifest.version}`);
+  const link = page.getByTestId('sidebar-repo-link');
+  await expect(link).toHaveAttribute('href', 'https://github.com/Aj002Th/tab-dormancy');
+  await expect(link).toHaveAttribute('target', '_blank');
+});
