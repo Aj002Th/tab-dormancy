@@ -923,3 +923,13 @@ test('dashboard sidebar shows the version and repository link', async ({ context
   await expect(link).toHaveAttribute('href', 'https://github.com/Aj002Th/tab-dormancy');
   await expect(link).toHaveAttribute('target', '_blank');
 });
+
+test('diagnostics version is legible', async ({ context, extensionId }) => {
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/dashboard.html#/diagnostics`);
+  const version = page.locator('.support-product');
+  await expect(version).toBeVisible();
+  await expect(version).toContainText('Tab Dormancy');
+  const size = await version.evaluate((el) => getComputedStyle(el).fontSize);
+  expect(size).toBe('13px');
+});
