@@ -55,7 +55,7 @@ async function expectEditorTopVisible(page: import('@playwright/test').Page): Pr
     .toBe(true);
 }
 
-test('sidebar stays pinned and the note sits at the bottom while the page scrolls', async ({
+test('sidebar stays pinned and the footer sits at the bottom while the page scrolls', async ({
   context,
   extensionId,
 }) => {
@@ -68,16 +68,16 @@ test('sidebar stays pinned and the note sits at the bottom while the page scroll
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 
   const sidebar = await page.locator('.sidebar').boundingBox();
-  const note = await page.locator('.sidebar-note').boundingBox();
+  const footer = await page.locator('.sidebar-meta').boundingBox();
   expect(sidebar).not.toBeNull();
-  expect(note).not.toBeNull();
-  if (!sidebar || !note) return;
+  expect(footer).not.toBeNull();
+  if (!sidebar || !footer) return;
 
   // Sticky `top: 0` can land a fraction of a pixel off on Linux. A real
   // unpin would move the sidebar by much more than 1px.
   expect(Math.abs(sidebar.y)).toBeLessThan(1);
   expect(await page.locator('.nav-link').first().isVisible()).toBe(true);
-  expect(note.y + note.height).toBeGreaterThan(sidebar.y + sidebar.height - 40);
+  expect(footer.y + footer.height).toBeGreaterThan(sidebar.y + sidebar.height - 40);
 });
 
 test('entering strategies does not scroll when the card and editor already fit', async ({ context, extensionId }) => {
