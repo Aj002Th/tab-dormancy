@@ -60,7 +60,7 @@ jobs:
             release/*.zip
             release/SHA256SUMS
           fail_on_unmatched_files: true
-          generate_release_notes: true
+          generate_release_notes: false
 
       - name: Publish to Microsoft Edge Add-ons
         env:
