@@ -19,6 +19,7 @@ export const en: Record<MessageKey, Message> = {
   'nav.diagnostics': 'Diagnostics',
   'nav.skipToContent': 'Skip to content',
   'nav.note': 'Closes tabs only when idle. No usage data is collected.',
+  'nav.github': 'Open the GitHub repository',
   'nav.leaveConfirm': 'You have unsaved settings. Leaving will discard your changes. Leave anyway?',
   'common.save': 'Save',
   'common.saving': 'Saving…',

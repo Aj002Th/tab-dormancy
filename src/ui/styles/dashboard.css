@@ -1632,6 +1632,8 @@
 
 .support-product {
   margin: 0;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .support-status {
@@ -1816,4 +1818,31 @@
     align-items: stretch;
     flex-direction: column;
   }
+}
+
+.sidebar-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sidebar-repo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  color: var(--muted);
+}
+
+.sidebar-repo:hover {
+  background: var(--surface-2);
+  color: var(--text);
 }

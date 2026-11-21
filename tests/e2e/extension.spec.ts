@@ -906,3 +906,34 @@ test('settings exports and imports configuration', async ({ context, extensionId
   await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
   await expect(dashboard.getByText('Imported E2E')).toBeVisible();
 });
+
+test('popup shows the installed version', async ({ context, extensionId }) => {
+  const manifest = JSON.parse(await readFile('dist/manifest.json', 'utf8')) as { version: string };
+  const popup = await context.newPage();
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  await expect(popup.getByTestId('popup-version')).toHaveText(`v${manifest.version}`);
+  await expect(popup.getByRole('heading', { level: 1 })).toHaveAccessibleName(`Tab Dormancy v${manifest.version}`);
+});
+
+test('dashboard sidebar shows the version and repository link', async ({ context, extensionId }) => {
+  const manifest = JSON.parse(await readFile('dist/manifest.json', 'utf8')) as { version: string };
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/dashboard.html`);
+  await expect(page.getByTestId('sidebar-version')).toHaveText(`v${manifest.version}`);
+  const link = page.getByTestId('sidebar-repo-link');
+  await expect(link).toHaveAttribute('href', 'https://github.com/Aj002Th/tab-dormancy');
+  await expect(link).toHaveAttribute('target', '_blank');
+  await expect(link).toHaveAttribute('rel', 'noreferrer');
+  await expect(link).toHaveAccessibleName('打开 GitHub 仓库');
+});
+
+test('diagnostics version is legible', async ({ context, extensionId }) => {
+  const manifest = JSON.parse(await readFile('dist/manifest.json', 'utf8')) as { version: string };
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/dashboard.html#/diagnostics`);
+  const version = page.locator('.support-product');
+  await expect(version).toBeVisible();
+  await expect(version).toHaveText(`Tab Dormancy v${manifest.version}`);
+  const size = await version.evaluate((el) => getComputedStyle(el).fontSize);
+  expect(size).toBe('13px');
+});
