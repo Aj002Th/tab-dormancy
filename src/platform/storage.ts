@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../shared/constants';
+import { DEFAULT_SETTINGS, LIMITS, STORAGE_KEYS } from '../shared/constants';
 import { isLanguage, languageOf } from '../shared/language';
 import { isTheme, themeOf } from '../shared/theme';
 import type {
@@ -174,10 +174,19 @@ function normalizeSettings(value: unknown): Settings | null {
     historyMaxRecords:
       typeof settings.historyMaxRecords === 'number' ? settings.historyMaxRecords : DEFAULT_SETTINGS.historyMaxRecords,
     activeStrategyId: settings.activeStrategyId,
+    quickStrategyIds: normalizeQuickIds(settings.quickStrategyIds),
     theme: themeOf(settings.theme),
     language: languageOf(settings.language),
     cleanInternalPages: settings.cleanInternalPages === true,
   };
+}
+
+// A malformed quick list must never reset the rest of the settings, so it is
+// repaired here instead of being treated as a corrupt settings object.
+function normalizeQuickIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const ids = value.filter((id): id is string => typeof id === 'string' && id.length > 0);
+  return [...new Set(ids)].slice(0, LIMITS.maxQuickStrategies);
 }
 
 function isSettings(value: unknown): value is Settings {
@@ -190,6 +199,8 @@ function isSettings(value: unknown): value is Settings {
     typeof settings.historyRetentionDays === 'number' &&
     typeof settings.historyMaxRecords === 'number' &&
     typeof settings.activeStrategyId === 'string' &&
+    Array.isArray(settings.quickStrategyIds) &&
+    settings.quickStrategyIds.every((id) => typeof id === 'string') &&
     isTheme(settings.theme) &&
     isLanguage(settings.language) &&
     typeof settings.cleanInternalPages === 'boolean'

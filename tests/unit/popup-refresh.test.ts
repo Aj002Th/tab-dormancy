@@ -13,6 +13,7 @@ const snapshot = {
     historyRetentionDays: 30,
     historyMaxRecords: 5_000,
     activeStrategyId: 'preset:standard',
+    quickStrategyIds: [],
     theme: 'system',
     language: 'zh',
     cleanInternalPages: false,

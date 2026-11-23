@@ -73,6 +73,7 @@ describe('Repo', () => {
     const migrated = {
       ...legacy,
       historyMaxRecords: DEFAULT_SETTINGS.historyMaxRecords,
+      quickStrategyIds: [],
       theme: 'system',
       language: 'system',
       cleanInternalPages: false,
@@ -87,6 +88,29 @@ describe('Repo', () => {
     const { local, repo: store } = repo();
     await local.set({ [STORAGE_KEYS.settings]: { ...DEFAULT_SETTINGS, theme: 'sepia' } });
     expect((await store.getSettings()).theme).toBe('system');
+  });
+
+  it('defaults the quick cleanup list for settings written by older versions', async () => {
+    const { local, repo: store } = repo();
+    const { quickStrategyIds: _ignored, ...legacy } = DEFAULT_SETTINGS;
+    await local.set({ [STORAGE_KEYS.settings]: legacy });
+    expect((await store.getSettings()).quickStrategyIds).toEqual([]);
+  });
+
+  it('repairs a malformed quick list without resetting other settings', async () => {
+    const { local, repo: store } = repo();
+    await local.set({
+      [STORAGE_KEYS.settings]: {
+        ...DEFAULT_SETTINGS,
+        theme: 'dark',
+        idleThresholdMinutes: 30,
+        quickStrategyIds: ['a', 'a', 7, 'b', 'c', 'd', 'e'],
+      },
+    });
+    const settings = await store.getSettings();
+    expect(settings.quickStrategyIds).toEqual(['a', 'b', 'c', 'd']);
+    expect(settings.theme).toBe('dark');
+    expect(settings.idleThresholdMinutes).toBe(30);
   });
 
   it('backs up corrupt settings instead of throwing', async () => {

@@ -133,4 +133,22 @@ describe('config bundle', () => {
       issue: 'TOO_MANY_STRATEGIES',
     });
   });
+
+  it('accepts settings without a quick cleanup list', () => {
+    const bundle = createConfigBundle(DEFAULT_SETTINGS, [], now);
+    const { quickStrategyIds: _ignored, ...settings } = bundle.settings;
+    const parsed = parseConfigBundle({ ...bundle, settings });
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.bundle.settings.quickStrategyIds).toEqual([]);
+  });
+
+  it('rejects a quick cleanup list over the limit', () => {
+    const bundle = createConfigBundle(DEFAULT_SETTINGS, [], now);
+    const parsed = parseConfigBundle({
+      ...bundle,
+      settings: { ...bundle.settings, quickStrategyIds: ['a', 'b', 'c', 'd', 'e'] },
+    });
+    expect(parsed).toEqual({ ok: false, issue: 'BAD_SETTINGS' });
+  });
 });

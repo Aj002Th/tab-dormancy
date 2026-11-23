@@ -66,12 +66,13 @@ export type Settings = {
   historyRetentionDays: number;
   historyMaxRecords: number;
   activeStrategyId: string;
+  quickStrategyIds: string[];
   theme: Theme;
   language: Language;
   cleanInternalPages: boolean;
 };
 
-export type SettingsPatch = Partial<Omit<Settings, 'activeStrategyId'>>;
+export type SettingsPatch = Partial<Omit<Settings, 'activeStrategyId' | 'quickStrategyIds'>>;
 
 export type ConfigBundle = {
   app: 'tab-dormancy';

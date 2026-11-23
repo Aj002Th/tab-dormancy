@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { setLocale } from '../../src/shared/i18n';
-import type { Settings } from '../../src/shared/types';
+import type { Settings, SettingsPatch } from '../../src/shared/types';
 import {
   isSettingsDirty,
   parseSettingsForm,
@@ -20,6 +20,7 @@ const saved: Settings = {
   historyRetentionDays: 30,
   historyMaxRecords: 5_000,
   activeStrategyId: 'preset:standard',
+  quickStrategyIds: [],
   theme: 'system',
   language: 'system',
   cleanInternalPages: false,
@@ -168,5 +169,13 @@ describe('settings form', () => {
     expect(parseSettingsForm(form({ language: 'fr' as SettingsForm['language'] }))).toEqual({
       error: '界面语言无效',
     });
+  });
+
+  it('keeps the quick cleanup list out of SettingsPatch', () => {
+    const patch: SettingsPatch = { idleThresholdMinutes: 30 };
+    // @ts-expect-error quickStrategyIds is written through quick.set only
+    const invalid: SettingsPatch = { quickStrategyIds: [] };
+    expect(patch).toBeTruthy();
+    expect(invalid).toBeTruthy();
   });
 });
