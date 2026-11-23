@@ -97,6 +97,12 @@ export class TabDormancyService {
       await repo.setSettings(settings);
     }
 
+    const quickKept = settings.quickStrategyIds.filter((id) => strategies.some((strategy) => strategy.id === id));
+    if (quickKept.length !== settings.quickStrategyIds.length) {
+      settings = { ...settings, quickStrategyIds: quickKept };
+      await repo.setSettings(settings);
+    }
+
     await this.getBrowserSessionId();
     await this.deps.browser.setIdleDetectionInterval(settings.idleThresholdMinutes * 60);
     await this.convergePendingRun();
@@ -704,6 +710,29 @@ export class TabDormancyService {
     if (settings.activeStrategyId === id) throw new AppError('FORBIDDEN', t('errors.activeUndeletable'));
     if (strategies.length <= 1) throw new AppError('FORBIDDEN', t('errors.keepOneStrategy'));
     await this.deps.repo.setStrategies(strategies.filter((item) => item.id !== id));
+    if (settings.quickStrategyIds.includes(id)) {
+      await this.deps.repo.setSettings({
+        ...settings,
+        quickStrategyIds: settings.quickStrategyIds.filter((quickId) => quickId !== id),
+      });
+    }
+  }
+
+  async setQuickStrategies(ids: string[]): Promise<string[]> {
+    await this.bootstrap();
+    if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string' || id.length === 0)) {
+      throw new AppError('INVALID_SETTINGS', t('errors.INVALID_SETTINGS'));
+    }
+    const unique = [...new Set(ids)];
+    if (unique.length > LIMITS.maxQuickStrategies) {
+      throw new AppError('INVALID_SETTINGS', t('errors.quickLimit', { max: LIMITS.maxQuickStrategies }));
+    }
+    const strategies = await this.deps.repo.getStrategies();
+    const known = new Set(strategies.map((strategy) => strategy.id));
+    const next = unique.filter((id) => known.has(id));
+    const settings = await this.deps.repo.getSettings();
+    await this.deps.repo.setSettings({ ...settings, quickStrategyIds: next });
+    return next;
   }
 
   async exportConfig(): Promise<ConfigBundle> {
@@ -749,7 +778,13 @@ export class TabDormancyService {
       strategies[0]?.id;
     if (!activeStrategyId) throw new AppError('INTERNAL', t('errors.noUsableStrategy'));
 
-    const nextSettings: Settings = { ...parsed.bundle.settings, activeStrategyId };
+    const nextSettings: Settings = {
+      ...parsed.bundle.settings,
+      activeStrategyId,
+      quickStrategyIds: [...new Set(parsed.bundle.settings.quickStrategyIds.map((id) => idMap.get(id) ?? id))]
+        .filter((id) => strategies.some((strategy) => strategy.id === id))
+        .slice(0, LIMITS.maxQuickStrategies),
+    };
     await this.deps.repo.setConfig(nextSettings, strategies);
     this.applyLocale(nextSettings.language);
     await this.deps.browser.setIdleDetectionInterval(nextSettings.idleThresholdMinutes * 60);

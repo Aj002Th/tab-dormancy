@@ -30,6 +30,7 @@ export type Request =
   | { type: 'strategy.save'; strategy: Strategy; previewSignature?: string }
   | { type: 'strategy.activate'; id: string }
   | { type: 'strategy.delete'; id: string }
+  | { type: 'quick.set'; ids: string[] }
   | { type: 'settings.update'; patch: SettingsPatch }
   | { type: 'config.export' }
   | { type: 'config.import'; bundle: unknown }
@@ -50,6 +51,7 @@ export type ResponseMap = {
   'strategy.save': Strategy;
   'strategy.activate': null;
   'strategy.delete': null;
+  'quick.set': string[];
   'settings.update': Settings;
   'config.export': ConfigBundle;
   'config.import': ConfigImportResult;

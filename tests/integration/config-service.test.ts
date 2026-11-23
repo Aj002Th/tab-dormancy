@@ -133,6 +133,23 @@ describe('configuration import and export', () => {
     expect((await service.getState()).settings.cleanInternalPages).toBe(true);
   });
 
+  it('remaps quick cleanup ids onto the imported strategies', async () => {
+    const { repo, service } = setup();
+    await service.bootstrap();
+    const input = bundle({
+      settings: { ...bundle().settings, quickStrategyIds: ['external', 'preset:standard', 'ghost'] },
+    });
+
+    await service.importConfig(JSON.parse(JSON.stringify(input)));
+
+    const importedId = (await repo.getStrategies()).find((item) => !item.builtin)?.id;
+    const quick = (await repo.getSettings()).quickStrategyIds;
+    expect(quick).toContain(importedId);
+    expect(quick).toContain('preset:standard');
+    expect(quick).not.toContain('external');
+    expect(quick).not.toContain('ghost');
+  });
+
   it('rejects malformed bundles without changing state', async () => {
     const { service } = setup();
     await service.bootstrap();

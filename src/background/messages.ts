@@ -41,6 +41,8 @@ export async function handleRequest(message: unknown, service: TabDormancyServic
       case 'strategy.delete':
         await service.deleteStrategy(request.id);
         return ok(null);
+      case 'quick.set':
+        return ok(await service.setQuickStrategies(request.ids));
       case 'settings.update':
         return ok(await service.updateSettings(request.patch));
       case 'config.export':

@@ -83,6 +83,16 @@ describe('message router', () => {
     });
   });
 
+  it('routes quick.set to the service', async () => {
+    const setQuickStrategies = vi.fn().mockResolvedValue(['preset:standard']);
+    const response = await handleRequest(
+      { type: 'quick.set', ids: ['preset:standard'] },
+      stub({ setQuickStrategies } as Partial<TabDormancyService>),
+    );
+    expect(setQuickStrategies).toHaveBeenCalledWith(['preset:standard']);
+    expect(response).toEqual({ ok: true, data: ['preset:standard'] });
+  });
+
   it('returns true for async sendResponse handling', async () => {
     const sendResponse = vi.fn();
     const handler = createMessageHandler(stub());
