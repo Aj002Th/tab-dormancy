@@ -70,6 +70,7 @@ export const en: Record<MessageKey, Message> = {
   'errors.activeUndeletable': 'The active strategy cannot be deleted',
   'errors.keepOneStrategy': 'Keep at least one strategy',
   'errors.quickLimit': 'Quick cleanup holds at most {max} strategies',
+  'errors.invalidQuickLimit': 'Quick cleanup limit must be 1–8',
   'errors.invalidIdle': 'Idle threshold must be between 1 and 1440 minutes',
   'errors.invalidLockDelay': 'Lock delay must be between 0 and 1440 minutes',
   'errors.invalidRetention': 'History retention must be between 1 and 365 days',

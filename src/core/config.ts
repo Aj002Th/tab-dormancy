@@ -1,4 +1,4 @@
-import { LIMITS } from '../shared/constants';
+import { DEFAULT_SETTINGS, LIMITS } from '../shared/constants';
 import { isLanguage } from '../shared/language';
 import { isTheme } from '../shared/theme';
 import type { ConfigBundle, Expr, Settings, Strategy } from '../shared/types';
@@ -89,6 +89,16 @@ function parseSettings(value: unknown): Settings | null {
   if (typeof cleanInternalPages !== 'boolean') return null;
   const quick = value.quickStrategyIds === undefined ? [] : parseQuickIds(value.quickStrategyIds);
   if (!quick) return null;
+  const quickLimit =
+    value.quickCleanupLimit === undefined ? DEFAULT_SETTINGS.quickCleanupLimit : value.quickCleanupLimit;
+  if (
+    typeof quickLimit !== 'number' ||
+    !Number.isInteger(quickLimit) ||
+    quickLimit < 1 ||
+    quickLimit > LIMITS.maxQuickStrategies
+  ) {
+    return null;
+  }
 
   return {
     idleThresholdMinutes: idle as number,
@@ -98,6 +108,7 @@ function parseSettings(value: unknown): Settings | null {
     historyMaxRecords: maxRecords as number,
     activeStrategyId: value.activeStrategyId,
     quickStrategyIds: quick,
+    quickCleanupLimit: quickLimit,
     theme: value.theme,
     language: value.language,
     cleanInternalPages,

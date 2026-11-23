@@ -14,6 +14,7 @@ const snapshot = {
     historyMaxRecords: 5_000,
     activeStrategyId: 'preset:standard',
     quickStrategyIds: ['q1', 'q0', 'qi'],
+    quickCleanupLimit: 4,
     theme: 'system',
     language: 'zh',
     cleanInternalPages: false,

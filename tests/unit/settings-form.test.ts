@@ -21,6 +21,7 @@ const saved: Settings = {
   historyMaxRecords: 5_000,
   activeStrategyId: 'preset:standard',
   quickStrategyIds: [],
+  quickCleanupLimit: 4,
   theme: 'system',
   language: 'system',
   cleanInternalPages: false,
@@ -38,6 +39,7 @@ describe('settings form', () => {
       lockDelayMinutes: '15',
       historyRetentionDays: '30',
       historyMaxRecords: '5000',
+      quickCleanupLimit: '4',
       theme: 'system',
       language: 'system',
       cleanInternalPages: false,
@@ -52,6 +54,7 @@ describe('settings form', () => {
         lockDelayMinutes: '0',
         historyRetentionDays: '7',
         historyMaxRecords: '120',
+        quickCleanupLimit: '4',
         theme: 'dark',
         language: 'system',
         cleanInternalPages: true,
@@ -63,6 +66,7 @@ describe('settings form', () => {
         lockDelayMinutes: 0,
         historyRetentionDays: 7,
         historyMaxRecords: 120,
+        quickCleanupLimit: 4,
         theme: 'dark',
         language: 'system',
         cleanInternalPages: true,
@@ -177,5 +181,11 @@ describe('settings form', () => {
     const invalid: SettingsPatch = { quickStrategyIds: [] };
     expect(patch).toBeTruthy();
     expect(invalid).toBeTruthy();
+  });
+
+  it('validates the quick cleanup limit between 1 and 8', () => {
+    expect(validateSettingsForm(form({ quickCleanupLimit: '2' })).patch?.quickCleanupLimit).toBe(2);
+    expect(validateSettingsForm(form({ quickCleanupLimit: '0' })).errors.quickCleanupLimit).toBeTruthy();
+    expect(validateSettingsForm(form({ quickCleanupLimit: '9' })).errors.quickCleanupLimit).toBeTruthy();
   });
 });

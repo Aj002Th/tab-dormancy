@@ -69,6 +69,7 @@ export const zh = {
   'errors.activeUndeletable': '不能删除当前启用的策略',
   'errors.keepOneStrategy': '至少保留一个策略',
   'errors.quickLimit': '快速清理最多 {max} 条',
+  'errors.invalidQuickLimit': '快速清理上限需为 1–8 条',
   'errors.invalidIdle': '空闲阈值需为 1–1440 分钟',
   'errors.invalidLockDelay': '锁屏延迟需为 0–1440 分钟',
   'errors.invalidRetention': '历史保留需为 1–365 天',

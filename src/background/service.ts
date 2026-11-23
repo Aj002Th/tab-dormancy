@@ -871,6 +871,13 @@ export class TabDormancyService {
     ) {
       throw new AppError('INVALID_SETTINGS', t('errors.invalidMaxRecords', { max: LIMITS.maxHistory }));
     }
+    if (
+      !Number.isInteger(next.quickCleanupLimit) ||
+      next.quickCleanupLimit < 1 ||
+      next.quickCleanupLimit > LIMITS.maxQuickStrategies
+    ) {
+      throw new AppError('INVALID_SETTINGS', t('errors.invalidQuickLimit'));
+    }
     await this.deps.repo.setSettings(next);
     this.applyLocale(next.language);
     await this.deps.browser.setIdleDetectionInterval(next.idleThresholdMinutes * 60);

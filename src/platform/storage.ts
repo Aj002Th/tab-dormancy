@@ -175,6 +175,7 @@ function normalizeSettings(value: unknown): Settings | null {
       typeof settings.historyMaxRecords === 'number' ? settings.historyMaxRecords : DEFAULT_SETTINGS.historyMaxRecords,
     activeStrategyId: settings.activeStrategyId,
     quickStrategyIds: normalizeQuickIds(settings.quickStrategyIds),
+    quickCleanupLimit: normalizeQuickLimit(settings.quickCleanupLimit),
     theme: themeOf(settings.theme),
     language: languageOf(settings.language),
     cleanInternalPages: settings.cleanInternalPages === true,
@@ -189,6 +190,12 @@ function normalizeQuickIds(value: unknown): string[] {
   return [...new Set(ids)].slice(0, LIMITS.maxQuickStrategies);
 }
 
+function normalizeQuickLimit(value: unknown): number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= LIMITS.maxQuickStrategies
+    ? value
+    : DEFAULT_SETTINGS.quickCleanupLimit;
+}
+
 function isSettings(value: unknown): value is Settings {
   if (!value || typeof value !== 'object') return false;
   const settings = value as Record<string, unknown>;
@@ -201,6 +208,10 @@ function isSettings(value: unknown): value is Settings {
     typeof settings.activeStrategyId === 'string' &&
     Array.isArray(settings.quickStrategyIds) &&
     settings.quickStrategyIds.every((id) => typeof id === 'string') &&
+    typeof settings.quickCleanupLimit === 'number' &&
+    Number.isInteger(settings.quickCleanupLimit) &&
+    settings.quickCleanupLimit >= 1 &&
+    settings.quickCleanupLimit <= LIMITS.maxQuickStrategies &&
     isTheme(settings.theme) &&
     isLanguage(settings.language) &&
     typeof settings.cleanInternalPages === 'boolean'

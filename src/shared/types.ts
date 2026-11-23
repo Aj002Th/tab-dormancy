@@ -67,6 +67,7 @@ export type Settings = {
   historyMaxRecords: number;
   activeStrategyId: string;
   quickStrategyIds: string[];
+  quickCleanupLimit: number;
   theme: Theme;
   language: Language;
   cleanInternalPages: boolean;

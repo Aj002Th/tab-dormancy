@@ -44,10 +44,12 @@ describe('quick cleanup', () => {
     expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:standard']);
   });
 
-  it('rejects more than four entries', async () => {
+  it('rejects more than the hard ceiling', async () => {
     const { service } = setup();
     await service.bootstrap();
-    await expect(service.setQuickStrategies(['preset:standard', 'a', 'b', 'c', 'd'])).rejects.toMatchObject({
+    await expect(
+      service.setQuickStrategies(['preset:standard', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']),
+    ).rejects.toMatchObject({
       code: 'INVALID_SETTINGS',
     });
   });
@@ -164,6 +166,14 @@ describe('quick cleanup', () => {
     expect((await repo.getSettings()).activeStrategyId).toBe(activeBefore);
     const [summary] = await repo.getHistoryIndex();
     expect(summary).toMatchObject({ strategyId: work.id, strategyName: 'Work', trigger: 'manual' });
+  });
+
+  it('rejects a settings patch with an out-of-range quick limit', async () => {
+    const { service } = setup();
+    await service.bootstrap();
+    await expect(service.updateSettings({ quickCleanupLimit: 0 })).rejects.toMatchObject({
+      code: 'INVALID_SETTINGS',
+    });
   });
 
   it('ignores quickStrategyIds sent through settings.update', async () => {

@@ -143,11 +143,27 @@ describe('config bundle', () => {
     expect(parsed.bundle.settings.quickStrategyIds).toEqual([]);
   });
 
+  it('accepts a quick cleanup limit within range and rejects one outside it', () => {
+    const bundle = createConfigBundle(DEFAULT_SETTINGS, [], now);
+    const ok = parseConfigBundle({ ...bundle, settings: { ...bundle.settings, quickCleanupLimit: 8 } });
+    expect(ok.ok).toBe(true);
+    if (!ok.ok) return;
+    expect(ok.bundle.settings.quickCleanupLimit).toBe(8);
+    expect(parseConfigBundle({ ...bundle, settings: { ...bundle.settings, quickCleanupLimit: 0 } })).toEqual({
+      ok: false,
+      issue: 'BAD_SETTINGS',
+    });
+    expect(parseConfigBundle({ ...bundle, settings: { ...bundle.settings, quickCleanupLimit: 9 } })).toEqual({
+      ok: false,
+      issue: 'BAD_SETTINGS',
+    });
+  });
+
   it('rejects a quick cleanup list over the limit', () => {
     const bundle = createConfigBundle(DEFAULT_SETTINGS, [], now);
     const parsed = parseConfigBundle({
       ...bundle,
-      settings: { ...bundle.settings, quickStrategyIds: ['a', 'b', 'c', 'd', 'e'] },
+      settings: { ...bundle.settings, quickStrategyIds: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'] },
     });
     expect(parsed).toEqual({ ok: false, issue: 'BAD_SETTINGS' });
   });

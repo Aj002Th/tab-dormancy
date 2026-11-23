@@ -27,6 +27,7 @@ const FIELD_IDS: Record<keyof SettingsForm, string> = {
   lockDelayMinutes: 'settings-lock-delay',
   historyRetentionDays: 'settings-retention',
   historyMaxRecords: 'settings-max-records',
+  quickCleanupLimit: 'settings-quick-limit',
   theme: 'settings-theme',
   language: 'settings-language',
   cleanInternalPages: 'settings-internal-pages',
