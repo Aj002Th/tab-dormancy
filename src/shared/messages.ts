@@ -21,7 +21,7 @@ export type StrategyPreview = CleanupPreview & { signature: string };
 export type Request =
   | { type: 'state.get' }
   | { type: 'cleanup.preview'; source: 'popup' | 'dashboard' }
-  | { type: 'cleanup.run'; source: 'popup' | 'dashboard' }
+  | { type: 'cleanup.run'; source: 'popup' | 'dashboard'; strategyId?: string }
   | { type: 'tabs.list' }
   | { type: 'history.query'; query: HistoryQuery }
   | { type: 'history.restore'; ids: string[]; options: RestoreOptions }

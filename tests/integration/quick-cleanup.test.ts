@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { TabDormancyService } from '../../src/background/service';
 import { Repo } from '../../src/platform/storage';
 import type { Strategy } from '../../src/shared/types';
+import { defined } from '../helpers/assert-defined';
 import { FakeBrowser } from './fake-browser';
 
 const now = 1_000_000_000;
@@ -146,5 +147,32 @@ describe('quick cleanup', () => {
     await service.setQuickStrategies([grouped.id]);
     const [item] = await service.quickPreview();
     expect(item?.status).toBe('unsupported');
+  });
+
+  it('cleans only the strategy that was asked for and keeps the active one', async () => {
+    const { browser, repo, service } = setup();
+    await service.bootstrap();
+    const activeBefore = (await repo.getSettings()).activeStrategyId;
+    browser.addTab({ url: 'https://example.com/a', lastAccessed: now - 5_000 * minute });
+    const other = browser.addTab({ url: 'https://other.test/b', lastAccessed: now - 5_000 * minute });
+    const work = await service.saveStrategy(workStrategy(), undefined);
+
+    const result = await service.runCleanup('manual', work.id);
+
+    expect(result.closed).toBe(1);
+    expect(await browser.getTab(defined(other.id, 'other tab id'))).not.toBeNull();
+    expect((await repo.getSettings()).activeStrategyId).toBe(activeBefore);
+    const [summary] = await repo.getHistoryIndex();
+    expect(summary).toMatchObject({ strategyId: work.id, strategyName: 'Work', trigger: 'manual' });
+  });
+
+  it('still throws BUSY when a cleanup is already running', async () => {
+    const { service } = setup();
+    await service.bootstrap();
+    const work = await service.saveStrategy(workStrategy(), undefined);
+    const first = service.runCleanup('manual');
+    await Promise.resolve(); // 让第一次调用越过 bootstrap 并把 running 置位
+    await expect(service.runCleanup('manual', work.id)).rejects.toMatchObject({ code: 'BUSY' });
+    await first;
   });
 });

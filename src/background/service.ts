@@ -255,7 +255,7 @@ export class TabDormancyService {
     });
   }
 
-  async runCleanup(trigger: Trigger): Promise<CleanupResult> {
+  async runCleanup(trigger: Trigger, strategyId?: string): Promise<CleanupResult> {
     await this.bootstrap();
     if (this.running) throw new AppError('BUSY', t('errors.busy'));
     this.running = true;
@@ -264,8 +264,9 @@ export class TabDormancyService {
 
     try {
       if (!(await this.acquireLock(runId))) throw new AppError('BUSY', t('errors.busy'));
-      const { active, caps, settings } = await this.activeStrategy();
-      this.assertUsable(active, caps);
+      const { active, caps, settings, strategies } = await this.activeStrategy();
+      const strategy = strategyId === undefined ? active : requireStrategy(strategies, strategyId);
+      this.assertUsable(strategy, caps);
 
       const [tabs, windows, groups] = await Promise.all([
         this.deps.browser.queryTabs(),
@@ -276,7 +277,7 @@ export class TabDormancyService {
         tabs,
         windows,
         groups,
-        strategy: active,
+        strategy,
         capabilities: caps,
         now: this.deps.now(),
         includeInternalPages: settings.cleanInternalPages,
@@ -308,7 +309,7 @@ export class TabDormancyService {
       const browserSessionId = await this.getBrowserSessionId();
       const records = buildClosedRecords(plan, {
         trigger,
-        strategy: active,
+        strategy,
         browserSessionId,
         now: this.deps.now(),
         ids: () => this.deps.id(),
@@ -322,7 +323,7 @@ export class TabDormancyService {
           id: runId,
           startedAt,
           trigger,
-          strategyId: active.id,
+          strategyId: strategy.id,
           browserSessionId,
           drafts: records,
         });

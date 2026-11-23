@@ -93,6 +93,24 @@ describe('message router', () => {
     expect(response).toEqual({ ok: true, data: ['preset:standard'] });
   });
 
+  it('forwards strategyId from cleanup.run', async () => {
+    const runCleanup = vi.fn().mockResolvedValue({
+      runId: 'r',
+      trigger: 'manual',
+      closed: 0,
+      failed: 0,
+      skipped: 0,
+      durationMs: 1,
+      recordIds: [],
+      failures: [],
+    });
+    await handleRequest(
+      { type: 'cleanup.run', source: 'popup', strategyId: 'preset:gentle' },
+      stub({ runCleanup } as Partial<TabDormancyService>),
+    );
+    expect(runCleanup).toHaveBeenCalledWith('manual', 'preset:gentle');
+  });
+
   it('returns true for async sendResponse handling', async () => {
     const sendResponse = vi.fn();
     const handler = createMessageHandler(stub());

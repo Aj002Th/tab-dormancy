@@ -18,7 +18,7 @@ export async function handleRequest(message: unknown, service: TabDormancyServic
       case 'cleanup.preview':
         return ok(await service.previewCleanup());
       case 'cleanup.run':
-        return ok(await service.runCleanup('manual'));
+        return ok(await service.runCleanup('manual', request.strategyId));
       case 'tabs.list':
         return ok(await service.listTabs());
       case 'history.query':
