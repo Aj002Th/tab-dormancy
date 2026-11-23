@@ -48,7 +48,7 @@ Rules are not a fixed set of switches but an expression tree:
 
 ### Quick cleanup
 
-Mark up to 4 strategies as "quick cleanup" and they appear as buttons in the popup. Clicking one cleans up once with that strategy only; the everyday active strategy and automatic cleanup stay untouched. It fits "I spent the day on one job with dozens of tabs open, and want them gone in one click".
+Mark strategies as "quick cleanup" (4 by default, adjustable from 1 to 8 in settings) and they appear as Clean buttons in the popup. The first click only expands the row; the second one, on Confirm, actually runs it, while Cancel or Escape slides it back. A quick cleanup uses that one strategy only and leaves the everyday active strategy and automatic cleanup untouched. The active strategy does not need to be added — the main button at the top of the popup already uses it. It fits "I spent the day on one job with dozens of tabs open, and want them gone in one click".
 
 ### Three ready-to-use presets
 

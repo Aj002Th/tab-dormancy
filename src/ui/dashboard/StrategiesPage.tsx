@@ -399,9 +399,8 @@ export function StrategiesPage() {
       <header class="page-head">
         <div>
           <h2>{tr('strategies.title')}</h2>
-          <p class="muted">{tr('strategies.subtitle')}</p>
-          <p class="muted small" id="quick-cleanup-hint">
-            {tr('strategies.quickHint')} · {tr('strategies.quickLimit', { max: LIMITS.maxQuickStrategies })}
+          <p class="muted" id="quick-cleanup-hint">
+            {tr('strategies.subtitle')} · {tr('strategies.quickHint')}
           </p>
         </div>
         <Button variant="primary" onClick={startNew} data-testid="new-strategy">

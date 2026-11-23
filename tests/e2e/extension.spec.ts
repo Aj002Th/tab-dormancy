@@ -966,26 +966,43 @@ test('quick cleanup runs only the chosen strategy and records its name', async (
   const dashboard = await context.newPage();
   await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
   const workId = await seedStrategy(dashboard, workExpression, { name: 'Quick work' });
-  await dashboard.reload();
-  await dashboard.getByTestId(`strategy-quick-${workId}`).check();
 
-  // Hand the active strategy back to the standard preset: quick cleanup must
-  // work while the daily strategy matches nothing.
+  // Seeding activates the new strategy, and the active strategy has no toggle:
+  // hand the active role back to the standard preset first.
   await dashboard.evaluate(async () => {
     const activated = await chrome.runtime.sendMessage({ type: 'strategy.activate', id: 'preset:standard' });
     if (!activated.ok) throw new Error(activated.message);
   });
   await dashboard.reload();
-  await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toBeChecked();
+  await dashboard.getByTestId(`strategy-quick-${workId}`).click();
+  await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toHaveAttribute('aria-pressed', 'true');
   await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toHaveAccessibleName('快速清理：Quick work');
+  await expect(dashboard.getByTestId('strategy-quick-preset:standard')).toHaveCount(0);
 
   const popup = await context.newPage();
   await popup.goto(`chrome-extension://${extensionId}/popup.html`);
   await expect(popup.getByTestId(`popup-quick-count-${workId}`)).toHaveText('2 个');
-  await popup.getByTestId(`popup-quick-${workId}`).click();
+  await popup.getByTestId(`popup-quick-clean-${workId}`).click();
+  await expect(popup.getByTestId(`popup-quick-confirm-${workId}`)).toBeVisible();
+  await expect(c).toHaveURL(/\/c$/);
+  await popup.getByTestId(`popup-quick-confirm-${workId}`).click();
   await expect(popup.getByText('已用「Quick work」关闭 2 个标签')).toBeVisible();
   await expect(c).toHaveURL(/\/c$/);
 
   await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/history`);
   await expect(dashboard.locator('[data-testid^="history-row-"]').first()).toContainText('Quick work');
+});
+
+test('quick cleanup limit from settings disables further toggles', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await dashboard.getByTestId('settings-quick-limit').fill('1');
+  await dashboard.getByTestId('settings-save').click();
+  await expect(dashboard.getByTestId('settings-status')).toContainText('设置已保存');
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+  await dashboard.getByTestId('strategy-quick-preset:mild').click();
+  await expect(dashboard.getByTestId('strategy-quick-preset:mild')).toHaveAttribute('aria-pressed', 'true');
+  await expect(dashboard.getByTestId('strategy-quick-preset:aggressive')).toBeDisabled();
+  await expect(dashboard.getByTestId('strategy-quick-preset:standard')).toHaveCount(0);
 });
