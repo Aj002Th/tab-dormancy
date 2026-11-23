@@ -4,6 +4,10 @@ import type { QuickStrategyItem } from '../../shared/types';
 import { strategyDisplayName } from '../dashboard/strategy-name';
 import { type QuickButton, quickButtons } from './quick-buttons';
 
+// A click that lands on Confirm right after the row expanded is almost always a
+// double click on Clean, which sat in the same corner.
+const CONFIRM_GUARD_MS = 250;
+
 export function QuickCleanup({
   items,
   onRun,
@@ -13,12 +17,28 @@ export function QuickCleanup({
 }) {
   const [armed, setArmed] = useState<string | null>(null);
   const confirmRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const cleanRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const lastArmed = useRef<string | null>(null);
+  const armedAt = useRef(0);
 
-  // Opening a row moves focus to its confirm button so the keyboard path does
-  // not depend on the mouse having pointed at anything.
+  // Opening a row moves focus to Confirm; closing it hands focus back to Clean
+  // so the keyboard path never drops to <body>.
   useEffect(() => {
-    if (armed) confirmRefs.current[armed]?.focus();
+    if (armed) {
+      lastArmed.current = armed;
+      confirmRefs.current[armed]?.focus();
+      return;
+    }
+    const previous = lastArmed.current;
+    if (!previous) return;
+    lastArmed.current = null;
+    cleanRefs.current[previous]?.focus();
   }, [armed]);
+
+  function arm(id: string): void {
+    armedAt.current = Date.now();
+    setArmed(id);
+  }
 
   if (items.length === 0) return null;
 
@@ -32,6 +52,12 @@ export function QuickCleanup({
         // in the block collapse it.
         if (target?.closest('.popup-quick-clean')) return;
         if (armed && !target?.closest('[data-armed="true"]')) setArmed(null);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && armed) {
+          event.stopPropagation();
+          setArmed(null);
+        }
       }}
     >
       <h2 class="popup-quick-title" id="popup-quick-title" data-testid="popup-quick-title">
@@ -54,12 +80,6 @@ export function QuickCleanup({
               class="popup-quick-row"
               data-armed={isArmed ? 'true' : 'false'}
               data-testid={`popup-quick-row-${button.strategyId}`}
-              onKeyDown={(event) => {
-                if (event.key === 'Escape' && isArmed) {
-                  event.stopPropagation();
-                  setArmed(null);
-                }
-              }}
             >
               <div class="popup-quick-row-content">
                 <span class="popup-quick-name">{name}</span>
@@ -70,45 +90,52 @@ export function QuickCleanup({
                   type="button"
                   class="popup-quick-clean"
                   aria-expanded={isArmed}
-                  aria-controls={`popup-quick-actions-${button.strategyId}`}
+                  aria-controls={isArmed ? `popup-quick-actions-${button.strategyId}` : undefined}
                   aria-label={reason ? `${cleanLabel} — ${reason}` : cleanLabel}
                   disabled={button.disabled}
+                  style={isArmed ? { display: 'none' } : undefined}
                   data-testid={`popup-quick-clean-${button.strategyId}`}
-                  onClick={() => setArmed(button.strategyId)}
+                  ref={(node) => {
+                    cleanRefs.current[button.strategyId] = node as HTMLButtonElement | null;
+                  }}
+                  onClick={() => arm(button.strategyId)}
                 >
                   {t('popup.quickClean')}
                 </button>
+                {isArmed && (
+                  <div class="popup-quick-actions" id={`popup-quick-actions-${button.strategyId}`}>
+                    <button
+                      type="button"
+                      class="popup-quick-cancel"
+                      aria-label={t('popup.quickCancelAria', { name })}
+                      data-testid={`popup-quick-cancel-${button.strategyId}`}
+                      onClick={() => setArmed(null)}
+                    >
+                      {t('popup.quickCancel')}
+                    </button>
+                    <button
+                      type="button"
+                      class="popup-quick-confirm"
+                      aria-label={t('popup.quickConfirmAria', { name, count: button.count })}
+                      data-testid={`popup-quick-confirm-${button.strategyId}`}
+                      ref={(node) => {
+                        confirmRefs.current[button.strategyId] = node as HTMLButtonElement | null;
+                      }}
+                      onClick={() => {
+                        if (Date.now() - armedAt.current < CONFIRM_GUARD_MS) return;
+                        onRun(button);
+                      }}
+                    >
+                      {t('popup.quickConfirm')}
+                    </button>
+                  </div>
+                )}
                 {reason && (
                   <span class="popup-quick-reason" data-testid={`popup-quick-reason-${button.strategyId}`}>
                     {reason}
                   </span>
                 )}
               </div>
-              {isArmed && (
-                <div class="popup-quick-actions" id={`popup-quick-actions-${button.strategyId}`}>
-                  <button
-                    type="button"
-                    class="popup-quick-cancel"
-                    aria-label={t('popup.quickCancelAria', { name })}
-                    data-testid={`popup-quick-cancel-${button.strategyId}`}
-                    onClick={() => setArmed(null)}
-                  >
-                    {t('popup.quickCancel')}
-                  </button>
-                  <button
-                    type="button"
-                    class="popup-quick-confirm"
-                    aria-label={t('popup.quickConfirmAria', { name, count: button.count })}
-                    data-testid={`popup-quick-confirm-${button.strategyId}`}
-                    ref={(node) => {
-                      confirmRefs.current[button.strategyId] = node as HTMLButtonElement | null;
-                    }}
-                    onClick={() => onRun(button)}
-                  >
-                    {t('popup.quickConfirm')}
-                  </button>
-                </div>
-              )}
             </li>
           );
         })}

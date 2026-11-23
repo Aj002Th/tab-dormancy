@@ -985,6 +985,7 @@ test('quick cleanup runs only the chosen strategy and records its name', async (
   await popup.getByTestId(`popup-quick-clean-${workId}`).click();
   await expect(popup.getByTestId(`popup-quick-confirm-${workId}`)).toBeVisible();
   await expect(c).toHaveURL(/\/c$/);
+  await popup.waitForTimeout(300); // the row ignores a confirm click within 250ms of expanding
   await popup.getByTestId(`popup-quick-confirm-${workId}`).click();
   await expect(popup.getByText('已用「Quick work」关闭 2 个标签')).toBeVisible();
   await expect(c).toHaveURL(/\/c$/);
@@ -1005,4 +1006,36 @@ test('quick cleanup limit from settings disables further toggles', async ({ cont
   await expect(dashboard.getByTestId('strategy-quick-preset:mild')).toHaveAttribute('aria-pressed', 'true');
   await expect(dashboard.getByTestId('strategy-quick-preset:aggressive')).toBeDisabled();
   await expect(dashboard.getByTestId('strategy-quick-preset:standard')).toHaveCount(0);
+});
+
+test('removing a quick item still works after the limit is lowered', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+  const extraId = await seedStrategy(dashboard, workExpression, { name: 'Extra work' });
+  await dashboard.evaluate(async () => {
+    const activated = await chrome.runtime.sendMessage({ type: 'strategy.activate', id: 'preset:standard' });
+    if (!activated.ok) throw new Error(activated.message);
+  });
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await dashboard.getByTestId('settings-quick-limit').fill('3');
+  await dashboard.getByTestId('settings-save').click();
+  await expect(dashboard.getByTestId('settings-status')).toContainText('设置已保存');
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+  for (const id of ['preset:mild', 'preset:aggressive', extraId]) {
+    await dashboard.getByTestId(`strategy-quick-${id}`).click();
+    await expect(dashboard.getByTestId(`strategy-quick-${id}`)).toHaveAttribute('aria-pressed', 'true');
+  }
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await dashboard.getByTestId('settings-quick-limit').fill('1');
+  await dashboard.getByTestId('settings-save').click();
+  await expect(dashboard.getByTestId('settings-status')).toContainText('设置已保存');
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+  await dashboard.getByTestId('strategy-quick-preset:mild').click();
+  await expect(dashboard.getByTestId('strategy-quick-preset:mild')).toHaveAttribute('aria-pressed', 'false');
+  await expect(dashboard.getByTestId('strategy-quick-preset:aggressive')).toHaveAttribute('aria-pressed', 'true');
+  await expect(dashboard.getByTestId(`strategy-quick-${extraId}`)).toHaveAttribute('aria-pressed', 'true');
 });

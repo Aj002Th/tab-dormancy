@@ -45,16 +45,6 @@ describe('quick cleanup', () => {
     expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:mild']);
   });
 
-  it('rejects more than the hard ceiling', async () => {
-    const { service } = setup();
-    await service.bootstrap();
-    await expect(
-      service.setQuickStrategies(['preset:standard', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']),
-    ).rejects.toMatchObject({
-      code: 'INVALID_SETTINGS',
-    });
-  });
-
   it('replaces the list on each call', async () => {
     const { repo, service } = setup();
     await service.bootstrap();
@@ -199,13 +189,17 @@ describe('quick cleanup', () => {
     await first;
   });
 
-  it('uses the configured limit instead of the hard ceiling', async () => {
+  it('rejects additions beyond the configured limit', async () => {
     const { repo, service } = setup();
     await service.bootstrap();
+    const first = await service.saveStrategy(workStrategy(), undefined);
+    const second = await service.saveStrategy({ ...workStrategy(), name: 'Second' }, undefined);
     await service.updateSettings({ quickCleanupLimit: 2 });
+
     await expect(
-      service.setQuickStrategies(['preset:mild', 'preset:standard', 'preset:aggressive']),
+      service.setQuickStrategies(['preset:mild', 'preset:aggressive', first.id, second.id]),
     ).rejects.toMatchObject({ code: 'INVALID_SETTINGS' });
+
     await service.setQuickStrategies(['preset:mild', 'preset:aggressive']);
     expect((await repo.getSettings()).quickStrategyIds).toHaveLength(2);
 
@@ -245,5 +239,33 @@ describe('quick cleanup', () => {
     await repo.setSettings({ ...(await repo.getSettings()), quickStrategyIds: ['preset:mild', 'preset:standard'] });
     const items = await service.quickPreview();
     expect(items.map((item) => item.strategyId)).toEqual(['preset:mild']);
+  });
+
+  it('allows removals after the limit is lowered below the stored count', async () => {
+    const { repo, service } = setup();
+    await service.bootstrap();
+    const work = await service.saveStrategy(workStrategy(), undefined);
+    await service.setQuickStrategies(['preset:mild', 'preset:aggressive', work.id]);
+    await service.updateSettings({ quickCleanupLimit: 1 });
+    expect((await repo.getSettings()).quickStrategyIds).toHaveLength(3);
+
+    // Still above the new limit: removing one must not be rejected.
+    const next = await service.setQuickStrategies(['preset:mild', 'preset:aggressive']);
+
+    expect(next).toEqual(['preset:mild', 'preset:aggressive']);
+    expect((await repo.getSettings()).quickStrategyIds).toHaveLength(2);
+  });
+
+  it('allows swapping an item while already at the limit', async () => {
+    const { service } = setup();
+    await service.bootstrap();
+    const work = await service.saveStrategy(workStrategy(), undefined);
+    await service.updateSettings({ quickCleanupLimit: 2 });
+    await service.setQuickStrategies(['preset:mild', 'preset:aggressive']);
+
+    await expect(service.setQuickStrategies(['preset:mild', work.id])).resolves.toEqual(['preset:mild', work.id]);
+    await expect(service.setQuickStrategies(['preset:mild', 'preset:aggressive', work.id])).rejects.toMatchObject({
+      code: 'INVALID_SETTINGS',
+    });
   });
 });

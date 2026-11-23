@@ -768,13 +768,15 @@ export class TabDormancyService {
       throw new AppError('INVALID_SETTINGS', t('errors.INVALID_SETTINGS'));
     }
     const settings = await this.deps.repo.getSettings();
-    const unique = [...new Set(ids)];
-    if (unique.length > settings.quickCleanupLimit) {
-      throw new AppError('INVALID_SETTINGS', t('errors.quickLimit', { max: settings.quickCleanupLimit }));
-    }
     const strategies = await this.deps.repo.getStrategies();
     const known = new Set(strategies.map((strategy) => strategy.id));
-    const next = unique.filter((id) => id !== settings.activeStrategyId && known.has(id));
+    const next = [...new Set(ids)].filter((id) => id !== settings.activeStrategyId && known.has(id));
+    // The limit governs additions only: removing items must stay possible even
+    // when the stored list is longer than a freshly lowered limit.
+    const adding = next.filter((id) => !settings.quickStrategyIds.includes(id));
+    if (adding.length > 0 && next.length > settings.quickCleanupLimit) {
+      throw new AppError('INVALID_SETTINGS', t('errors.quickLimit', { max: settings.quickCleanupLimit }));
+    }
     await this.deps.repo.setSettings({ ...settings, quickStrategyIds: next });
     return next;
   }
@@ -826,7 +828,7 @@ export class TabDormancyService {
       ...parsed.bundle.settings,
       activeStrategyId,
       quickStrategyIds: [...new Set(parsed.bundle.settings.quickStrategyIds.map((id) => idMap.get(id) ?? id))]
-        .filter((id) => strategies.some((strategy) => strategy.id === id))
+        .filter((id) => id !== activeStrategyId && strategies.some((strategy) => strategy.id === id))
         .slice(0, LIMITS.maxQuickStrategies),
     };
     await this.deps.repo.setConfig(nextSettings, strategies);

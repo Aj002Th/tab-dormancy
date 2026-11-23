@@ -159,6 +159,15 @@ describe('config bundle', () => {
     });
   });
 
+  it('accepts a bundle without a quick cleanup limit', () => {
+    const bundle = createConfigBundle(DEFAULT_SETTINGS, [], now);
+    const { quickCleanupLimit: _ignored, ...settings } = bundle.settings;
+    const parsed = parseConfigBundle({ ...bundle, settings });
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.bundle.settings.quickCleanupLimit).toBe(4);
+  });
+
   it('rejects a quick cleanup list over the limit', () => {
     const bundle = createConfigBundle(DEFAULT_SETTINGS, [], now);
     const parsed = parseConfigBundle({

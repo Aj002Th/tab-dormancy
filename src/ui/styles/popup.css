@@ -397,32 +397,25 @@
 
 .popup-quick-row {
   position: relative;
-  overflow: hidden;
 }
 
 .popup-quick-row + .popup-quick-row {
   border-top: 1px solid var(--border);
 }
 
+/* name | count | action. The action cell holds Clean, or Cancel + Confirm once
+   the row is armed, so confirming never hides the strategy name. */
 .popup-quick-row-content {
-  position: relative;
-  z-index: 1;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   grid-template-areas:
-    "name count clean"
+    "name count action"
     "reason reason reason";
   align-items: center;
   column-gap: var(--space-2);
   row-gap: 2px;
   min-height: 44px;
-  padding: var(--space-2) var(--space-3);
-  background: var(--surface);
-  transition: transform var(--motion-fast) var(--ease-out);
-}
-
-.popup-quick-row[data-armed="true"] .popup-quick-row-content {
-  transform: translateX(calc(-1 * var(--quick-action-width, 132px)));
+  padding: var(--space-1) 0 var(--space-1) var(--space-3);
 }
 
 .popup-quick-name {
@@ -443,8 +436,9 @@
 }
 
 .popup-quick-clean {
-  grid-area: clean;
-  min-height: 32px;
+  grid-area: action;
+  min-height: 44px;
+  margin-right: var(--space-3);
   padding: 0 var(--space-2);
   border: 1px solid var(--border-control);
   border-radius: var(--radius);
@@ -478,21 +472,15 @@
 }
 
 .popup-quick-actions {
-  position: absolute;
-  inset: 0 0 0 auto;
-  z-index: 2;
+  grid-area: action;
   display: flex;
-  width: var(--quick-action-width, 132px);
-  pointer-events: none;
-}
-
-.popup-quick-row[data-armed="true"] .popup-quick-actions {
-  pointer-events: auto;
+  align-self: stretch;
+  animation: quick-reveal var(--motion-fast) var(--ease-out);
 }
 
 .popup-quick-cancel,
 .popup-quick-confirm {
-  flex: 1 1 0;
+  min-width: 66px;
   border: 0;
   font: inherit;
   font-size: 13px;
@@ -500,7 +488,7 @@
 }
 
 .popup-quick-cancel {
-  background: var(--surface);
+  background: transparent;
   color: var(--muted);
   box-shadow: inset 1px 0 0 var(--border-control);
 }
@@ -517,8 +505,20 @@
   outline-offset: -2px;
 }
 
+@keyframes quick-reveal {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .popup-quick-row-content {
-    transition: none;
+  .popup-quick-actions {
+    animation: none;
   }
 }

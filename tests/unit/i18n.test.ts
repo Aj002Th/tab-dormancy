@@ -62,6 +62,6 @@ describe('i18n', () => {
     expect(translate('zh', 'popup.quickConfirmAria', { name: '工作', count: 3 })).toBe('用「工作」关闭 3 个标签');
     expect(translate('en', 'popup.quickCancelAria', { name: 'Work' })).toBe('Cancel cleaning with "Work"');
     expect(translate('zh', 'settings.quickCleanupRange')).toBe('1–8 条');
-    expect(translate('en', 'settings.quickCleanupHelp')).toBe('How many quick cleanup items the popup offers');
+    expect(translate('en', 'settings.quickCleanupHelp')).toBe('How many quick cleanup items you can add');
   });
 });

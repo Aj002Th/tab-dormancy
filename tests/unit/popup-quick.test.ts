@@ -112,6 +112,13 @@ async function click(testId: string): Promise<void> {
   await Promise.resolve();
 }
 
+// The component ignores a confirm click within 250ms of expanding.
+const settleGuard = () => new Promise((resolve) => setTimeout(resolve, 260));
+
+function activeTestId(): string | null {
+  return (document.activeElement as HTMLElement | null)?.getAttribute('data-testid') ?? null;
+}
+
 async function pressEscape(testId: string): Promise<void> {
   node(testId)?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   await Promise.resolve();
@@ -159,6 +166,7 @@ describe('popup quick cleanup', () => {
     expect(node('popup-quick-confirm-q1')).not.toBeNull();
     expect(ranAnything()).toBe(false);
 
+    await settleGuard();
     await click('popup-quick-confirm-q1');
     await vi.waitFor(() => {
       expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
@@ -236,6 +244,7 @@ describe('popup quick cleanup', () => {
     expect(container?.textContent).not.toContain('标准');
 
     await click('popup-quick-clean-preset:standard');
+    await settleGuard();
     await click('popup-quick-confirm-preset:standard');
     await vi.waitFor(() => {
       expect(container?.textContent).toContain('Closed 3 tabs with "Standard"');
@@ -271,5 +280,58 @@ describe('popup quick cleanup', () => {
     await click('cleanup-button');
     await vi.waitFor(() => expect(node('confirm-cleanup')).not.toBeNull());
     expect(node('popup-quick-clean-q1')).toBeNull();
+  });
+
+  it('ignores a confirm click that follows the expand immediately', async () => {
+    setLocale('zh');
+    installChrome();
+    mount();
+
+    await ready();
+    await click('popup-quick-clean-q1');
+    await click('popup-quick-confirm-q1');
+
+    expect(ranAnything()).toBe(false);
+
+    await settleGuard();
+    await click('popup-quick-confirm-q1');
+    await vi.waitFor(() => expect(ranAnything()).toBe(true));
+  });
+
+  it('hides the clean button while the row is expanded', async () => {
+    setLocale('zh');
+    installChrome();
+    mount();
+
+    await ready();
+    await click('popup-quick-clean-q1');
+
+    const clean = node('popup-quick-clean-q1') as HTMLElement;
+    expect(clean.style.display).toBe('none');
+    expect(node('popup-quick-confirm-q1')).not.toBeNull();
+  });
+
+  it('returns focus to the clean button after Escape', async () => {
+    setLocale('zh');
+    installChrome();
+    mount();
+
+    await ready();
+    await click('popup-quick-clean-q1');
+    await pressEscape('popup-quick-row-q1');
+
+    await vi.waitFor(() => expect(activeTestId()).toBe('popup-quick-clean-q1'));
+  });
+
+  it('returns focus to the clean button after cancel', async () => {
+    setLocale('zh');
+    installChrome();
+    mount();
+
+    await ready();
+    await click('popup-quick-clean-q1');
+    await click('popup-quick-cancel-q1');
+
+    await vi.waitFor(() => expect(activeTestId()).toBe('popup-quick-clean-q1'));
   });
 });

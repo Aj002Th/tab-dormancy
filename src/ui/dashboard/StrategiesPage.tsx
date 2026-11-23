@@ -267,9 +267,9 @@ export function StrategiesPage() {
   const toggleQuick = async (id: string, enabled: boolean) => {
     if (quickSaving) return;
     const current = state?.settings.quickStrategyIds ?? [];
-    const next = toggleQuickId(current, id, enabled);
+    const next = toggleQuickId(current, id, enabled, quickLimit);
     if (!next) {
-      setError(tr('strategies.quickLimit', { max: LIMITS.maxQuickStrategies }));
+      setError(tr('strategies.quickLimit', { max: quickLimit }));
       return;
     }
     setError(null);
@@ -301,6 +301,7 @@ export function StrategiesPage() {
 
   const validation = editing && state ? validateStrategy(editing, state.capabilities) : null;
   const strategies = state?.strategies ?? [];
+  const quickLimit = state?.settings.quickCleanupLimit ?? LIMITS.maxQuickStrategies;
   const visibleStrategies = editing && !editing.id ? [...strategies, editing] : strategies;
   const persistedEditing = editing ? strategies.find((strategy) => strategy.id === editing.id) : undefined;
   const unchanged =
@@ -399,9 +400,7 @@ export function StrategiesPage() {
       <header class="page-head">
         <div>
           <h2>{tr('strategies.title')}</h2>
-          <p class="muted" id="quick-cleanup-hint">
-            {tr('strategies.subtitle')} · {tr('strategies.quickHint')}
-          </p>
+          <p class="muted">{tr('strategies.subtitle')}</p>
         </div>
         <Button variant="primary" onClick={startNew} data-testid="new-strategy">
           {tr('strategies.create')}
@@ -409,6 +408,12 @@ export function StrategiesPage() {
       </header>
 
       {error && <Banner tone="error">{error}</Banner>}
+
+      {(state?.settings.quickStrategyIds.length ?? 0) >= quickLimit && (
+        <p class="muted small" id="quick-cleanup-hint">
+          {tr('strategies.quickLimit', { max: quickLimit })}
+        </p>
+      )}
 
       {deleteTarget && (
         <div
@@ -450,7 +455,6 @@ export function StrategiesPage() {
               : strategyDisplayName(strategy, locale);
             const summary = strategyCardSummary(strategy.expression, locale);
             const quickIds = state?.settings.quickStrategyIds ?? [];
-            const quickLimit = state?.settings.quickCleanupLimit ?? LIMITS.maxQuickStrategies;
             const isQuick = quickIds.includes(strategy.id);
             const quickBlocked = quickToggleDisabled(quickIds, strategy.id, quickSaving, quickLimit);
             return (
