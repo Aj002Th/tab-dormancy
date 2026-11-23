@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { TabDormancyService } from '../../src/background/service';
 import { Repo } from '../../src/platform/storage';
-import type { Strategy } from '../../src/shared/types';
+import type { SettingsPatch, Strategy } from '../../src/shared/types';
 import { defined } from '../helpers/assert-defined';
 import { FakeBrowser } from './fake-browser';
 
@@ -164,6 +164,18 @@ describe('quick cleanup', () => {
     expect((await repo.getSettings()).activeStrategyId).toBe(activeBefore);
     const [summary] = await repo.getHistoryIndex();
     expect(summary).toMatchObject({ strategyId: work.id, strategyName: 'Work', trigger: 'manual' });
+  });
+
+  it('ignores quickStrategyIds sent through settings.update', async () => {
+    const { repo, service } = setup();
+    await service.bootstrap();
+    await service.setQuickStrategies(['preset:standard']);
+    const patch = { idleThresholdMinutes: 30, quickStrategyIds: [] } as unknown as SettingsPatch;
+
+    const next = await service.updateSettings(patch);
+
+    expect(next.quickStrategyIds).toEqual(['preset:standard']);
+    expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:standard']);
   });
 
   it('still throws BUSY when a cleanup is already running', async () => {

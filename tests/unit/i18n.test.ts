@@ -52,5 +52,7 @@ describe('i18n', () => {
     expect(translate('zh', 'popup.quickDone', { name: '工作', count: 3 })).toBe('已用「工作」关闭 3 个标签');
     expect(translate('en', 'popup.quickDone', { name: 'Work', count: 3 })).toBe('Closed 3 tabs with "Work"');
     expect(translate('zh', 'strategies.quickLimit', { max: 4 })).toBe('最多选择 4 条快速清理策略');
+    expect(translate('zh', 'strategies.quickHint')).toBe('在弹窗中显示为手动清理按钮');
+    expect(translate('en', 'strategies.quickHint')).toBe('Shown as a manual button in the popup');
   });
 });

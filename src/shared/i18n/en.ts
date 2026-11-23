@@ -173,6 +173,8 @@ export const en: Record<MessageKey, Message> = {
   'strategies.readOnly': 'Read-only',
   'strategies.quick': 'Quick cleanup',
   'strategies.quickLimit': 'Up to {max} quick cleanup strategies',
+  'strategies.quickHint': 'Shown as a manual button in the popup',
+  'strategies.quickFor': 'Quick cleanup: {name}',
   'strategies.preview': ({ count, total }) => `Preview: ${count} of ${total} manageable tabs will close`,
   'strategies.matches': 'Example matches',
   'strategies.noMatches': 'No tabs match right now.',

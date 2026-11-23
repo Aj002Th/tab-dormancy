@@ -170,6 +170,8 @@ export const zh = {
   'strategies.readOnly': '只读',
   'strategies.quick': '快速清理',
   'strategies.quickLimit': '最多选择 {max} 条快速清理策略',
+  'strategies.quickHint': '在弹窗中显示为手动清理按钮',
+  'strategies.quickFor': '快速清理：{name}',
   'strategies.preview': ({ count, total }: MessageParams) => `预览：将关闭 ${count} 个标签（共 ${total} 个可管理标签）`,
   'strategies.matches': '命中示例',
   'strategies.noMatches': '当前没有命中的标签。',

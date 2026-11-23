@@ -832,7 +832,9 @@ export class TabDormancyService {
   async updateSettings(patch: SettingsPatch): Promise<Settings> {
     await this.bootstrap();
     const current = await this.deps.repo.getSettings();
-    const next: Settings = { ...current, ...patch };
+    // quickStrategyIds is written only through quick.set; a runtime patch that
+    // carries the field (the router does not validate shapes) must not pass it.
+    const next: Settings = { ...current, ...patch, quickStrategyIds: current.quickStrategyIds };
     if (
       !Number.isInteger(next.idleThresholdMinutes) ||
       next.idleThresholdMinutes < 1 ||

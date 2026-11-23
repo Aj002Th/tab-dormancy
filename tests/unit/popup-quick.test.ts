@@ -2,7 +2,7 @@
 import { h, render } from 'preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { setLocale } from '../../src/shared/i18n';
-import type { CleanupResult, StateSnapshot } from '../../src/shared/types';
+import type { CleanupResult, QuickStrategyItem, StateSnapshot } from '../../src/shared/types';
 import { Popup } from '../../src/ui/popup/Popup';
 
 const snapshot = {
@@ -13,7 +13,7 @@ const snapshot = {
     historyRetentionDays: 30,
     historyMaxRecords: 5_000,
     activeStrategyId: 'preset:standard',
-    quickStrategyIds: ['q1'],
+    quickStrategyIds: ['q1', 'q0', 'qi'],
     theme: 'system',
     language: 'zh',
     cleanInternalPages: false,
@@ -56,20 +56,36 @@ const result: CleanupResult = {
   failures: [],
 };
 
+const quickItems: QuickStrategyItem[] = [
+  { strategyId: 'q1', name: 'Work', matched: 3, status: 'ready' },
+  { strategyId: 'q0', name: 'Empty', matched: 0, status: 'ready' },
+  { strategyId: 'qi', name: '标准', matched: 0, status: 'invalid' },
+];
+
 let container: HTMLDivElement | null = null;
 
-function installChrome(): void {
+function installChrome(options: { items?: QuickStrategyItem[]; previewFails?: boolean } = {}): void {
+  const items = options.items ?? quickItems;
   vi.stubGlobal('chrome', {
     runtime: {
       getManifest: () => ({ version: '0.0.0-test' }),
       sendMessage: vi.fn(async (request: { type: string; strategyId?: string }) => {
         if (request.type === 'state.get') return { ok: true, data: snapshot };
         if (request.type === 'cleanup.preview') {
-          return { ok: false, error: 'UNSUPPORTED_FACT', message: 'paused' };
+          return options.previewFails === false
+            ? {
+                ok: true,
+                data: {
+                  matched: 3,
+                  sample: [],
+                  totalManagedTabs: 5,
+                  strategyId: 'preset:standard',
+                  strategyName: '标准',
+                },
+              }
+            : { ok: false, error: 'UNSUPPORTED_FACT', message: 'paused' };
         }
-        if (request.type === 'quick.preview') {
-          return { ok: true, data: [{ strategyId: 'q1', name: 'Work', matched: 3, status: 'ready' }] };
-        }
+        if (request.type === 'quick.preview') return { ok: true, data: items };
         if (request.type === 'cleanup.run') return { ok: true, data: result };
         return { ok: false, error: 'NOT_FOUND', message: 'unknown' };
       }),
@@ -97,6 +113,7 @@ afterEach(() => {
   }
   document.body.replaceChildren();
   vi.unstubAllGlobals();
+  setLocale('zh');
 });
 
 describe('popup quick cleanup', () => {
@@ -125,5 +142,56 @@ describe('popup quick cleanup', () => {
     expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'cleanup.run', strategyId: 'q1' }),
     );
+  });
+
+  it('localizes a built-in preset in the quick block and in the result', async () => {
+    setLocale('en');
+    installChrome({
+      items: [{ strategyId: 'preset:standard', name: '标准', matched: 2, status: 'ready' }],
+    });
+    mount();
+
+    await vi.waitFor(() =>
+      expect(container?.querySelector('[data-testid="popup-quick-preset:standard"]')).not.toBeNull(),
+    );
+    const button = container?.querySelector('[data-testid="popup-quick-preset:standard"]');
+    expect(button?.textContent).toContain('Standard');
+    expect(button?.textContent).not.toContain('标准');
+
+    click('popup-quick-preset:standard');
+    await vi.waitFor(() => {
+      expect(container?.textContent).toContain('Closed 3 tabs with "Standard"');
+    });
+  });
+
+  it('keeps the count visible and explains why a button is disabled', async () => {
+    setLocale('en');
+    installChrome();
+    mount();
+
+    await vi.waitFor(() => expect(container?.querySelector('[data-testid="popup-quick-q0"]')).not.toBeNull());
+
+    const empty = container?.querySelector('[data-testid="popup-quick-q0"]');
+    expect(empty?.hasAttribute('disabled')).toBe(true);
+    expect(container?.querySelector('[data-testid="popup-quick-count-q0"]')?.textContent).toBe('0 tabs');
+
+    const invalid = container?.querySelector('[data-testid="popup-quick-qi"]');
+    expect(invalid?.hasAttribute('disabled')).toBe(true);
+    expect(container?.querySelector('[data-testid="popup-quick-count-qi"]')?.textContent).toBe('0 tabs');
+    expect(container?.querySelector('[data-testid="popup-quick-reason-qi"]')?.textContent).toContain('Invalid rule');
+    expect(invalid?.getAttribute('aria-label')).toContain('Invalid rule');
+  });
+
+  it('hides the block once the main flow asks for confirmation', async () => {
+    setLocale('zh');
+    installChrome({ previewFails: false });
+    mount();
+
+    await vi.waitFor(() => expect(container?.querySelector('[data-testid="cleanup-button"]')).not.toBeNull());
+    expect(container?.querySelector('[data-testid="popup-quick-q1"]')).not.toBeNull();
+
+    click('cleanup-button');
+    await vi.waitFor(() => expect(container?.querySelector('[data-testid="confirm-cleanup"]')).not.toBeNull());
+    expect(container?.querySelector('[data-testid="popup-quick-q1"]')).toBeNull();
   });
 });

@@ -193,7 +193,7 @@ export function Popup() {
               </Button>
             )}
           </div>
-          <QuickCleanup items={state.quick} disabled={state.phase !== 'ready'} onRun={runQuick} />
+          <QuickCleanup items={state.quick} onRun={runQuick} />
           <p class="muted popup-footnote">{lastCleanup}</p>
         </>
       )}
@@ -293,7 +293,7 @@ export function Popup() {
             </div>
           </section>
 
-          <QuickCleanup items={state.quick} disabled={state.phase !== 'ready'} onRun={runQuick} />
+          {state.phase === 'ready' && <QuickCleanup items={state.quick} onRun={runQuick} />}
 
           <p class="muted popup-footnote">{lastCleanup}</p>
         </>
@@ -305,7 +305,10 @@ export function Popup() {
         <section class="done-box">
           <h2>
             {state.via
-              ? t('popup.quickDone', { name: state.via.name, count: state.result.closed })
+              ? t('popup.quickDone', {
+                  name: strategyDisplayName({ id: state.via.id, name: state.via.name }),
+                  count: state.result.closed,
+                })
               : t('popup.closedCount', { count: state.result.closed })}
           </h2>
           {state.result.failed > 0 && <p class="muted">{t('popup.failed', { count: state.result.failed })}</p>}

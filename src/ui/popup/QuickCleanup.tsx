@@ -1,14 +1,13 @@
 import { t } from '../../shared/i18n';
 import type { QuickStrategyItem } from '../../shared/types';
+import { strategyDisplayName } from '../dashboard/strategy-name';
 import { type QuickButton, quickButtons } from './quick-buttons';
 
 export function QuickCleanup({
   items,
-  disabled,
   onRun,
 }: {
   items: readonly QuickStrategyItem[];
-  disabled: boolean;
   onRun: (button: QuickButton) => void;
 }) {
   if (items.length === 0) return null;
@@ -18,29 +17,38 @@ export function QuickCleanup({
         {t('popup.quickTitle')}
       </h2>
       <ul class="popup-quick-list">
-        {quickButtons(items).map((button) => (
-          <li key={button.strategyId}>
-            <button
-              type="button"
-              class="popup-quick-item"
-              disabled={disabled || button.disabled}
-              aria-label={t('popup.quickAria', { name: button.name, count: button.count })}
-              data-testid={`popup-quick-${button.strategyId}`}
-              onClick={() => onRun(button)}
-            >
-              <span class="popup-quick-name">{button.name}</span>
-              {button.status === 'ready' || button.status === 'empty' ? (
+        {quickButtons(items).map((button) => {
+          const name = strategyDisplayName({ id: button.strategyId, name: button.name });
+          const reason =
+            button.status === 'invalid'
+              ? t('popup.quickInvalid')
+              : button.status === 'unsupported'
+                ? t('popup.quickUnsupported')
+                : null;
+          const ariaLabel = t('popup.quickAria', { name, count: button.count });
+          return (
+            <li key={button.strategyId}>
+              <button
+                type="button"
+                class="popup-quick-item"
+                disabled={button.disabled}
+                aria-label={reason ? `${ariaLabel} — ${reason}` : ariaLabel}
+                data-testid={`popup-quick-${button.strategyId}`}
+                onClick={() => onRun(button)}
+              >
+                <span class="popup-quick-name">{name}</span>
                 <span class="popup-quick-count" data-testid={`popup-quick-count-${button.strategyId}`}>
                   {t('popup.quickCount', { count: button.count })}
                 </span>
-              ) : (
-                <span class="popup-quick-reason">
-                  {t(button.status === 'invalid' ? 'popup.quickInvalid' : 'popup.quickUnsupported')}
-                </span>
-              )}
-            </button>
-          </li>
-        ))}
+                {reason && (
+                  <span class="popup-quick-reason" data-testid={`popup-quick-reason-${button.strategyId}`}>
+                    {reason}
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

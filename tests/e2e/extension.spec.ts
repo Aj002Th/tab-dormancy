@@ -977,6 +977,7 @@ test('quick cleanup runs only the chosen strategy and records its name', async (
   });
   await dashboard.reload();
   await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toBeChecked();
+  await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toHaveAccessibleName('快速清理：Quick work');
 
   const popup = await context.newPage();
   await popup.goto(`chrome-extension://${extensionId}/popup.html`);

@@ -1,9 +1,10 @@
 import { LIMITS } from '../../shared/constants';
 
 /**
- * Adds or removes an id while preserving the list order. Returns null when the
- * list is already full, so callers can show the limit message instead of
- * silently dropping the click.
+ * Adds or removes an id, removing any duplicate first. Re-adding moves the id to
+ * the end; display order is decided elsewhere. Returns null when the list is
+ * already full, so callers can show the limit message instead of silently
+ * dropping the click.
  */
 export function toggleQuickId(
   current: readonly string[],
@@ -24,4 +25,17 @@ export function quickAddBlocked(
   limit: number = LIMITS.maxQuickStrategies,
 ): boolean {
   return current.length >= limit && !current.includes(id);
+}
+
+/**
+ * Every switch is inert while a write is in flight, so two rapid toggles can
+ * never interleave their responses or roll back each other's choice.
+ */
+export function quickToggleDisabled(
+  current: readonly string[],
+  id: string,
+  saving: boolean,
+  limit: number = LIMITS.maxQuickStrategies,
+): boolean {
+  return saving || quickAddBlocked(current, id, limit);
 }
