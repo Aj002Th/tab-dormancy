@@ -152,4 +152,12 @@ describe('popupReducer', () => {
     const stale = popupReducer(failed, { type: 'loaded', snapshot, preview, generation: 1 });
     expect(stale).toBe(failed);
   });
+
+  it('remembers which quick item started the run and forgets it on reload', () => {
+    const start = { ...initialPopupState(), phase: 'ready' as const, generation: 1 };
+    const running = popupReducer(start, { type: 'run-start', via: { id: 'q', name: 'Work' } });
+    expect(running).toMatchObject({ phase: 'running', via: { id: 'q', name: 'Work' } });
+    const reloaded = popupReducer(running, { type: 'reload', generation: 2 });
+    expect(reloaded.via).toBeNull();
+  });
 });
