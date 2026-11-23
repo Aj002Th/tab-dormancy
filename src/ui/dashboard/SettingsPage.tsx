@@ -435,6 +435,44 @@ export function SettingsPage() {
 
         <section class="settings-section">
           <div class="settings-section-head">
+            <h3>{t('settings.quickCleanup')}</h3>
+            <p class="muted small">{t('settings.quickCleanupHelp')}</p>
+          </div>
+          <div class="settings-section-body">
+            <label class="settings-field" for="settings-quick-limit">
+              <span>{t('settings.quickCleanupLimit')}</span>
+              <input
+                id="settings-quick-limit"
+                class="input"
+                type="number"
+                min={1}
+                max={LIMITS.maxQuickStrategies}
+                value={form.quickCleanupLimit}
+                disabled={saving}
+                data-testid="settings-quick-limit"
+                aria-invalid={fieldErrors.quickCleanupLimit ? 'true' : undefined}
+                aria-describedby={
+                  fieldErrors.quickCleanupLimit
+                    ? 'settings-quick-limit-help settings-quick-limit-error'
+                    : 'settings-quick-limit-help'
+                }
+                onInput={(event) => updateForm({ quickCleanupLimit: (event.currentTarget as HTMLInputElement).value })}
+                onBlur={() => validateField('quickCleanupLimit')}
+              />
+              <span class="settings-help" id="settings-quick-limit-help">
+                {t('settings.quickCleanupRange')}
+              </span>
+              {fieldErrors.quickCleanupLimit && (
+                <span class="field-error" id="settings-quick-limit-error" role="alert">
+                  {fieldErrors.quickCleanupLimit}
+                </span>
+              )}
+            </label>
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <div class="settings-section-head">
             <h3>{t('settings.lock')}</h3>
             <p class="muted small">{t('settings.lockHelp')}</p>
           </div>
