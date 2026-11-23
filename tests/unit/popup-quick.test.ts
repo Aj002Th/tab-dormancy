@@ -13,7 +13,7 @@ const snapshot = {
     historyRetentionDays: 30,
     historyMaxRecords: 5_000,
     activeStrategyId: 'preset:standard',
-    quickStrategyIds: ['q1', 'q0', 'qi'],
+    quickStrategyIds: ['q1', 'q0', 'qi', 'q2'],
     quickCleanupLimit: 4,
     theme: 'system',
     language: 'zh',
@@ -61,6 +61,7 @@ const quickItems: QuickStrategyItem[] = [
   { strategyId: 'q1', name: 'Work', matched: 3, status: 'ready' },
   { strategyId: 'q0', name: 'Empty', matched: 0, status: 'ready' },
   { strategyId: 'qi', name: '标准', matched: 0, status: 'invalid' },
+  { strategyId: 'q2', name: 'Docs', matched: 2, status: 'ready' },
 ];
 
 let container: HTMLDivElement | null = null;
@@ -100,10 +101,30 @@ function mount(): void {
   render(h(Popup, {}), container);
 }
 
-function click(testId: string): void {
-  const node = container?.querySelector(`[data-testid="${testId}"]`);
-  if (!(node instanceof HTMLElement)) throw new Error(`missing ${testId}`);
-  node.click();
+function node(testId: string): Element | null {
+  return container?.querySelector(`[data-testid="${testId}"]`) ?? null;
+}
+
+async function click(testId: string): Promise<void> {
+  const target = node(testId);
+  if (!(target instanceof HTMLElement)) throw new Error(`missing ${testId}`);
+  target.click();
+  await Promise.resolve();
+}
+
+async function pressEscape(testId: string): Promise<void> {
+  node(testId)?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await Promise.resolve();
+}
+
+async function ready(testId = 'popup-quick-clean-q1'): Promise<void> {
+  await vi.waitFor(() => expect(node(testId)).not.toBeNull());
+}
+
+function ranAnything(): boolean {
+  return vi
+    .mocked(chrome.runtime.sendMessage)
+    .mock.calls.some(([request]) => (request as { type?: string }).type === 'cleanup.run');
 }
 
 afterEach(() => {
@@ -123,26 +144,82 @@ describe('popup quick cleanup', () => {
     installChrome();
     mount();
 
-    await vi.waitFor(() => {
-      expect(container?.querySelector('[data-testid="popup-quick-q1"]')).not.toBeNull();
-    });
-    expect(container?.querySelector('[data-testid="popup-quick-count-q1"]')?.textContent).toBe('3 个');
+    await ready();
+    expect(node('popup-quick-count-q1')?.textContent).toBe('3 个');
   });
 
-  it('runs the clicked strategy and names it in the result', async () => {
+  it('only expands on the first click and runs on confirm', async () => {
     setLocale('zh');
     installChrome();
     mount();
 
-    await vi.waitFor(() => expect(container?.querySelector('[data-testid="popup-quick-q1"]')).not.toBeNull());
-    click('popup-quick-q1');
+    await ready();
+    await click('popup-quick-clean-q1');
 
+    expect(node('popup-quick-confirm-q1')).not.toBeNull();
+    expect(ranAnything()).toBe(false);
+
+    await click('popup-quick-confirm-q1');
+    await vi.waitFor(() => {
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'cleanup.run', strategyId: 'q1' }),
+      );
+    });
     await vi.waitFor(() => {
       expect(container?.textContent).toContain('已用「Work」关闭 3 个标签');
     });
-    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'cleanup.run', strategyId: 'q1' }),
-    );
+  });
+
+  it('cancels the expansion without running anything', async () => {
+    setLocale('zh');
+    installChrome();
+    mount();
+
+    await ready();
+    await click('popup-quick-clean-q1');
+    await click('popup-quick-cancel-q1');
+
+    expect(node('popup-quick-confirm-q1')).toBeNull();
+    expect(ranAnything()).toBe(false);
+  });
+
+  it('closes the expansion on Escape', async () => {
+    setLocale('zh');
+    installChrome();
+    mount();
+
+    await ready();
+    await click('popup-quick-clean-q1');
+    await pressEscape('popup-quick-row-q1');
+
+    expect(node('popup-quick-confirm-q1')).toBeNull();
+    expect(ranAnything()).toBe(false);
+  });
+
+  it('keeps only one row expanded', async () => {
+    setLocale('zh');
+    installChrome();
+    mount();
+
+    await ready();
+    await click('popup-quick-clean-q1');
+    await click('popup-quick-clean-q2');
+
+    expect(node('popup-quick-confirm-q1')).toBeNull();
+    expect(node('popup-quick-confirm-q2')).not.toBeNull();
+  });
+
+  it('collapses when the block background is clicked', async () => {
+    setLocale('zh');
+    installChrome();
+    mount();
+
+    await ready();
+    await click('popup-quick-clean-q1');
+    node('popup-quick-title')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await Promise.resolve();
+
+    expect(node('popup-quick-confirm-q1')).toBeNull();
   });
 
   it('localizes a built-in preset in the quick block and in the result', async () => {
@@ -152,14 +229,14 @@ describe('popup quick cleanup', () => {
     });
     mount();
 
-    await vi.waitFor(() =>
-      expect(container?.querySelector('[data-testid="popup-quick-preset:standard"]')).not.toBeNull(),
-    );
-    const button = container?.querySelector('[data-testid="popup-quick-preset:standard"]');
-    expect(button?.textContent).toContain('Standard');
-    expect(button?.textContent).not.toContain('标准');
+    await ready('popup-quick-clean-preset:standard');
+    const clean = node('popup-quick-clean-preset:standard');
+    expect(clean?.textContent).toContain('Clean');
+    expect(container?.textContent).toContain('Standard');
+    expect(container?.textContent).not.toContain('标准');
 
-    click('popup-quick-preset:standard');
+    await click('popup-quick-clean-preset:standard');
+    await click('popup-quick-confirm-preset:standard');
     await vi.waitFor(() => {
       expect(container?.textContent).toContain('Closed 3 tabs with "Standard"');
     });
@@ -170,16 +247,16 @@ describe('popup quick cleanup', () => {
     installChrome();
     mount();
 
-    await vi.waitFor(() => expect(container?.querySelector('[data-testid="popup-quick-q0"]')).not.toBeNull());
+    await ready('popup-quick-clean-q0');
 
-    const empty = container?.querySelector('[data-testid="popup-quick-q0"]');
+    const empty = node('popup-quick-clean-q0');
     expect(empty?.hasAttribute('disabled')).toBe(true);
-    expect(container?.querySelector('[data-testid="popup-quick-count-q0"]')?.textContent).toBe('0 tabs');
+    expect(node('popup-quick-count-q0')?.textContent).toBe('0 tabs');
 
-    const invalid = container?.querySelector('[data-testid="popup-quick-qi"]');
+    const invalid = node('popup-quick-clean-qi');
     expect(invalid?.hasAttribute('disabled')).toBe(true);
-    expect(container?.querySelector('[data-testid="popup-quick-count-qi"]')?.textContent).toBe('0 tabs');
-    expect(container?.querySelector('[data-testid="popup-quick-reason-qi"]')?.textContent).toContain('Invalid rule');
+    expect(node('popup-quick-count-qi')?.textContent).toBe('0 tabs');
+    expect(node('popup-quick-reason-qi')?.textContent).toContain('Invalid rule');
     expect(invalid?.getAttribute('aria-label')).toContain('Invalid rule');
   });
 
@@ -188,11 +265,11 @@ describe('popup quick cleanup', () => {
     installChrome({ previewFails: false });
     mount();
 
-    await vi.waitFor(() => expect(container?.querySelector('[data-testid="cleanup-button"]')).not.toBeNull());
-    expect(container?.querySelector('[data-testid="popup-quick-q1"]')).not.toBeNull();
+    await vi.waitFor(() => expect(node('cleanup-button')).not.toBeNull());
+    expect(node('popup-quick-clean-q1')).not.toBeNull();
 
-    click('cleanup-button');
-    await vi.waitFor(() => expect(container?.querySelector('[data-testid="confirm-cleanup"]')).not.toBeNull());
-    expect(container?.querySelector('[data-testid="popup-quick-q1"]')).toBeNull();
+    await click('cleanup-button');
+    await vi.waitFor(() => expect(node('confirm-cleanup')).not.toBeNull());
+    expect(node('popup-quick-clean-q1')).toBeNull();
   });
 });
