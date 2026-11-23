@@ -248,6 +248,15 @@ export type CleanupPreview = {
   strategyName: string;
 };
 
+export type QuickStrategyStatus = 'ready' | 'invalid' | 'unsupported';
+
+export type QuickStrategyItem = {
+  strategyId: string;
+  name: string;
+  matched: number;
+  status: QuickStrategyStatus;
+};
+
 export type StateSnapshot = {
   settings: Settings;
   strategies: Strategy[];

@@ -7,7 +7,7 @@ import { selectExpired } from '../core/retention';
 import { evaluateStrategy } from '../core/rules/evaluate';
 import { createPresetStrategies } from '../core/rules/presets';
 import { signatureOf } from '../core/rules/signature';
-import { validateStrategy, validationMessage } from '../core/rules/validate';
+import { validateExpr, validateStrategy, validationMessage } from '../core/rules/validate';
 import { requireStrategy, unsupportedFacts } from '../core/strategies';
 import type { Browser } from '../platform/browser';
 import type { Repo } from '../platform/storage';
@@ -28,6 +28,8 @@ import type {
   HistoryQuery,
   HistoryQueryResult,
   Language,
+  QuickStrategyItem,
+  QuickStrategyStatus,
   RestoreOptions,
   RestoreResult,
   Settings,
@@ -194,6 +196,39 @@ export class TabDormancyService {
       strategyName: strategy.name,
       signature: await signatureOf(strategy.expression),
     };
+  }
+
+  async quickPreview(): Promise<QuickStrategyItem[]> {
+    await this.bootstrap();
+    const settings = await this.deps.repo.getSettings();
+    const strategies = await this.deps.repo.getStrategies();
+    const caps = await this.getCapabilities();
+    const quick = strategies.filter((strategy) => settings.quickStrategyIds.includes(strategy.id));
+    if (quick.length === 0) return [];
+    const [tabs, windows, groups] = await Promise.all([
+      this.deps.browser.queryTabs(),
+      this.deps.browser.getWindows(),
+      this.deps.browser.getTabGroups(),
+    ]);
+    return quick.map((strategy) => {
+      // validateExpr without capabilities: with them, validateStrategy reports
+      // FACT_UNAVAILABLE and an unsupported rule would be mislabelled invalid.
+      const status: QuickStrategyStatus = !validateExpr(strategy.expression).valid
+        ? 'invalid'
+        : unsupportedFacts(strategy.expression, caps).length > 0
+          ? 'unsupported'
+          : 'ready';
+      const plan = planCleanup({
+        tabs,
+        windows,
+        groups,
+        strategy,
+        capabilities: caps,
+        now: this.deps.now(),
+        includeInternalPages: settings.cleanInternalPages,
+      });
+      return { strategyId: strategy.id, name: strategy.name, matched: plan.matched.length, status };
+    });
   }
 
   async listTabs(): Promise<TabListItem[]> {

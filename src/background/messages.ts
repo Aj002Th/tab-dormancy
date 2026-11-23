@@ -43,6 +43,8 @@ export async function handleRequest(message: unknown, service: TabDormancyServic
         return ok(null);
       case 'quick.set':
         return ok(await service.setQuickStrategies(request.ids));
+      case 'quick.preview':
+        return ok(await service.quickPreview());
       case 'settings.update':
         return ok(await service.updateSettings(request.patch));
       case 'config.export':

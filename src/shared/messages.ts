@@ -6,6 +6,7 @@ import type {
   ConfigImportResult,
   HistoryQuery,
   HistoryQueryResult,
+  QuickStrategyItem,
   RestoreOptions,
   RestoreResult,
   Settings,
@@ -31,6 +32,7 @@ export type Request =
   | { type: 'strategy.activate'; id: string }
   | { type: 'strategy.delete'; id: string }
   | { type: 'quick.set'; ids: string[] }
+  | { type: 'quick.preview' }
   | { type: 'settings.update'; patch: SettingsPatch }
   | { type: 'config.export' }
   | { type: 'config.import'; bundle: unknown }
@@ -52,6 +54,7 @@ export type ResponseMap = {
   'strategy.activate': null;
   'strategy.delete': null;
   'quick.set': string[];
+  'quick.preview': QuickStrategyItem[];
   'settings.update': Settings;
   'config.export': ConfigBundle;
   'config.import': ConfigImportResult;
