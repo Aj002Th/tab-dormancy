@@ -11,7 +11,7 @@ import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
 import { useLocale } from '../i18n';
 import { newCondition, newGroup } from './expr-edit';
-import { quickAddBlocked, quickToggleDisabled, toggleQuickId } from './quick-cleanup';
+import { quickToggleDisabled, toggleQuickId } from './quick-cleanup';
 import { RuleEditor } from './RuleEditor';
 import { strategyDisplayName } from './strategy-name';
 import { type StrategyCardTagGroup, strategyCardSummary } from './strategy-summary';
@@ -450,6 +450,10 @@ export function StrategiesPage() {
               ? strategy.name.trim() || tr('strategies.unnamed')
               : strategyDisplayName(strategy, locale);
             const summary = strategyCardSummary(strategy.expression, locale);
+            const quickIds = state?.settings.quickStrategyIds ?? [];
+            const quickLimit = state?.settings.quickCleanupLimit ?? LIMITS.maxQuickStrategies;
+            const isQuick = quickIds.includes(strategy.id);
+            const quickBlocked = quickToggleDisabled(quickIds, strategy.id, quickSaving, quickLimit);
             return (
               <div
                 class={`strategy-card${selected ? ' selected' : ''}${draft ? ' draft' : ''}`}
@@ -472,30 +476,21 @@ export function StrategiesPage() {
                     <strong>{title}</strong>
                     {strategy.builtin && <span class="badge">{tr('strategies.builtin')}</span>}
                     {draft && <span class="badge draft">{tr('strategies.draft')}</span>}
-                    {!draft && (
-                      <label
+                    {!draft && !active && (
+                      <button
+                        type="button"
                         class="strategy-quick"
-                        title={
-                          quickAddBlocked(state?.settings.quickStrategyIds ?? [], strategy.id)
-                            ? tr('strategies.quickLimit', { max: LIMITS.maxQuickStrategies })
-                            : undefined
-                        }
+                        aria-pressed={isQuick}
+                        aria-label={tr('strategies.quickFor', { name: title })}
+                        aria-describedby="quick-cleanup-hint"
+                        disabled={quickBlocked}
+                        title={quickBlocked ? tr('strategies.quickLimit', { max: quickLimit }) : undefined}
+                        data-testid={`strategy-quick-${strategy.id}`}
+                        onClick={() => void toggleQuick(strategy.id, !isQuick)}
                       >
-                        <input
-                          type="checkbox"
-                          checked={state?.settings.quickStrategyIds.includes(strategy.id) === true}
-                          disabled={quickToggleDisabled(
-                            state?.settings.quickStrategyIds ?? [],
-                            strategy.id,
-                            quickSaving,
-                          )}
-                          aria-label={tr('strategies.quickFor', { name: title })}
-                          aria-describedby="quick-cleanup-hint"
-                          data-testid={`strategy-quick-${strategy.id}`}
-                          onChange={(event) => void toggleQuick(strategy.id, event.currentTarget.checked)}
-                        />
-                        <span>{tr('strategies.quick')}</span>
-                      </label>
+                        <span aria-hidden="true">{isQuick ? '✓' : '+'}</span>
+                        {tr('strategies.quick')}
+                      </button>
                     )}
                   </div>
                   <div class="strategy-card-summary">
