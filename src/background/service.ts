@@ -99,7 +99,9 @@ export class TabDormancyService {
       await repo.setSettings(settings);
     }
 
-    const quickKept = settings.quickStrategyIds.filter((id) => strategies.some((strategy) => strategy.id === id));
+    const quickKept = settings.quickStrategyIds.filter(
+      (id) => id !== settings.activeStrategyId && strategies.some((strategy) => strategy.id === id),
+    );
     if (quickKept.length !== settings.quickStrategyIds.length) {
       settings = { ...settings, quickStrategyIds: quickKept };
       await repo.setSettings(settings);
@@ -203,7 +205,9 @@ export class TabDormancyService {
     const settings = await this.deps.repo.getSettings();
     const strategies = await this.deps.repo.getStrategies();
     const caps = await this.getCapabilities();
-    const quick = strategies.filter((strategy) => settings.quickStrategyIds.includes(strategy.id));
+    const quick = strategies.filter(
+      (strategy) => strategy.id !== settings.activeStrategyId && settings.quickStrategyIds.includes(strategy.id),
+    );
     if (quick.length === 0) return [];
     const [tabs, windows, groups] = await Promise.all([
       this.deps.browser.queryTabs(),
@@ -734,7 +738,11 @@ export class TabDormancyService {
       }
     }
     const settings = await this.deps.repo.getSettings();
-    await this.deps.repo.setSettings({ ...settings, activeStrategyId: id });
+    await this.deps.repo.setSettings({
+      ...settings,
+      activeStrategyId: id,
+      quickStrategyIds: settings.quickStrategyIds.filter((quickId) => quickId !== id),
+    });
   }
 
   async deleteStrategy(id: string): Promise<void> {
@@ -759,14 +767,14 @@ export class TabDormancyService {
     if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string' || id.length === 0)) {
       throw new AppError('INVALID_SETTINGS', t('errors.INVALID_SETTINGS'));
     }
+    const settings = await this.deps.repo.getSettings();
     const unique = [...new Set(ids)];
-    if (unique.length > LIMITS.maxQuickStrategies) {
-      throw new AppError('INVALID_SETTINGS', t('errors.quickLimit', { max: LIMITS.maxQuickStrategies }));
+    if (unique.length > settings.quickCleanupLimit) {
+      throw new AppError('INVALID_SETTINGS', t('errors.quickLimit', { max: settings.quickCleanupLimit }));
     }
     const strategies = await this.deps.repo.getStrategies();
     const known = new Set(strategies.map((strategy) => strategy.id));
-    const next = unique.filter((id) => known.has(id));
-    const settings = await this.deps.repo.getSettings();
+    const next = unique.filter((id) => id !== settings.activeStrategyId && known.has(id));
     await this.deps.repo.setSettings({ ...settings, quickStrategyIds: next });
     return next;
   }

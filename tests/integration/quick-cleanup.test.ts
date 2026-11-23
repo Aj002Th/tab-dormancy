@@ -7,6 +7,7 @@ import { FakeBrowser } from './fake-browser';
 
 const now = 1_000_000_000;
 const minute = 60_000;
+const agent = 'Mozilla/5.0 Chrome/132.0.0.0';
 
 function setup() {
   const browser = new FakeBrowser();
@@ -39,9 +40,9 @@ describe('quick cleanup', () => {
   it('stores a deduplicated quick list and drops unknown ids', async () => {
     const { repo, service } = setup();
     await service.bootstrap();
-    const next = await service.setQuickStrategies(['preset:standard', 'preset:standard', 'ghost']);
-    expect(next).toEqual(['preset:standard']);
-    expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:standard']);
+    const next = await service.setQuickStrategies(['preset:mild', 'preset:mild', 'ghost']);
+    expect(next).toEqual(['preset:mild']);
+    expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:mild']);
   });
 
   it('rejects more than the hard ceiling', async () => {
@@ -93,7 +94,7 @@ describe('quick cleanup', () => {
       userAgent: () => 'Mozilla/5.0 Chrome/132.0.0.0',
     });
     await first.bootstrap();
-    await repo.setSettings({ ...(await repo.getSettings()), quickStrategyIds: ['preset:standard', 'ghost'] });
+    await repo.setSettings({ ...(await repo.getSettings()), quickStrategyIds: ['preset:mild', 'ghost'] });
     const second = new TabDormancyService({
       browser,
       repo,
@@ -102,7 +103,7 @@ describe('quick cleanup', () => {
       userAgent: () => 'Mozilla/5.0 Chrome/132.0.0.0',
     });
     await second.bootstrap();
-    expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:standard']);
+    expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:mild']);
   });
 
   it('reports matches for each quick strategy in strategy-list order', async () => {
@@ -111,9 +112,9 @@ describe('quick cleanup', () => {
     browser.addTab({ url: 'https://example.com/old', lastAccessed: now - 5_000 * minute });
     browser.addTab({ url: 'https://other.test/x', lastAccessed: now - 5_000 * minute });
     const work = await service.saveStrategy(workStrategy(), undefined);
-    await service.setQuickStrategies([work.id, 'preset:standard']);
+    await service.setQuickStrategies([work.id, 'preset:mild']);
     const items = await service.quickPreview();
-    expect(items.map((item) => item.strategyId)).toEqual(['preset:standard', work.id]);
+    expect(items.map((item) => item.strategyId)).toEqual(['preset:mild', work.id]);
     expect(items.find((item) => item.strategyId === work.id)).toMatchObject({ matched: 1, status: 'ready' });
   });
 
@@ -179,13 +180,13 @@ describe('quick cleanup', () => {
   it('ignores quickStrategyIds sent through settings.update', async () => {
     const { repo, service } = setup();
     await service.bootstrap();
-    await service.setQuickStrategies(['preset:standard']);
+    await service.setQuickStrategies(['preset:mild']);
     const patch = { idleThresholdMinutes: 30, quickStrategyIds: [] } as unknown as SettingsPatch;
 
     const next = await service.updateSettings(patch);
 
-    expect(next.quickStrategyIds).toEqual(['preset:standard']);
-    expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:standard']);
+    expect(next.quickStrategyIds).toEqual(['preset:mild']);
+    expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:mild']);
   });
 
   it('still throws BUSY when a cleanup is already running', async () => {
@@ -196,5 +197,53 @@ describe('quick cleanup', () => {
     await Promise.resolve(); // 让第一次调用越过 bootstrap 并把 running 置位
     await expect(service.runCleanup('manual', work.id)).rejects.toMatchObject({ code: 'BUSY' });
     await first;
+  });
+
+  it('uses the configured limit instead of the hard ceiling', async () => {
+    const { repo, service } = setup();
+    await service.bootstrap();
+    await service.updateSettings({ quickCleanupLimit: 2 });
+    await expect(
+      service.setQuickStrategies(['preset:mild', 'preset:standard', 'preset:aggressive']),
+    ).rejects.toMatchObject({ code: 'INVALID_SETTINGS' });
+    await service.setQuickStrategies(['preset:mild', 'preset:aggressive']);
+    expect((await repo.getSettings()).quickStrategyIds).toHaveLength(2);
+
+    await service.updateSettings({ quickCleanupLimit: 1 });
+    expect((await repo.getSettings()).quickStrategyIds).toHaveLength(2);
+  });
+
+  it('never stores the active strategy as a quick item', async () => {
+    const { repo, service } = setup();
+    await service.bootstrap();
+    await service.setQuickStrategies(['preset:standard', 'preset:mild']);
+    expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:mild']);
+  });
+
+  it('drops the quick entry when its strategy becomes active', async () => {
+    const { repo, service } = setup();
+    await service.bootstrap();
+    await service.setQuickStrategies(['preset:mild']);
+    await service.activateStrategy('preset:mild');
+    expect((await repo.getSettings()).quickStrategyIds).toEqual([]);
+  });
+
+  it('prunes the active strategy from a stale quick list on bootstrap', async () => {
+    const { browser, repo } = setup();
+    const first = new TabDormancyService({ browser, repo, now: () => now, id: () => 'id-x', userAgent: () => agent });
+    await first.bootstrap();
+    await repo.setSettings({ ...(await repo.getSettings()), quickStrategyIds: ['preset:mild', 'preset:standard'] });
+    const second = new TabDormancyService({ browser, repo, now: () => now, id: () => 'id-y', userAgent: () => agent });
+    await second.bootstrap();
+    expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:mild']);
+  });
+
+  it('hides the active strategy from the popup preview', async () => {
+    const { repo, service } = setup();
+    await service.bootstrap();
+    await service.setQuickStrategies(['preset:mild']);
+    await repo.setSettings({ ...(await repo.getSettings()), quickStrategyIds: ['preset:mild', 'preset:standard'] });
+    const items = await service.quickPreview();
+    expect(items.map((item) => item.strategyId)).toEqual(['preset:mild']);
   });
 });
