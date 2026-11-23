@@ -55,4 +55,13 @@ describe('i18n', () => {
     expect(translate('zh', 'strategies.quickHint')).toBe('在弹窗中显示为手动清理按钮');
     expect(translate('en', 'strategies.quickHint')).toBe('Shown as a manual button in the popup');
   });
+
+  it('localizes the two-step quick cleanup copy', () => {
+    expect(translate('zh', 'popup.quickConfirm')).toBe('确认');
+    expect(translate('en', 'popup.quickCancel')).toBe('Cancel');
+    expect(translate('zh', 'popup.quickConfirmAria', { name: '工作', count: 3 })).toBe('用「工作」关闭 3 个标签');
+    expect(translate('en', 'popup.quickCancelAria', { name: 'Work' })).toBe('Cancel cleaning with "Work"');
+    expect(translate('zh', 'settings.quickCleanupRange')).toBe('1–8 条');
+    expect(translate('en', 'settings.quickCleanupHelp')).toBe('How many quick cleanup items the popup offers');
+  });
 });
