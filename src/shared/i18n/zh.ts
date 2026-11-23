@@ -206,6 +206,8 @@ export const zh = {
   'editor.hours': '小时',
   'editor.days': '天',
   'editor.domainPlaceholder': '每行一个域名，例如 google.com',
+  'editor.domainListHint': '每行一个域名；以 *. 开头时匹配该域名的子域',
+  'editor.globHint': '支持 *（任意长度）和 ?（单个字符）；需匹配整串，不是正则',
   'editor.text': '文本',
   'editor.delete': '删除',
   // --- summary ---

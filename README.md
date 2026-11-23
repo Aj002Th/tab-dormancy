@@ -46,6 +46,10 @@ Rules are not a fixed set of switches but an expression tree:
 - Domain matching respects hostname boundaries: `google.com` matches `mail.google.com` but not `evilgoogle.com`.
 - Wildcards support `*` and `?`; regular expressions are not supported.
 
+### Quick cleanup
+
+Mark up to 4 strategies as "quick cleanup" and they appear as buttons in the popup. Clicking one cleans up once with that strategy only; the everyday active strategy and automatic cleanup stay untouched. It fits "I spent the day on one job with dozens of tabs open, and want them gone in one click".
+
 ### Three ready-to-use presets
 
 | Preset | Match condition | Extra protection |

@@ -209,6 +209,8 @@ export const en: Record<MessageKey, Message> = {
   'editor.hours': 'Hours',
   'editor.days': 'Days',
   'editor.domainPlaceholder': 'One domain per line, e.g. google.com',
+  'editor.domainListHint': 'One domain per line. A leading *. matches subdomains.',
+  'editor.globHint': '* for any text, ? for one character. The whole value must match. Not a regex.',
   'editor.text': 'Text',
   'editor.delete': 'Delete',
   // --- summary ---
