@@ -4,29 +4,37 @@ import { defined } from '../helpers/assert-defined';
 import { expect, test } from './fixtures';
 import { chooseSelect } from './i18n-helpers';
 
-async function seedStrategy(page: Page, expression: unknown): Promise<void> {
-  await page.evaluate(async (expr) => {
-    const strategy = {
-      id: 'e2e',
-      name: 'E2E URL',
-      builtin: false,
-      expression: expr,
-      createdAt: 0,
-      updatedAt: 0,
-      lastPreviewHash: null,
-      lastPreviewAt: null,
-    };
-    const preview = await chrome.runtime.sendMessage({ type: 'strategy.preview', strategy });
-    if (!preview.ok) throw new Error(preview.message);
-    const saved = await chrome.runtime.sendMessage({
-      type: 'strategy.save',
-      strategy,
-      previewSignature: preview.data.signature,
-    });
-    if (!saved.ok) throw new Error(saved.message);
-    const activated = await chrome.runtime.sendMessage({ type: 'strategy.activate', id: saved.data.id });
-    if (!activated.ok) throw new Error(activated.message);
-  }, expression);
+async function seedStrategy(
+  page: Page,
+  expression: unknown,
+  meta: { id?: string; name?: string } = {},
+): Promise<string> {
+  return page.evaluate(
+    async ({ expr, id, name }) => {
+      const strategy = {
+        id,
+        name,
+        builtin: false,
+        expression: expr,
+        createdAt: 0,
+        updatedAt: 0,
+        lastPreviewHash: null,
+        lastPreviewAt: null,
+      };
+      const preview = await chrome.runtime.sendMessage({ type: 'strategy.preview', strategy });
+      if (!preview.ok) throw new Error(preview.message);
+      const saved = await chrome.runtime.sendMessage({
+        type: 'strategy.save',
+        strategy,
+        previewSignature: preview.data.signature,
+      });
+      if (!saved.ok) throw new Error(saved.message);
+      const activated = await chrome.runtime.sendMessage({ type: 'strategy.activate', id: saved.data.id });
+      if (!activated.ok) throw new Error(activated.message);
+      return saved.data.id as string;
+    },
+    { expr: expression, id: meta.id ?? 'e2e', name: meta.name ?? 'E2E URL' },
+  );
 }
 
 async function seedUrlStrategy(page: Page): Promise<void> {
@@ -936,4 +944,47 @@ test('diagnostics version is legible', async ({ context, extensionId }) => {
   await expect(version).toHaveText(`Tab Dormancy v${manifest.version}`);
   const size = await version.evaluate((el) => getComputedStyle(el).fontSize);
   expect(size).toBe('13px');
+});
+
+const workExpression = {
+  type: 'any',
+  id: 'quick-root',
+  children: [
+    { type: 'condition', id: 'quick-a', fact: 'url', op: 'matchesGlob', value: '*://127.0.0.1:4173/a*' },
+    { type: 'condition', id: 'quick-b', fact: 'url', op: 'matchesGlob', value: '*://127.0.0.1:4173/b*' },
+  ],
+};
+
+test('quick cleanup runs only the chosen strategy and records its name', async ({ context, extensionId }) => {
+  const a = await context.newPage();
+  const b = await context.newPage();
+  const c = await context.newPage();
+  await a.goto('http://127.0.0.1:4173/a');
+  await b.goto('http://127.0.0.1:4173/b');
+  await c.goto('http://127.0.0.1:4173/c');
+
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+  const workId = await seedStrategy(dashboard, workExpression, { name: 'Quick work' });
+  await dashboard.reload();
+  await dashboard.getByTestId(`strategy-quick-${workId}`).check();
+
+  // Hand the active strategy back to the standard preset: quick cleanup must
+  // work while the daily strategy matches nothing.
+  await dashboard.evaluate(async () => {
+    const activated = await chrome.runtime.sendMessage({ type: 'strategy.activate', id: 'preset:standard' });
+    if (!activated.ok) throw new Error(activated.message);
+  });
+  await dashboard.reload();
+  await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toBeChecked();
+
+  const popup = await context.newPage();
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  await expect(popup.getByTestId(`popup-quick-count-${workId}`)).toHaveText('2 个');
+  await popup.getByTestId(`popup-quick-${workId}`).click();
+  await expect(popup.getByText('已用「Quick work」关闭 2 个标签')).toBeVisible();
+  await expect(c).toHaveURL(/\/c$/);
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/history`);
+  await expect(dashboard.locator('[data-testid^="history-row-"]').first()).toContainText('Quick work');
 });
