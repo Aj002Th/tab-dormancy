@@ -25,4 +25,11 @@ describe('quick cleanup selection', () => {
     expect(quickToggleDisabled([], 'a', false, LIMIT)).toBe(false);
     expect(quickToggleDisabled(['a', 'b', 'c', 'd'], 'e', false, LIMIT)).toBe(true);
   });
+
+  it('does not count the hidden active strategy against the limit', () => {
+    // x is the active strategy: hidden, but still stored.
+    expect(toggleQuickId(['a', 'b', 'c', 'x'], 'd', true, LIMIT, 'x')).toEqual(['a', 'b', 'c', 'x', 'd']);
+    expect(quickAddBlocked(['a', 'b', 'c', 'x'], 'd', LIMIT, 'x')).toBe(false);
+    expect(quickAddBlocked(['a', 'b', 'c', 'd', 'x'], 'e', LIMIT, 'x')).toBe(true);
+  });
 });

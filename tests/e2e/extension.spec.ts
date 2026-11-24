@@ -1059,3 +1059,32 @@ test('removing a quick item still works after the limit is lowered', async ({ co
   await expect(dashboard.getByTestId('strategy-quick-preset:aggressive')).toHaveAttribute('aria-pressed', 'true');
   await expect(dashboard.getByTestId(`strategy-quick-${extraId}`)).toHaveAttribute('aria-pressed', 'true');
 });
+
+test('a quick item survives switching the active strategy away and back', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+  const workId = await seedStrategy(dashboard, workExpression, { name: 'Round trip' });
+
+  const activate = async (id: string) => {
+    await dashboard.evaluate(async (strategyId) => {
+      const activated = await chrome.runtime.sendMessage({ type: 'strategy.activate', id: strategyId });
+      if (!activated.ok) throw new Error(activated.message);
+    }, id);
+    await dashboard.reload();
+  };
+
+  await activate('preset:standard');
+  await dashboard.getByTestId(`strategy-quick-${workId}`).click();
+  await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toHaveAttribute('aria-pressed', 'true');
+
+  // Making it active hides the switch without dropping the entry.
+  await activate(workId);
+  await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toHaveCount(0);
+
+  await activate('preset:standard');
+  await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toHaveAttribute('aria-pressed', 'true');
+
+  await activate(workId);
+  await activate('preset:standard');
+  await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toHaveAttribute('aria-pressed', 'true');
+});

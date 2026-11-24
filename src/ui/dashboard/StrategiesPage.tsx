@@ -267,7 +267,7 @@ export function StrategiesPage() {
   const toggleQuick = async (id: string, enabled: boolean) => {
     if (quickSaving) return;
     const current = state?.settings.quickStrategyIds ?? [];
-    const next = toggleQuickId(current, id, enabled, quickLimit);
+    const next = toggleQuickId(current, id, enabled, quickLimit, activeQuickId);
     if (!next) {
       setError(tr('strategies.quickLimit', { max: quickLimit }));
       return;
@@ -302,6 +302,7 @@ export function StrategiesPage() {
   const validation = editing && state ? validateStrategy(editing, state.capabilities) : null;
   const strategies = state?.strategies ?? [];
   const quickLimit = state?.settings.quickCleanupLimit ?? LIMITS.maxQuickStrategies;
+  const activeQuickId = state?.activeStrategy.id;
   const visibleStrategies = editing && !editing.id ? [...strategies, editing] : strategies;
   const persistedEditing = editing ? strategies.find((strategy) => strategy.id === editing.id) : undefined;
   const unchanged =
@@ -456,7 +457,7 @@ export function StrategiesPage() {
             const summary = strategyCardSummary(strategy.expression, locale);
             const quickIds = state?.settings.quickStrategyIds ?? [];
             const isQuick = quickIds.includes(strategy.id);
-            const quickBlocked = quickToggleDisabled(quickIds, strategy.id, quickSaving, quickLimit);
+            const quickBlocked = quickToggleDisabled(quickIds, strategy.id, quickSaving, quickLimit, activeQuickId);
             return (
               <div
                 class={`strategy-card${selected ? ' selected' : ''}${draft ? ' draft' : ''}`}

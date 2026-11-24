@@ -99,9 +99,7 @@ export class TabDormancyService {
       await repo.setSettings(settings);
     }
 
-    const quickKept = settings.quickStrategyIds.filter(
-      (id) => id !== settings.activeStrategyId && strategies.some((strategy) => strategy.id === id),
-    );
+    const quickKept = settings.quickStrategyIds.filter((id) => strategies.some((strategy) => strategy.id === id));
     if (quickKept.length !== settings.quickStrategyIds.length) {
       settings = { ...settings, quickStrategyIds: quickKept };
       await repo.setSettings(settings);
@@ -738,11 +736,7 @@ export class TabDormancyService {
       }
     }
     const settings = await this.deps.repo.getSettings();
-    await this.deps.repo.setSettings({
-      ...settings,
-      activeStrategyId: id,
-      quickStrategyIds: settings.quickStrategyIds.filter((quickId) => quickId !== id),
-    });
+    await this.deps.repo.setSettings({ ...settings, activeStrategyId: id });
   }
 
   async deleteStrategy(id: string): Promise<void> {
@@ -770,11 +764,14 @@ export class TabDormancyService {
     const settings = await this.deps.repo.getSettings();
     const strategies = await this.deps.repo.getStrategies();
     const known = new Set(strategies.map((strategy) => strategy.id));
-    const next = [...new Set(ids)].filter((id) => id !== settings.activeStrategyId && known.has(id));
+    // The active strategy keeps its slot: it is hidden from the dashboard pill
+    // and from the popup, so switching strategies away and back restores it.
+    const next = [...new Set(ids)].filter((id) => known.has(id));
     // The limit governs additions only: removing items must stay possible even
     // when the stored list is longer than a freshly lowered limit.
     const adding = next.filter((id) => !settings.quickStrategyIds.includes(id));
-    if (adding.length > 0 && next.length > settings.quickCleanupLimit) {
+    const selectable = next.filter((id) => id !== settings.activeStrategyId);
+    if (adding.length > 0 && selectable.length > settings.quickCleanupLimit) {
       throw new AppError('INVALID_SETTINGS', t('errors.quickLimit', { max: settings.quickCleanupLimit }));
     }
     await this.deps.repo.setSettings({ ...settings, quickStrategyIds: next });
@@ -828,7 +825,7 @@ export class TabDormancyService {
       ...parsed.bundle.settings,
       activeStrategyId,
       quickStrategyIds: [...new Set(parsed.bundle.settings.quickStrategyIds.map((id) => idMap.get(id) ?? id))]
-        .filter((id) => id !== activeStrategyId && strategies.some((strategy) => strategy.id === id))
+        .filter((id) => strategies.some((strategy) => strategy.id === id))
         .slice(0, LIMITS.maxQuickStrategies),
     };
     await this.deps.repo.setConfig(nextSettings, strategies);

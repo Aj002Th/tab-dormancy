@@ -11,10 +11,12 @@ export function toggleQuickId(
   id: string,
   enabled: boolean,
   limit: number = LIMITS.maxQuickStrategies,
+  activeId?: string,
 ): string[] | null {
   const rest = current.filter((item) => item !== id);
   if (!enabled) return rest;
-  if (rest.length >= limit) return null;
+  const selectable = rest.filter((item) => item !== activeId).length;
+  if (selectable >= limit) return null;
   return [...rest, id];
 }
 
@@ -23,8 +25,12 @@ export function quickAddBlocked(
   current: readonly string[],
   id: string,
   limit: number = LIMITS.maxQuickStrategies,
+  activeId?: string,
 ): boolean {
-  return current.length >= limit && !current.includes(id);
+  if (current.includes(id)) return false;
+  // The active strategy keeps its slot but has no switch, so it must not eat
+  // one of the user's visible slots.
+  return current.filter((item) => item !== activeId).length >= limit;
 }
 
 /**
@@ -36,6 +42,7 @@ export function quickToggleDisabled(
   id: string,
   saving: boolean,
   limit: number = LIMITS.maxQuickStrategies,
+  activeId?: string,
 ): boolean {
-  return saving || quickAddBlocked(current, id, limit);
+  return saving || quickAddBlocked(current, id, limit, activeId);
 }

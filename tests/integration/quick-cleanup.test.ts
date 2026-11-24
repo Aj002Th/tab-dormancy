@@ -207,29 +207,39 @@ describe('quick cleanup', () => {
     expect((await repo.getSettings()).quickStrategyIds).toHaveLength(2);
   });
 
-  it('never stores the active strategy as a quick item', async () => {
+  it('keeps the active strategy in the list while hiding it from the preview', async () => {
     const { repo, service } = setup();
     await service.bootstrap();
     await service.setQuickStrategies(['preset:standard', 'preset:mild']);
-    expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:mild']);
+    expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:standard', 'preset:mild']);
+    const items = await service.quickPreview();
+    expect(items.map((item) => item.strategyId)).toEqual(['preset:mild']);
   });
 
-  it('drops the quick entry when its strategy becomes active', async () => {
+  it('keeps quick entries across active-strategy switches', async () => {
     const { repo, service } = setup();
     await service.bootstrap();
-    await service.setQuickStrategies(['preset:mild']);
+    await service.setQuickStrategies(['preset:mild', 'preset:aggressive']);
+
     await service.activateStrategy('preset:mild');
-    expect((await repo.getSettings()).quickStrategyIds).toEqual([]);
+    expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:mild', 'preset:aggressive']);
+
+    await service.activateStrategy('preset:aggressive');
+    await service.activateStrategy('preset:mild');
+    expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:mild', 'preset:aggressive']);
   });
 
-  it('prunes the active strategy from a stale quick list on bootstrap', async () => {
+  it('keeps the active strategy on bootstrap but still prunes unknown ids', async () => {
     const { browser, repo } = setup();
     const first = new TabDormancyService({ browser, repo, now: () => now, id: () => 'id-x', userAgent: () => agent });
     await first.bootstrap();
-    await repo.setSettings({ ...(await repo.getSettings()), quickStrategyIds: ['preset:mild', 'preset:standard'] });
+    await repo.setSettings({
+      ...(await repo.getSettings()),
+      quickStrategyIds: ['preset:mild', 'preset:standard', 'ghost'],
+    });
     const second = new TabDormancyService({ browser, repo, now: () => now, id: () => 'id-y', userAgent: () => agent });
     await second.bootstrap();
-    expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:mild']);
+    expect((await repo.getSettings()).quickStrategyIds).toEqual(['preset:mild', 'preset:standard']);
   });
 
   it('hides the active strategy from the popup preview', async () => {
