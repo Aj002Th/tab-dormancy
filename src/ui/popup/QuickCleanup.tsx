@@ -132,12 +132,12 @@ export function QuickCleanup({
                     </Button>
                   </div>
                 )}
-                {reason && (
-                  <span class="popup-quick-reason" data-testid={`popup-quick-reason-${button.strategyId}`}>
-                    {reason}
-                  </span>
-                )}
               </div>
+              {reason && (
+                <span class="popup-quick-reason" data-testid={`popup-quick-reason-${button.strategyId}`}>
+                  {reason}
+                </span>
+              )}
             </li>
           );
         })}

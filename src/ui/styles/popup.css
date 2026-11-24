@@ -407,20 +407,15 @@
 /* name | count | action. The action cell holds Clean, or Cancel + Confirm once
    the row is armed, so confirming never hides the strategy name. */
 .popup-quick-row-content {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  grid-template-areas:
-    "name count action"
-    "reason reason reason";
+  display: flex;
   align-items: center;
-  column-gap: var(--space-2);
-  row-gap: 2px;
+  gap: var(--space-2);
   min-height: 44px;
-  padding: 0 0 0 var(--space-3);
+  padding: 0 var(--space-3);
 }
 
 .popup-quick-name {
-  grid-area: name;
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   font-size: 13px;
@@ -429,7 +424,7 @@
 }
 
 .popup-quick-count {
-  grid-area: count;
+  flex: none;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
@@ -438,32 +433,32 @@
 
 /* Placement only: the look comes from the shared .btn system. */
 .popup-quick-clean {
-  grid-area: action;
+  flex: none;
   min-height: 30px;
-  margin-right: var(--space-3);
   padding: 0 var(--space-3);
   font-size: 13px;
 }
 
 .popup-quick-reason {
-  grid-area: reason;
+  display: block;
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-2);
   font-size: 12px;
   line-height: 1.4;
   color: var(--muted);
 }
 
 .popup-quick-actions {
-  grid-area: action;
   display: flex;
+  flex: none;
   align-items: center;
-  gap: var(--space-2);
-  padding-right: var(--space-3);
+  gap: var(--space-1);
   animation: quick-reveal var(--motion-fast) var(--ease-out);
 }
 
 .popup-quick-actions > .btn {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 0 auto;
+  min-width: 44px;
   min-height: 30px;
   padding: 0 var(--space-2);
   font-size: 13px;
