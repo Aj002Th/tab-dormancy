@@ -4,29 +4,37 @@ import { defined } from '../helpers/assert-defined';
 import { expect, test } from './fixtures';
 import { chooseSelect } from './i18n-helpers';
 
-async function seedStrategy(page: Page, expression: unknown): Promise<void> {
-  await page.evaluate(async (expr) => {
-    const strategy = {
-      id: 'e2e',
-      name: 'E2E URL',
-      builtin: false,
-      expression: expr,
-      createdAt: 0,
-      updatedAt: 0,
-      lastPreviewHash: null,
-      lastPreviewAt: null,
-    };
-    const preview = await chrome.runtime.sendMessage({ type: 'strategy.preview', strategy });
-    if (!preview.ok) throw new Error(preview.message);
-    const saved = await chrome.runtime.sendMessage({
-      type: 'strategy.save',
-      strategy,
-      previewSignature: preview.data.signature,
-    });
-    if (!saved.ok) throw new Error(saved.message);
-    const activated = await chrome.runtime.sendMessage({ type: 'strategy.activate', id: saved.data.id });
-    if (!activated.ok) throw new Error(activated.message);
-  }, expression);
+async function seedStrategy(
+  page: Page,
+  expression: unknown,
+  meta: { id?: string; name?: string } = {},
+): Promise<string> {
+  return page.evaluate(
+    async ({ expr, id, name }) => {
+      const strategy = {
+        id,
+        name,
+        builtin: false,
+        expression: expr,
+        createdAt: 0,
+        updatedAt: 0,
+        lastPreviewHash: null,
+        lastPreviewAt: null,
+      };
+      const preview = await chrome.runtime.sendMessage({ type: 'strategy.preview', strategy });
+      if (!preview.ok) throw new Error(preview.message);
+      const saved = await chrome.runtime.sendMessage({
+        type: 'strategy.save',
+        strategy,
+        previewSignature: preview.data.signature,
+      });
+      if (!saved.ok) throw new Error(saved.message);
+      const activated = await chrome.runtime.sendMessage({ type: 'strategy.activate', id: saved.data.id });
+      if (!activated.ok) throw new Error(activated.message);
+      return saved.data.id as string;
+    },
+    { expr: expression, id: meta.id ?? 'e2e', name: meta.name ?? 'E2E URL' },
+  );
 }
 
 async function seedUrlStrategy(page: Page): Promise<void> {
@@ -936,4 +944,147 @@ test('diagnostics version is legible', async ({ context, extensionId }) => {
   await expect(version).toHaveText(`Tab Dormancy v${manifest.version}`);
   const size = await version.evaluate((el) => getComputedStyle(el).fontSize);
   expect(size).toBe('13px');
+});
+
+const workExpression = {
+  type: 'any',
+  id: 'quick-root',
+  children: [
+    { type: 'condition', id: 'quick-a', fact: 'url', op: 'matchesGlob', value: '*://127.0.0.1:4173/a*' },
+    { type: 'condition', id: 'quick-b', fact: 'url', op: 'matchesGlob', value: '*://127.0.0.1:4173/b*' },
+  ],
+};
+
+test('quick cleanup runs only the chosen strategy and records its name', async ({ context, extensionId }) => {
+  const a = await context.newPage();
+  const b = await context.newPage();
+  const c = await context.newPage();
+  await a.goto('http://127.0.0.1:4173/a');
+  await b.goto('http://127.0.0.1:4173/b');
+  await c.goto('http://127.0.0.1:4173/c');
+
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+  const workId = await seedStrategy(dashboard, workExpression, { name: 'Quick work' });
+
+  // Seeding activates the new strategy, and the active strategy has no toggle:
+  // hand the active role back to the standard preset first.
+  await dashboard.evaluate(async () => {
+    const activated = await chrome.runtime.sendMessage({ type: 'strategy.activate', id: 'preset:standard' });
+    if (!activated.ok) throw new Error(activated.message);
+  });
+  await dashboard.reload();
+  await dashboard.getByTestId(`strategy-quick-${workId}`).click();
+  await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toHaveAttribute('aria-pressed', 'true');
+  await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toHaveAccessibleName('快速清理：Quick work');
+  await expect(dashboard.getByTestId('strategy-quick-preset:standard')).toHaveCount(0);
+
+  const popup = await context.newPage();
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  await expect(popup.getByTestId(`popup-quick-count-${workId}`)).toHaveText('2 个');
+  await popup.getByTestId(`popup-quick-clean-${workId}`).click();
+  await expect(popup.getByTestId(`popup-quick-confirm-${workId}`)).toBeVisible();
+  await expect(c).toHaveURL(/\/c$/);
+
+  // All three quick buttons come from the shared .btn system: one radius, one
+  // type scale, and a danger fill that differs from the neutral cancel.
+  const looks = await popup.evaluate(() => {
+    const pick = (selector: string) => {
+      const node = document.querySelector(selector) as HTMLElement;
+      const style = getComputedStyle(node);
+      return { radius: style.borderRadius, fontSize: style.fontSize, background: style.backgroundColor };
+    };
+    return {
+      clean: pick('[data-testid^="popup-quick-clean-"]'),
+      cancel: pick('[data-testid^="popup-quick-cancel-"]'),
+      confirm: pick('[data-testid^="popup-quick-confirm-"]'),
+    };
+  });
+  expect(looks.clean.radius).toBe('8px');
+  expect(looks.cancel.radius).toBe('8px');
+  expect(looks.confirm.radius).toBe('8px');
+  expect(looks.clean.fontSize).toBe(looks.confirm.fontSize);
+  expect(looks.confirm.background).not.toBe(looks.cancel.background);
+  await popup.waitForTimeout(300); // the row ignores a confirm click within 250ms of expanding
+  await popup.getByTestId(`popup-quick-confirm-${workId}`).click();
+  await expect(popup.getByText('已用「Quick work」关闭 2 个标签')).toBeVisible();
+  await expect(c).toHaveURL(/\/c$/);
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/history`);
+  await expect(dashboard.locator('[data-testid^="history-row-"]').first()).toContainText('Quick work');
+});
+
+test('quick cleanup limit from settings disables further toggles', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await dashboard.getByTestId('settings-quick-limit').fill('1');
+  await dashboard.getByTestId('settings-save').click();
+  await expect(dashboard.getByTestId('settings-status')).toContainText('设置已保存');
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+  await dashboard.getByTestId('strategy-quick-preset:mild').click();
+  await expect(dashboard.getByTestId('strategy-quick-preset:mild')).toHaveAttribute('aria-pressed', 'true');
+  await expect(dashboard.getByTestId('strategy-quick-preset:aggressive')).toBeDisabled();
+  await expect(dashboard.getByTestId('strategy-quick-preset:standard')).toHaveCount(0);
+});
+
+test('removing a quick item still works after the limit is lowered', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+  const extraId = await seedStrategy(dashboard, workExpression, { name: 'Extra work' });
+  await dashboard.evaluate(async () => {
+    const activated = await chrome.runtime.sendMessage({ type: 'strategy.activate', id: 'preset:standard' });
+    if (!activated.ok) throw new Error(activated.message);
+  });
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await dashboard.getByTestId('settings-quick-limit').fill('3');
+  await dashboard.getByTestId('settings-save').click();
+  await expect(dashboard.getByTestId('settings-status')).toContainText('设置已保存');
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+  for (const id of ['preset:mild', 'preset:aggressive', extraId]) {
+    await dashboard.getByTestId(`strategy-quick-${id}`).click();
+    await expect(dashboard.getByTestId(`strategy-quick-${id}`)).toHaveAttribute('aria-pressed', 'true');
+  }
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/settings`);
+  await dashboard.getByTestId('settings-quick-limit').fill('1');
+  await dashboard.getByTestId('settings-save').click();
+  await expect(dashboard.getByTestId('settings-status')).toContainText('设置已保存');
+
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+  await dashboard.getByTestId('strategy-quick-preset:mild').click();
+  await expect(dashboard.getByTestId('strategy-quick-preset:mild')).toHaveAttribute('aria-pressed', 'false');
+  await expect(dashboard.getByTestId('strategy-quick-preset:aggressive')).toHaveAttribute('aria-pressed', 'true');
+  await expect(dashboard.getByTestId(`strategy-quick-${extraId}`)).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('a quick item survives switching the active strategy away and back', async ({ context, extensionId }) => {
+  const dashboard = await context.newPage();
+  await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
+  const workId = await seedStrategy(dashboard, workExpression, { name: 'Round trip' });
+
+  const activate = async (id: string) => {
+    await dashboard.evaluate(async (strategyId) => {
+      const activated = await chrome.runtime.sendMessage({ type: 'strategy.activate', id: strategyId });
+      if (!activated.ok) throw new Error(activated.message);
+    }, id);
+    await dashboard.reload();
+  };
+
+  await activate('preset:standard');
+  await dashboard.getByTestId(`strategy-quick-${workId}`).click();
+  await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toHaveAttribute('aria-pressed', 'true');
+
+  // Making it active hides the switch without dropping the entry.
+  await activate(workId);
+  await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toHaveCount(0);
+
+  await activate('preset:standard');
+  await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toHaveAttribute('aria-pressed', 'true');
+
+  await activate(workId);
+  await activate('preset:standard');
+  await expect(dashboard.getByTestId(`strategy-quick-${workId}`)).toHaveAttribute('aria-pressed', 'true');
 });

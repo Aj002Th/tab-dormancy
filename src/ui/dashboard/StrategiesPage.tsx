@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { cloneStrategy, createCustomStrategy } from '../../core/rules/presets';
 import { canonicalExpr } from '../../core/rules/signature';
 import { validateStrategy, validationMessage } from '../../core/rules/validate';
+import { LIMITS } from '../../shared/constants';
 import { type MessageKey, type MessageParams, translate } from '../../shared/i18n';
 import type { StrategyPreview } from '../../shared/messages';
 import type { StateSnapshot, Strategy } from '../../shared/types';
@@ -10,6 +11,7 @@ import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
 import { useLocale } from '../i18n';
 import { newCondition, newGroup } from './expr-edit';
+import { quickToggleDisabled, toggleQuickId } from './quick-cleanup';
 import { RuleEditor } from './RuleEditor';
 import { strategyDisplayName } from './strategy-name';
 import { type StrategyCardTagGroup, strategyCardSummary } from './strategy-summary';
@@ -96,6 +98,7 @@ export function StrategiesPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [quickSaving, setQuickSaving] = useState(false);
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Strategy | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -261,6 +264,28 @@ export function StrategiesPage() {
     }
   };
 
+  const toggleQuick = async (id: string, enabled: boolean) => {
+    if (quickSaving) return;
+    const current = state?.settings.quickStrategyIds ?? [];
+    const next = toggleQuickId(current, id, enabled, quickLimit, activeQuickId);
+    if (!next) {
+      setError(tr('strategies.quickLimit', { max: quickLimit }));
+      return;
+    }
+    setError(null);
+    setQuickSaving(true);
+    setState((prev) => (prev ? { ...prev, settings: { ...prev.settings, quickStrategyIds: next } } : prev));
+    try {
+      const saved = await send<string[]>({ type: 'quick.set', ids: next });
+      setState((prev) => (prev ? { ...prev, settings: { ...prev.settings, quickStrategyIds: saved } } : prev));
+    } catch (error) {
+      setState((prev) => (prev ? { ...prev, settings: { ...prev.settings, quickStrategyIds: current } } : prev));
+      setError(messageOf(error));
+    } finally {
+      setQuickSaving(false);
+    }
+  };
+
   const remove = async (id: string) => {
     setDeleteTarget(null);
     setError(null);
@@ -276,6 +301,8 @@ export function StrategiesPage() {
 
   const validation = editing && state ? validateStrategy(editing, state.capabilities) : null;
   const strategies = state?.strategies ?? [];
+  const quickLimit = state?.settings.quickCleanupLimit ?? LIMITS.maxQuickStrategies;
+  const activeQuickId = state?.activeStrategy.id;
   const visibleStrategies = editing && !editing.id ? [...strategies, editing] : strategies;
   const persistedEditing = editing ? strategies.find((strategy) => strategy.id === editing.id) : undefined;
   const unchanged =
@@ -383,6 +410,12 @@ export function StrategiesPage() {
 
       {error && <Banner tone="error">{error}</Banner>}
 
+      {(state?.settings.quickStrategyIds.length ?? 0) >= quickLimit && (
+        <p class="muted small" id="quick-cleanup-hint">
+          {tr('strategies.quickLimit', { max: quickLimit })}
+        </p>
+      )}
+
       {deleteTarget && (
         <div
           class="strategy-confirm"
@@ -422,6 +455,9 @@ export function StrategiesPage() {
               ? strategy.name.trim() || tr('strategies.unnamed')
               : strategyDisplayName(strategy, locale);
             const summary = strategyCardSummary(strategy.expression, locale);
+            const quickIds = state?.settings.quickStrategyIds ?? [];
+            const isQuick = quickIds.includes(strategy.id);
+            const quickBlocked = quickToggleDisabled(quickIds, strategy.id, quickSaving, quickLimit, activeQuickId);
             return (
               <div
                 class={`strategy-card${selected ? ' selected' : ''}${draft ? ' draft' : ''}`}
@@ -444,6 +480,22 @@ export function StrategiesPage() {
                     <strong>{title}</strong>
                     {strategy.builtin && <span class="badge">{tr('strategies.builtin')}</span>}
                     {draft && <span class="badge draft">{tr('strategies.draft')}</span>}
+                    {!draft && !active && (
+                      <button
+                        type="button"
+                        class="strategy-quick"
+                        aria-pressed={isQuick}
+                        aria-label={tr('strategies.quickFor', { name: title })}
+                        aria-describedby="quick-cleanup-hint"
+                        disabled={quickBlocked}
+                        title={quickBlocked ? tr('strategies.quickLimit', { max: quickLimit }) : undefined}
+                        data-testid={`strategy-quick-${strategy.id}`}
+                        onClick={() => void toggleQuick(strategy.id, !isQuick)}
+                      >
+                        <span aria-hidden="true">{isQuick ? '✓' : '+'}</span>
+                        {tr('strategies.quick')}
+                      </button>
+                    )}
                   </div>
                   <div class="strategy-card-summary">
                     <p class="strategy-card-primary">{summary.primary}</p>

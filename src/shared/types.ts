@@ -66,12 +66,14 @@ export type Settings = {
   historyRetentionDays: number;
   historyMaxRecords: number;
   activeStrategyId: string;
+  quickStrategyIds: string[];
+  quickCleanupLimit: number;
   theme: Theme;
   language: Language;
   cleanInternalPages: boolean;
 };
 
-export type SettingsPatch = Partial<Omit<Settings, 'activeStrategyId'>>;
+export type SettingsPatch = Partial<Omit<Settings, 'activeStrategyId' | 'quickStrategyIds'>>;
 
 export type ConfigBundle = {
   app: 'tab-dormancy';
@@ -245,6 +247,15 @@ export type CleanupPreview = {
   totalManagedTabs: number;
   strategyId: string;
   strategyName: string;
+};
+
+export type QuickStrategyStatus = 'ready' | 'invalid' | 'unsupported';
+
+export type QuickStrategyItem = {
+  strategyId: string;
+  name: string;
+  matched: number;
+  status: QuickStrategyStatus;
 };
 
 export type StateSnapshot = {

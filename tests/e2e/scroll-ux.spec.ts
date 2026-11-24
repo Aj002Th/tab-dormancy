@@ -82,9 +82,9 @@ test('sidebar stays pinned and the footer sits at the bottom while the page scro
 
 test('entering strategies does not scroll when the card and editor already fit', async ({ context, extensionId }) => {
   const page = await context.newPage();
-  // The standard preset's 5-condition editor is ~683px tall. 1000px leaves
+  // The standard preset's 5-condition editor is ~655px tall. 1040px leaves
   // enough headroom for the page header, the selected card, and the editor.
-  await page.setViewportSize({ width: 1280, height: 1000 });
+  await page.setViewportSize({ width: 1280, height: 1040 });
   await page.goto(`chrome-extension://${extensionId}/dashboard.html#/strategies`);
 
   await expect(page.locator('.strategy-card.selected')).toBeVisible();

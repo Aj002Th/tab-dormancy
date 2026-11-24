@@ -373,3 +373,111 @@
   font-weight: 400;
   color: var(--muted);
 }
+
+.popup-quick {
+  display: grid;
+  padding: var(--space-2) 0 0;
+}
+
+.popup-quick-title {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.popup-quick-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+}
+
+.popup-quick-row {
+  position: relative;
+}
+
+.popup-quick-row + .popup-quick-row {
+  border-top: 1px solid var(--border);
+}
+
+/* name | count | action. The action cell holds Clean, or Cancel + Confirm once
+   the row is armed, so confirming never hides the strategy name. */
+.popup-quick-row-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+}
+
+.popup-quick-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popup-quick-count {
+  flex: none;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Placement only: the look comes from the shared .btn system. */
+.popup-quick-clean {
+  flex: none;
+  min-height: 30px;
+  padding: 0 var(--space-3);
+  font-size: 13px;
+}
+
+.popup-quick-reason {
+  display: block;
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-2);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.popup-quick-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+  animation: quick-reveal var(--motion-fast) var(--ease-out);
+}
+
+.popup-quick-actions > .btn {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 30px;
+  padding: 0 var(--space-2);
+  font-size: 13px;
+}
+
+@keyframes quick-reveal {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popup-quick-actions {
+    animation: none;
+  }
+}

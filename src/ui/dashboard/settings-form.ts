@@ -10,6 +10,7 @@ export type SettingsForm = {
   lockDelayMinutes: string;
   historyRetentionDays: string;
   historyMaxRecords: string;
+  quickCleanupLimit: string;
   theme: Theme;
   language: Language;
   cleanInternalPages: boolean;
@@ -22,6 +23,7 @@ export function toSettingsForm(settings: Settings): SettingsForm {
     lockDelayMinutes: String(settings.lockDelayMinutes),
     historyRetentionDays: String(settings.historyRetentionDays),
     historyMaxRecords: String(settings.historyMaxRecords),
+    quickCleanupLimit: String(settings.quickCleanupLimit),
     theme: settings.theme,
     language: settings.language,
     cleanInternalPages: settings.cleanInternalPages,
@@ -66,12 +68,18 @@ export function validateSettingsForm(form: SettingsForm): SettingsValidation {
     errors.historyMaxRecords = t('errors.invalidMaxRecords', { max: LIMITS.maxHistory });
   }
 
+  const quickLimit = parseInteger(form.quickCleanupLimit);
+  if (quickLimit === null || quickLimit < 1 || quickLimit > LIMITS.maxQuickStrategies) {
+    errors.quickCleanupLimit = t('errors.invalidQuickLimit');
+  }
+
   if (
     Object.keys(errors).length > 0 ||
     idle === null ||
     lockDelay === null ||
     retention === null ||
-    maxRecords === null
+    maxRecords === null ||
+    quickLimit === null
   ) {
     return { patch: null, errors };
   }
@@ -83,6 +91,7 @@ export function validateSettingsForm(form: SettingsForm): SettingsValidation {
       lockDelayMinutes: lockDelay,
       historyRetentionDays: retention,
       historyMaxRecords: maxRecords,
+      quickCleanupLimit: quickLimit,
       theme: form.theme,
       language: form.language,
       cleanInternalPages: form.cleanInternalPages,
@@ -108,6 +117,7 @@ export function isSettingsDirty(form: SettingsForm, saved: Settings): boolean {
     form.lockDelayMinutes !== savedForm.lockDelayMinutes ||
     form.historyRetentionDays !== savedForm.historyRetentionDays ||
     form.historyMaxRecords !== savedForm.historyMaxRecords ||
+    form.quickCleanupLimit !== savedForm.quickCleanupLimit ||
     form.theme !== savedForm.theme ||
     form.language !== savedForm.language ||
     form.cleanInternalPages !== savedForm.cleanInternalPages

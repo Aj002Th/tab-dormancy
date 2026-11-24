@@ -6,6 +6,7 @@ import type {
   ConfigImportResult,
   HistoryQuery,
   HistoryQueryResult,
+  QuickStrategyItem,
   RestoreOptions,
   RestoreResult,
   Settings,
@@ -20,7 +21,7 @@ export type StrategyPreview = CleanupPreview & { signature: string };
 export type Request =
   | { type: 'state.get' }
   | { type: 'cleanup.preview'; source: 'popup' | 'dashboard' }
-  | { type: 'cleanup.run'; source: 'popup' | 'dashboard' }
+  | { type: 'cleanup.run'; source: 'popup' | 'dashboard'; strategyId?: string }
   | { type: 'tabs.list' }
   | { type: 'history.query'; query: HistoryQuery }
   | { type: 'history.restore'; ids: string[]; options: RestoreOptions }
@@ -30,6 +31,8 @@ export type Request =
   | { type: 'strategy.save'; strategy: Strategy; previewSignature?: string }
   | { type: 'strategy.activate'; id: string }
   | { type: 'strategy.delete'; id: string }
+  | { type: 'quick.set'; ids: string[] }
+  | { type: 'quick.preview' }
   | { type: 'settings.update'; patch: SettingsPatch }
   | { type: 'config.export' }
   | { type: 'config.import'; bundle: unknown }
@@ -50,6 +53,8 @@ export type ResponseMap = {
   'strategy.save': Strategy;
   'strategy.activate': null;
   'strategy.delete': null;
+  'quick.set': string[];
+  'quick.preview': QuickStrategyItem[];
   'settings.update': Settings;
   'config.export': ConfigBundle;
   'config.import': ConfigImportResult;

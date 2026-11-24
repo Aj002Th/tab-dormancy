@@ -133,6 +133,37 @@ describe('configuration import and export', () => {
     expect((await service.getState()).settings.cleanInternalPages).toBe(true);
   });
 
+  it('remaps quick cleanup ids and keeps the imported active strategy in the list', async () => {
+    const { repo, service } = setup();
+    await service.bootstrap();
+    const input = bundle({
+      settings: { ...bundle().settings, quickStrategyIds: ['external', 'preset:standard', 'ghost'] },
+    });
+
+    await service.importConfig(JSON.parse(JSON.stringify(input)));
+
+    const importedId = (await repo.getStrategies()).find((item) => !item.builtin)?.id;
+    const quick = (await repo.getSettings()).quickStrategyIds;
+    expect((await repo.getSettings()).activeStrategyId).toBe(importedId);
+    // The active strategy keeps its quick slot; the popup hides it at render time.
+    expect(quick).toEqual([importedId, 'preset:standard']);
+    expect(quick).not.toContain('external');
+    expect(quick).not.toContain('ghost');
+  });
+
+  it('keeps remapped quick ids for strategies that are not active', async () => {
+    const { repo, service } = setup();
+    await service.bootstrap();
+    const input = bundle({
+      settings: { ...bundle().settings, activeStrategyId: 'preset:standard', quickStrategyIds: ['external'] },
+    });
+
+    await service.importConfig(JSON.parse(JSON.stringify(input)));
+
+    const importedId = (await repo.getStrategies()).find((item) => !item.builtin)?.id;
+    expect((await repo.getSettings()).quickStrategyIds).toEqual([importedId]);
+  });
+
   it('rejects malformed bundles without changing state', async () => {
     const { service } = setup();
     await service.bootstrap();

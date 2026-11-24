@@ -12,6 +12,8 @@ const snapshot: StateSnapshot = {
     historyRetentionDays: 30,
     historyMaxRecords: 5_000,
     activeStrategyId: 'preset:standard',
+    quickStrategyIds: [],
+    quickCleanupLimit: 4,
     theme: 'system',
     language: 'system',
     cleanInternalPages: false,
@@ -80,6 +82,34 @@ describe('message router', () => {
       ok: true,
       data: { imported: 2, activeStrategyId: 'preset:standard' },
     });
+  });
+
+  it('routes quick.set to the service', async () => {
+    const setQuickStrategies = vi.fn().mockResolvedValue(['preset:standard']);
+    const response = await handleRequest(
+      { type: 'quick.set', ids: ['preset:standard'] },
+      stub({ setQuickStrategies } as Partial<TabDormancyService>),
+    );
+    expect(setQuickStrategies).toHaveBeenCalledWith(['preset:standard']);
+    expect(response).toEqual({ ok: true, data: ['preset:standard'] });
+  });
+
+  it('forwards strategyId from cleanup.run', async () => {
+    const runCleanup = vi.fn().mockResolvedValue({
+      runId: 'r',
+      trigger: 'manual',
+      closed: 0,
+      failed: 0,
+      skipped: 0,
+      durationMs: 1,
+      recordIds: [],
+      failures: [],
+    });
+    await handleRequest(
+      { type: 'cleanup.run', source: 'popup', strategyId: 'preset:gentle' },
+      stub({ runCleanup } as Partial<TabDormancyService>),
+    );
+    expect(runCleanup).toHaveBeenCalledWith('manual', 'preset:gentle');
   });
 
   it('returns true for async sendResponse handling', async () => {

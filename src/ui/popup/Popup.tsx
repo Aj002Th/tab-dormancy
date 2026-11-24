@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef } from 'preact/hooks';
 import { t } from '../../shared/i18n';
 import { formatRelativeTime } from '../../shared/time';
-import type { CleanupPreview, CleanupResult, Locale, StateSnapshot } from '../../shared/types';
+import type { CleanupPreview, CleanupResult, Locale, QuickStrategyItem, StateSnapshot } from '../../shared/types';
 import { ApiError, messageOf, openDashboard, openDashboardRoute, send } from '../api';
 import { Banner } from '../components/Banner';
 import { Button } from '../components/Button';
@@ -10,6 +10,8 @@ import { Spinner } from '../components/Spinner';
 import { strategyDisplayName } from '../dashboard/strategy-name';
 import { strategyCardSummary } from '../dashboard/strategy-summary';
 import { useLocale } from '../i18n';
+import { QuickCleanup } from './QuickCleanup';
+import type { QuickButton } from './quick-buttons';
 import { popupSample } from './sample';
 import { initialPopupState, popupReducer } from './state';
 
@@ -43,17 +45,36 @@ export function Popup() {
     }
     if (generation !== request.current) return;
 
-    try {
-      const preview = await send<CleanupPreview>({ type: 'cleanup.preview', source: 'popup' });
-      dispatch({ type: 'loaded', snapshot, preview, generation });
-    } catch (_error) {
+    const [previewResult, quickResult] = await Promise.allSettled([
+      send<CleanupPreview>({ type: 'cleanup.preview', source: 'popup' }),
+      send<QuickStrategyItem[]>({ type: 'quick.preview' }),
+    ]);
+    const quick = quickResult.status === 'fulfilled' ? quickResult.value : [];
+    if (previewResult.status === 'fulfilled') {
+      dispatch({ type: 'loaded', snapshot, preview: previewResult.value, quick, generation });
+    } else {
       dispatch({
         type: 'loaded',
         snapshot,
         preview: null,
+        quick,
         error: t('popup.previewError'),
         generation,
       });
+    }
+  }
+
+  async function runQuick(button: QuickButton) {
+    dispatch({ type: 'run-start', via: { id: button.strategyId, name: button.name } });
+    try {
+      const result = await send<CleanupResult>({
+        type: 'cleanup.run',
+        source: 'popup',
+        strategyId: button.strategyId,
+      });
+      dispatch({ type: 'run-done', result });
+    } catch (error) {
+      dispatch({ type: 'error', message: messageOf(error), generation: request.current });
     }
   }
 
@@ -172,6 +193,7 @@ export function Popup() {
               </Button>
             )}
           </div>
+          <QuickCleanup items={state.quick} onRun={runQuick} />
           <p class="muted popup-footnote">{lastCleanup}</p>
         </>
       )}
@@ -271,6 +293,8 @@ export function Popup() {
             </div>
           </section>
 
+          {state.phase === 'ready' && <QuickCleanup items={state.quick} onRun={runQuick} />}
+
           <p class="muted popup-footnote">{lastCleanup}</p>
         </>
       )}
@@ -279,7 +303,14 @@ export function Popup() {
 
       {state.phase === 'done' && state.result && (
         <section class="done-box">
-          <h2>{t('popup.closedCount', { count: state.result.closed })}</h2>
+          <h2>
+            {state.via
+              ? t('popup.quickDone', {
+                  name: strategyDisplayName({ id: state.via.id, name: state.via.name }),
+                  count: state.result.closed,
+                })
+              : t('popup.closedCount', { count: state.result.closed })}
+          </h2>
           {state.result.failed > 0 && <p class="muted">{t('popup.failed', { count: state.result.failed })}</p>}
           {state.result.skipped > 0 && <p class="muted">{t('popup.skipped', { count: state.result.skipped })}</p>}
           <div class="row popup-actions">

@@ -18,7 +18,7 @@ export async function handleRequest(message: unknown, service: TabDormancyServic
       case 'cleanup.preview':
         return ok(await service.previewCleanup());
       case 'cleanup.run':
-        return ok(await service.runCleanup('manual'));
+        return ok(await service.runCleanup('manual', request.strategyId));
       case 'tabs.list':
         return ok(await service.listTabs());
       case 'history.query':
@@ -41,6 +41,10 @@ export async function handleRequest(message: unknown, service: TabDormancyServic
       case 'strategy.delete':
         await service.deleteStrategy(request.id);
         return ok(null);
+      case 'quick.set':
+        return ok(await service.setQuickStrategies(request.ids));
+      case 'quick.preview':
+        return ok(await service.quickPreview());
       case 'settings.update':
         return ok(await service.updateSettings(request.patch));
       case 'config.export':

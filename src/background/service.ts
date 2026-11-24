@@ -7,7 +7,7 @@ import { selectExpired } from '../core/retention';
 import { evaluateStrategy } from '../core/rules/evaluate';
 import { createPresetStrategies } from '../core/rules/presets';
 import { signatureOf } from '../core/rules/signature';
-import { validateStrategy, validationMessage } from '../core/rules/validate';
+import { validateExpr, validateStrategy, validationMessage } from '../core/rules/validate';
 import { requireStrategy, unsupportedFacts } from '../core/strategies';
 import type { Browser } from '../platform/browser';
 import type { Repo } from '../platform/storage';
@@ -28,6 +28,8 @@ import type {
   HistoryQuery,
   HistoryQueryResult,
   Language,
+  QuickStrategyItem,
+  QuickStrategyStatus,
   RestoreOptions,
   RestoreResult,
   Settings,
@@ -94,6 +96,12 @@ export class TabDormancyService {
       const fallback = strategies.find((strategy) => strategy.id === 'preset:standard') ?? strategies[0];
       if (!fallback) throw new AppError('INTERNAL', t('errors.noUsableStrategy'));
       settings = { ...settings, activeStrategyId: fallback.id };
+      await repo.setSettings(settings);
+    }
+
+    const quickKept = settings.quickStrategyIds.filter((id) => strategies.some((strategy) => strategy.id === id));
+    if (quickKept.length !== settings.quickStrategyIds.length) {
+      settings = { ...settings, quickStrategyIds: quickKept };
       await repo.setSettings(settings);
     }
 
@@ -190,6 +198,41 @@ export class TabDormancyService {
     };
   }
 
+  async quickPreview(): Promise<QuickStrategyItem[]> {
+    await this.bootstrap();
+    const settings = await this.deps.repo.getSettings();
+    const strategies = await this.deps.repo.getStrategies();
+    const caps = await this.getCapabilities();
+    const quick = strategies.filter(
+      (strategy) => strategy.id !== settings.activeStrategyId && settings.quickStrategyIds.includes(strategy.id),
+    );
+    if (quick.length === 0) return [];
+    const [tabs, windows, groups] = await Promise.all([
+      this.deps.browser.queryTabs(),
+      this.deps.browser.getWindows(),
+      this.deps.browser.getTabGroups(),
+    ]);
+    return quick.map((strategy) => {
+      // validateExpr without capabilities: with them, validateStrategy reports
+      // FACT_UNAVAILABLE and an unsupported rule would be mislabelled invalid.
+      const status: QuickStrategyStatus = !validateExpr(strategy.expression).valid
+        ? 'invalid'
+        : unsupportedFacts(strategy.expression, caps).length > 0
+          ? 'unsupported'
+          : 'ready';
+      const plan = planCleanup({
+        tabs,
+        windows,
+        groups,
+        strategy,
+        capabilities: caps,
+        now: this.deps.now(),
+        includeInternalPages: settings.cleanInternalPages,
+      });
+      return { strategyId: strategy.id, name: strategy.name, matched: plan.matched.length, status };
+    });
+  }
+
   async listTabs(): Promise<TabListItem[]> {
     await this.bootstrap();
     const { active, caps, settings } = await this.activeStrategy();
@@ -214,7 +257,7 @@ export class TabDormancyService {
     });
   }
 
-  async runCleanup(trigger: Trigger): Promise<CleanupResult> {
+  async runCleanup(trigger: Trigger, strategyId?: string): Promise<CleanupResult> {
     await this.bootstrap();
     if (this.running) throw new AppError('BUSY', t('errors.busy'));
     this.running = true;
@@ -223,8 +266,9 @@ export class TabDormancyService {
 
     try {
       if (!(await this.acquireLock(runId))) throw new AppError('BUSY', t('errors.busy'));
-      const { active, caps, settings } = await this.activeStrategy();
-      this.assertUsable(active, caps);
+      const { active, caps, settings, strategies } = await this.activeStrategy();
+      const strategy = strategyId === undefined ? active : requireStrategy(strategies, strategyId);
+      this.assertUsable(strategy, caps);
 
       const [tabs, windows, groups] = await Promise.all([
         this.deps.browser.queryTabs(),
@@ -235,7 +279,7 @@ export class TabDormancyService {
         tabs,
         windows,
         groups,
-        strategy: active,
+        strategy,
         capabilities: caps,
         now: this.deps.now(),
         includeInternalPages: settings.cleanInternalPages,
@@ -267,7 +311,7 @@ export class TabDormancyService {
       const browserSessionId = await this.getBrowserSessionId();
       const records = buildClosedRecords(plan, {
         trigger,
-        strategy: active,
+        strategy,
         browserSessionId,
         now: this.deps.now(),
         ids: () => this.deps.id(),
@@ -281,7 +325,7 @@ export class TabDormancyService {
           id: runId,
           startedAt,
           trigger,
-          strategyId: active.id,
+          strategyId: strategy.id,
           browserSessionId,
           drafts: records,
         });
@@ -704,6 +748,34 @@ export class TabDormancyService {
     if (settings.activeStrategyId === id) throw new AppError('FORBIDDEN', t('errors.activeUndeletable'));
     if (strategies.length <= 1) throw new AppError('FORBIDDEN', t('errors.keepOneStrategy'));
     await this.deps.repo.setStrategies(strategies.filter((item) => item.id !== id));
+    if (settings.quickStrategyIds.includes(id)) {
+      await this.deps.repo.setSettings({
+        ...settings,
+        quickStrategyIds: settings.quickStrategyIds.filter((quickId) => quickId !== id),
+      });
+    }
+  }
+
+  async setQuickStrategies(ids: string[]): Promise<string[]> {
+    await this.bootstrap();
+    if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string' || id.length === 0)) {
+      throw new AppError('INVALID_SETTINGS', t('errors.INVALID_SETTINGS'));
+    }
+    const settings = await this.deps.repo.getSettings();
+    const strategies = await this.deps.repo.getStrategies();
+    const known = new Set(strategies.map((strategy) => strategy.id));
+    // The active strategy keeps its slot: it is hidden from the dashboard pill
+    // and from the popup, so switching strategies away and back restores it.
+    const next = [...new Set(ids)].filter((id) => known.has(id));
+    // The limit governs additions only: removing items must stay possible even
+    // when the stored list is longer than a freshly lowered limit.
+    const adding = next.filter((id) => !settings.quickStrategyIds.includes(id));
+    const selectable = next.filter((id) => id !== settings.activeStrategyId);
+    if (adding.length > 0 && selectable.length > settings.quickCleanupLimit) {
+      throw new AppError('INVALID_SETTINGS', t('errors.quickLimit', { max: settings.quickCleanupLimit }));
+    }
+    await this.deps.repo.setSettings({ ...settings, quickStrategyIds: next });
+    return next;
   }
 
   async exportConfig(): Promise<ConfigBundle> {
@@ -749,7 +821,13 @@ export class TabDormancyService {
       strategies[0]?.id;
     if (!activeStrategyId) throw new AppError('INTERNAL', t('errors.noUsableStrategy'));
 
-    const nextSettings: Settings = { ...parsed.bundle.settings, activeStrategyId };
+    const nextSettings: Settings = {
+      ...parsed.bundle.settings,
+      activeStrategyId,
+      quickStrategyIds: [...new Set(parsed.bundle.settings.quickStrategyIds.map((id) => idMap.get(id) ?? id))]
+        .filter((id) => strategies.some((strategy) => strategy.id === id))
+        .slice(0, LIMITS.maxQuickStrategies),
+    };
     await this.deps.repo.setConfig(nextSettings, strategies);
     this.applyLocale(nextSettings.language);
     await this.deps.browser.setIdleDetectionInterval(nextSettings.idleThresholdMinutes * 60);
@@ -761,7 +839,9 @@ export class TabDormancyService {
   async updateSettings(patch: SettingsPatch): Promise<Settings> {
     await this.bootstrap();
     const current = await this.deps.repo.getSettings();
-    const next: Settings = { ...current, ...patch };
+    // quickStrategyIds is written only through quick.set; a runtime patch that
+    // carries the field (the router does not validate shapes) must not pass it.
+    const next: Settings = { ...current, ...patch, quickStrategyIds: current.quickStrategyIds };
     if (
       !Number.isInteger(next.idleThresholdMinutes) ||
       next.idleThresholdMinutes < 1 ||
@@ -797,6 +877,13 @@ export class TabDormancyService {
       next.historyMaxRecords > LIMITS.maxHistory
     ) {
       throw new AppError('INVALID_SETTINGS', t('errors.invalidMaxRecords', { max: LIMITS.maxHistory }));
+    }
+    if (
+      !Number.isInteger(next.quickCleanupLimit) ||
+      next.quickCleanupLimit < 1 ||
+      next.quickCleanupLimit > LIMITS.maxQuickStrategies
+    ) {
+      throw new AppError('INVALID_SETTINGS', t('errors.invalidQuickLimit'));
     }
     await this.deps.repo.setSettings(next);
     this.applyLocale(next.language);

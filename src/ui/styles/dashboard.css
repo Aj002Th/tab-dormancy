@@ -704,6 +704,78 @@
   white-space: nowrap;
 }
 
+.strategy-quick {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  margin-left: auto;
+  padding: 0 var(--space-3);
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: auto;
+  transition: color var(--motion-fast) var(--ease-out);
+  cursor: pointer;
+}
+
+/* The pill is drawn 30px tall while the button keeps a 44px hit area. */
+.strategy-quick::before {
+  content: "";
+  position: absolute;
+  inset: 7px 0;
+  border: 1px solid var(--border-control);
+  border-radius: 999px;
+  background: transparent;
+  transition:
+    background var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+.strategy-quick:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.strategy-quick:hover:not(:disabled)::before {
+  border-color: var(--accent);
+}
+
+.strategy-quick[aria-pressed="true"] {
+  color: var(--accent);
+}
+
+.strategy-quick[aria-pressed="true"]::before {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.strategy-quick:focus-visible {
+  outline: none;
+}
+
+.strategy-quick:focus-visible::before {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.strategy-quick:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .strategy-quick,
+  .strategy-quick::before {
+    transition: none;
+  }
+}
+
 .editor-head {
   display: flex;
   align-items: flex-end;
@@ -1398,6 +1470,12 @@
 
 .field-error {
   color: var(--danger);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.condition-hint {
+  color: var(--muted);
   font-size: 12px;
   line-height: 1.5;
 }

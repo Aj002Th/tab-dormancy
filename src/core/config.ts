@@ -1,4 +1,4 @@
-import { LIMITS } from '../shared/constants';
+import { DEFAULT_SETTINGS, LIMITS } from '../shared/constants';
 import { isLanguage } from '../shared/language';
 import { isTheme } from '../shared/theme';
 import type { ConfigBundle, Expr, Settings, Strategy } from '../shared/types';
@@ -87,6 +87,18 @@ function parseSettings(value: unknown): Settings | null {
   if (!isTheme(value.theme) || !isLanguage(value.language)) return null;
   const cleanInternalPages = value.cleanInternalPages === undefined ? false : value.cleanInternalPages;
   if (typeof cleanInternalPages !== 'boolean') return null;
+  const quick = value.quickStrategyIds === undefined ? [] : parseQuickIds(value.quickStrategyIds);
+  if (!quick) return null;
+  const quickLimit =
+    value.quickCleanupLimit === undefined ? DEFAULT_SETTINGS.quickCleanupLimit : value.quickCleanupLimit;
+  if (
+    typeof quickLimit !== 'number' ||
+    !Number.isInteger(quickLimit) ||
+    quickLimit < 1 ||
+    quickLimit > LIMITS.maxQuickStrategies
+  ) {
+    return null;
+  }
 
   return {
     idleThresholdMinutes: idle as number,
@@ -95,10 +107,18 @@ function parseSettings(value: unknown): Settings | null {
     historyRetentionDays: retention as number,
     historyMaxRecords: maxRecords as number,
     activeStrategyId: value.activeStrategyId,
+    quickStrategyIds: quick,
+    quickCleanupLimit: quickLimit,
     theme: value.theme,
     language: value.language,
     cleanInternalPages,
   };
+}
+
+function parseQuickIds(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length > LIMITS.maxQuickStrategies) return null;
+  if (!value.every((id) => typeof id === 'string' && id.length > 0)) return null;
+  return value;
 }
 
 function parseStrategy(value: unknown): Strategy | null {

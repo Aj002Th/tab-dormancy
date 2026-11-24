@@ -47,4 +47,21 @@ describe('i18n', () => {
       'Close 2 tabs? You can restore them from the dashboard.',
     );
   });
+
+  it('localizes the quick cleanup copy', () => {
+    expect(translate('zh', 'popup.quickDone', { name: '工作', count: 3 })).toBe('已用「工作」关闭 3 个标签');
+    expect(translate('en', 'popup.quickDone', { name: 'Work', count: 3 })).toBe('Closed 3 tabs with "Work"');
+    expect(translate('zh', 'strategies.quickLimit', { max: 4 })).toBe('最多选择 4 条快速清理策略');
+    expect(translate('zh', 'strategies.quickHint')).toBe('在弹窗中显示为手动清理按钮');
+    expect(translate('en', 'strategies.quickHint')).toBe('Shown as a manual button in the popup');
+  });
+
+  it('localizes the two-step quick cleanup copy', () => {
+    expect(translate('zh', 'popup.quickConfirm')).toBe('确认');
+    expect(translate('en', 'popup.quickCancel')).toBe('Cancel');
+    expect(translate('zh', 'popup.quickConfirmAria', { name: '工作', count: 3 })).toBe('用「工作」关闭 3 个标签');
+    expect(translate('en', 'popup.quickCancelAria', { name: 'Work' })).toBe('Cancel cleaning with "Work"');
+    expect(translate('zh', 'settings.quickCleanupRange')).toBe('1–8 条');
+    expect(translate('en', 'settings.quickCleanupHelp')).toBe('How many quick cleanup items you can add');
+  });
 });

@@ -226,6 +226,14 @@ function ConditionRow({
   const unavailable = !isFactAvailable(definition, capabilities);
   const isBoolean = definition.type === 'boolean';
   const booleanNegated = effectiveBooleanNegated(node.value, negated);
+  const hintText =
+    node.op === 'matchesGlob'
+      ? translate(locale, 'editor.globHint')
+      : node.op === 'inDomainList'
+        ? translate(locale, 'editor.domainListHint')
+        : null;
+  const hintId = hintText ? `rule-${node.id}-hint` : undefined;
+  const valueDescribedBy = [errorId, hintId].filter(Boolean).join(' ') || undefined;
 
   const update = (patch: Partial<Extract<Expr, { type: 'condition' }>>) => {
     onChange(
@@ -361,7 +369,7 @@ function ConditionRow({
                 disabled={disabled}
                 placeholder={translate(locale, 'editor.domainPlaceholder')}
                 aria-label={translate(locale, 'editor.value')}
-                aria-describedby={errorId}
+                aria-describedby={valueDescribedBy}
                 aria-invalid={nodeIssues.length > 0 ? 'true' : undefined}
                 onInput={(event) =>
                   update({
@@ -372,6 +380,11 @@ function ConditionRow({
                   })
                 }
               />
+              {hintText && (
+                <span class="condition-hint" id={hintId}>
+                  {hintText}
+                </span>
+              )}
             </label>
           ) : (
             <label class="condition-field condition-value" for={`rule-${node.id}-value`}>
@@ -384,10 +397,15 @@ function ConditionRow({
                 disabled={disabled}
                 placeholder={definition.type === 'domain' ? 'example.com' : translate(locale, 'editor.text')}
                 aria-label={translate(locale, 'editor.value')}
-                aria-describedby={errorId}
+                aria-describedby={valueDescribedBy}
                 aria-invalid={nodeIssues.length > 0 ? 'true' : undefined}
                 onInput={(event) => update({ value: (event.currentTarget as HTMLInputElement).value })}
               />
+              {hintText && (
+                <span class="condition-hint" id={hintId}>
+                  {hintText}
+                </span>
+              )}
             </label>
           )}
         </div>

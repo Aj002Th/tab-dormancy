@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { setLocale } from '../../src/shared/i18n';
-import type { Settings } from '../../src/shared/types';
+import type { Settings, SettingsPatch } from '../../src/shared/types';
 import {
   isSettingsDirty,
   parseSettingsForm,
@@ -20,6 +20,8 @@ const saved: Settings = {
   historyRetentionDays: 30,
   historyMaxRecords: 5_000,
   activeStrategyId: 'preset:standard',
+  quickStrategyIds: [],
+  quickCleanupLimit: 4,
   theme: 'system',
   language: 'system',
   cleanInternalPages: false,
@@ -37,6 +39,7 @@ describe('settings form', () => {
       lockDelayMinutes: '15',
       historyRetentionDays: '30',
       historyMaxRecords: '5000',
+      quickCleanupLimit: '4',
       theme: 'system',
       language: 'system',
       cleanInternalPages: false,
@@ -51,6 +54,7 @@ describe('settings form', () => {
         lockDelayMinutes: '0',
         historyRetentionDays: '7',
         historyMaxRecords: '120',
+        quickCleanupLimit: '4',
         theme: 'dark',
         language: 'system',
         cleanInternalPages: true,
@@ -62,6 +66,7 @@ describe('settings form', () => {
         lockDelayMinutes: 0,
         historyRetentionDays: 7,
         historyMaxRecords: 120,
+        quickCleanupLimit: 4,
         theme: 'dark',
         language: 'system',
         cleanInternalPages: true,
@@ -168,5 +173,19 @@ describe('settings form', () => {
     expect(parseSettingsForm(form({ language: 'fr' as SettingsForm['language'] }))).toEqual({
       error: '界面语言无效',
     });
+  });
+
+  it('keeps the quick cleanup list out of SettingsPatch', () => {
+    const patch: SettingsPatch = { idleThresholdMinutes: 30 };
+    // @ts-expect-error quickStrategyIds is written through quick.set only
+    const invalid: SettingsPatch = { quickStrategyIds: [] };
+    expect(patch).toBeTruthy();
+    expect(invalid).toBeTruthy();
+  });
+
+  it('validates the quick cleanup limit between 1 and 8', () => {
+    expect(validateSettingsForm(form({ quickCleanupLimit: '2' })).patch?.quickCleanupLimit).toBe(2);
+    expect(validateSettingsForm(form({ quickCleanupLimit: '0' })).errors.quickCleanupLimit).toBeTruthy();
+    expect(validateSettingsForm(form({ quickCleanupLimit: '9' })).errors.quickCleanupLimit).toBeTruthy();
   });
 });
