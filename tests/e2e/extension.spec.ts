@@ -985,6 +985,26 @@ test('quick cleanup runs only the chosen strategy and records its name', async (
   await popup.getByTestId(`popup-quick-clean-${workId}`).click();
   await expect(popup.getByTestId(`popup-quick-confirm-${workId}`)).toBeVisible();
   await expect(c).toHaveURL(/\/c$/);
+
+  // All three quick buttons come from the shared .btn system: one radius, one
+  // type scale, and a danger fill that differs from the neutral cancel.
+  const looks = await popup.evaluate(() => {
+    const pick = (selector: string) => {
+      const node = document.querySelector(selector) as HTMLElement;
+      const style = getComputedStyle(node);
+      return { radius: style.borderRadius, fontSize: style.fontSize, background: style.backgroundColor };
+    };
+    return {
+      clean: pick('[data-testid^="popup-quick-clean-"]'),
+      cancel: pick('[data-testid^="popup-quick-cancel-"]'),
+      confirm: pick('[data-testid^="popup-quick-confirm-"]'),
+    };
+  });
+  expect(looks.clean.radius).toBe('8px');
+  expect(looks.cancel.radius).toBe('8px');
+  expect(looks.confirm.radius).toBe('8px');
+  expect(looks.clean.fontSize).toBe(looks.confirm.fontSize);
+  expect(looks.confirm.background).not.toBe(looks.cancel.background);
   await popup.waitForTimeout(300); // the row ignores a confirm click within 250ms of expanding
   await popup.getByTestId(`popup-quick-confirm-${workId}`).click();
   await expect(popup.getByText('已用「Quick work」关闭 2 个标签')).toBeVisible();

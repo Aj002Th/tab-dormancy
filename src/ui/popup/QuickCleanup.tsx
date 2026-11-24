@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { t } from '../../shared/i18n';
 import type { QuickStrategyItem } from '../../shared/types';
+import { Button } from '../components/Button';
 import { strategyDisplayName } from '../dashboard/strategy-name';
 import { type QuickButton, quickButtons } from './quick-buttons';
 
@@ -86,9 +87,12 @@ export function QuickCleanup({
                 <span class="popup-quick-count" data-testid={`popup-quick-count-${button.strategyId}`}>
                   {t('popup.quickCount', { count: button.count })}
                 </span>
+                {/* Raw <button> rather than <Button>: this one needs
+                    aria-expanded/aria-controls, a ref and a display toggle,
+                    while still wearing the shared .btn styling. */}
                 <button
                   type="button"
-                  class="popup-quick-clean"
+                  class="btn btn-secondary popup-quick-clean"
                   aria-expanded={isArmed}
                   aria-controls={isArmed ? `popup-quick-actions-${button.strategyId}` : undefined}
                   aria-label={reason ? `${cleanLabel} — ${reason}` : cleanLabel}
@@ -104,22 +108,20 @@ export function QuickCleanup({
                 </button>
                 {isArmed && (
                   <div class="popup-quick-actions" id={`popup-quick-actions-${button.strategyId}`}>
-                    <button
-                      type="button"
-                      class="popup-quick-cancel"
+                    <Button
+                      variant="secondary"
                       aria-label={t('popup.quickCancelAria', { name })}
                       data-testid={`popup-quick-cancel-${button.strategyId}`}
                       onClick={() => setArmed(null)}
                     >
                       {t('popup.quickCancel')}
-                    </button>
-                    <button
-                      type="button"
-                      class="popup-quick-confirm"
+                    </Button>
+                    <Button
+                      variant="danger"
                       aria-label={t('popup.quickConfirmAria', { name, count: button.count })}
                       data-testid={`popup-quick-confirm-${button.strategyId}`}
-                      ref={(node) => {
-                        confirmRefs.current[button.strategyId] = node as HTMLButtonElement | null;
+                      focusRef={(node) => {
+                        confirmRefs.current[button.strategyId] = node;
                       }}
                       onClick={() => {
                         if (Date.now() - armedAt.current < CONFIRM_GUARD_MS) return;
@@ -127,7 +129,7 @@ export function QuickCleanup({
                       }}
                     >
                       {t('popup.quickConfirm')}
-                    </button>
+                    </Button>
                   </div>
                 )}
                 {reason && (
