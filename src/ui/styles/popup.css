@@ -381,7 +381,7 @@
 
 .popup-quick-title {
   margin: 0;
-  padding: var(--space-2) var(--space-3) 0;
+  padding: var(--space-2) var(--space-3);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -392,6 +392,7 @@
   display: grid;
   margin: 0;
   padding: 0;
+  border-top: 1px solid var(--border);
   list-style: none;
 }
 
@@ -414,8 +415,8 @@
   align-items: center;
   column-gap: var(--space-2);
   row-gap: 2px;
-  min-height: 60px;
-  padding: var(--space-3) 0 var(--space-3) var(--space-3);
+  min-height: 44px;
+  padding: 0 0 0 var(--space-3);
 }
 
 .popup-quick-name {
@@ -438,8 +439,9 @@
 /* Placement only: the look comes from the shared .btn system. */
 .popup-quick-clean {
   grid-area: action;
-  min-height: 44px;
+  min-height: 30px;
   margin-right: var(--space-3);
+  padding: 0 var(--space-3);
   font-size: 13px;
 }
 
@@ -462,7 +464,8 @@
 .popup-quick-actions > .btn {
   flex: 1 1 0;
   min-width: 0;
-  min-height: 44px;
+  min-height: 30px;
+  padding: 0 var(--space-2);
   font-size: 13px;
 }
 
